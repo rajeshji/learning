@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Human and Operational Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#854d0e; border-bottom-color:#854d0e; }
+    .tab-btn:hover:not(.active) { color:#3f2006; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fefce8; border:1px solid #fef08a; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#854d0e; margin-bottom:.6rem; }
+    .ncode{ background:#3f2006; color:#fef08a; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fef08a; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#713f12; color:#fef08a; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #fef9c3;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fefce8; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#854d0e; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#713f12; color:#fef08a; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #fef9c3; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#3f2006; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-yellow-900 hover:text-yellow-950 font-semibold
+              bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-yellow-900 font-semibold">Human and Operational Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-yellow-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Human and Operational Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 36 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Human Failures Are the Most Underestimated Failure Class</p>
+      <div class="ncode">Studies show 70-80% of production outages have a human action as a contributing cause.
+Systems fail not because the software was wrong — but because a human made a decision.
+
+Human failures are uniquely dangerous because:
+  1. They bypass automated safeguards (humans with enough access can override anything)
+  2. They are hard to detect (no automated system raises "human did something wrong")
+  3. They are hardest to prevent (you cannot unit-test a person)</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Configuration Push Errors</td></tr>
+          <tr>
+            <td>Wrong Config Pushed to Production<span class="badge-crit">Must Know</span></td>
+            <td>Engineer pushes wrong timeout, endpoint URL, or feature flag to production config</td>
+            <td>Anomalous traffic behaviour immediately after config push; correlate with change log</td>
+            <td>Rollback config to previous known-good version immediately</td>
+            <td>Config-as-code with PR review, canary config rollout, schema validation in CI</td>
+            <td class="casc">System-wide instability if config controls retry/timeout/routing for all services</td>
+            <td class="troff">Config validation adds friction to emergency config changes under pressure</td>
+          </tr>
+          <tr>
+            <td>Wrong Environment Targeted<span class="badge-crit">Must Know</span></td>
+            <td>Engineer runs command against production thinking they are in staging (kubectl, aws CLI)</td>
+            <td>Unexpected production change in audit log; production behaving differently</td>
+            <td>Revert change, restore from backup if data deleted</td>
+            <td>Explicit environment confirmation prompt, colour-coded terminal (red=prod), separate credentials per env</td>
+            <td class="casc">Production data deletion or misconfiguration with no warning</td>
+            <td class="troff">Confirmation prompts slow legitimate emergency actions under incident pressure</td>
+          </tr>
+          <tr>
+            <td>Feature Flag Pushed Without Review</td>
+            <td>Engineer enables feature flag directly without going through approval — unintended behaviour activated</td>
+            <td>Unexpected feature visible to users, business metrics change unexpectedly</td>
+            <td>Disable flag immediately</td>
+            <td>Flag change review process, kill switch for every flag, two-person approval for prod flags</td>
+            <td class="casc">User-facing behaviour change at scale — may trigger unexpected downstream business logic</td>
+            <td class="troff">Mandatory review process slows time-to-ship for experimental features</td>
+          </tr>
+          <tr>
+            <td>Secrets Committed to Version Control</td>
+            <td>Developer accidentally commits API key, DB password, or private key to public/private repo</td>
+            <td>Secret scanner alert in CI, external party reports credential use</td>
+            <td>Rotate all exposed credentials immediately, remove from git history</td>
+            <td>Secret scanning in CI (Trufflehog/Gitleaks), pre-commit hook to block credential patterns</td>
+            <td class="casc">Compromised credentials used for data exfiltration before rotation completes</td>
+            <td class="troff">Secret scanners may produce false positives and block legitimate commits</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Data Deletion and Corruption Errors</td></tr>
+          <tr>
+            <td>Accidental Production Data Deletion<span class="badge-crit">Must Know</span></td>
+            <td>Engineer runs DELETE without WHERE clause or drops wrong table in production</td>
+            <td>Sudden data missing in application, user complaints, row count alerts</td>
+            <td>Restore from most recent backup, apply point-in-time recovery</td>
+            <td>Require WHERE clause enforcement, soft-delete over hard-delete, read-only prod access by default</td>
+            <td class="casc">Data permanently lost if backup is stale or PITR window missed</td>
+            <td class="troff">Soft-delete requires regular purge jobs and complicates queries</td>
+          </tr>
+          <tr>
+            <td>Wrong WHERE Clause Mass Update<span class="badge-crit">Must Know</span></td>
+            <td>UPDATE statement with incorrect predicate updates millions of rows with wrong value</td>
+            <td>Business metric anomaly, application errors from corrupted field values</td>
+            <td>Roll back transaction if caught in time, restore from backup</td>
+            <td>DRY-RUN mode for bulk updates (SELECT first, then UPDATE), row count confirmation before execute</td>
+            <td class="casc">Corrupted data propagates through caches and downstream systems before detected</td>
+            <td class="troff">Mandatory SELECT-before-UPDATE adds operational steps under time pressure</td>
+          </tr>
+          <tr>
+            <td>Backup Never Tested — Restore Fails During Incident</td>
+            <td>Backup exists but restore procedure untested — during disaster, restore fails or takes 10x longer</td>
+            <td>Discovered only during incident when restore is needed</td>
+            <td>Switch to replica while investigating backup failure</td>
+            <td>Regular restore drills, automated restore validation after every backup, backup SLO</td>
+            <td class="casc">Extended outage — team discovers during the worst moment that backup is unusable</td>
+            <td class="troff">Regular restore drills consume engineer time and test environment resources</td>
+          </tr>
+          <tr>
+            <td>Data Wipe During Cleanup Script</td>
+            <td>Cleanup script written for staging accidentally run against production dataset</td>
+            <td>Data missing in production, script execution in audit log</td>
+            <td>Restore from backup, apply PITR to minimize data loss window</td>
+            <td>Scripts require explicit environment flag (--env=prod), separate IAM roles per environment</td>
+            <td class="casc">Irreversible data loss if cleanup deleted records with no recovery path</td>
+            <td class="troff">Mandatory environment flags add friction but save from catastrophic mistakes</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Deployment and Release Human Errors</td></tr>
+          <tr>
+            <td>Deploy to Production Without Staging Validation<span class="badge-crit">Must Know</span></td>
+            <td>Engineer skips staging gate (time pressure, process bypassed) — untested code reaches production</td>
+            <td>Production error rate spikes immediately after deploy</td>
+            <td>Rollback deployment immediately</td>
+            <td>Mandatory staging gate in CI/CD pipeline, staging bypass requires manager approval</td>
+            <td class="casc">Production outage from untested code — no early warning from staging</td>
+            <td class="troff">Hard staging gate slows emergency hotfix deployments under active incident</td>
+          </tr>
+          <tr>
+            <td>No Rollback Plan Before Deploy<span class="badge-crit">Must Know</span></td>
+            <td>Deploy proceeds without defining rollback steps — when deploy fails, team improvises under pressure</td>
+            <td>Incident response slows, team spending time figuring out how to rollback mid-outage</td>
+            <td>Document and execute rollback steps while trying different approaches simultaneously</td>
+            <td>Rollback plan mandatory in deploy checklist, rollback tested in staging before prod deploy</td>
+            <td class="casc">Extended outage — additional errors made during unplanned improvised rollback</td>
+            <td class="troff">Mandatory rollback planning adds pre-deploy time for every change</td>
+          </tr>
+          <tr>
+            <td>Wrong Artifact Deployed</td>
+            <td>CI system deploys a different build than was tested — different code in production than expected</td>
+            <td>Version mismatch between expected and running binary</td>
+            <td>Redeploy correct artifact, rollback to last known-good</td>
+            <td>Artifact hash verification at deploy time, immutable artifact IDs in pipeline</td>
+            <td class="casc">Untested code in production — security vulnerabilities or bugs not caught in review</td>
+            <td class="troff">Hash verification adds a pipeline step and slows deployment</td>
+          </tr>
+          <tr>
+            <td>Runbook Step Skipped Under Pressure</td>
+            <td>Engineer rushes through runbook during incident, skips a step — recovery incomplete or worsens situation</td>
+            <td>System not recovering as expected after runbook execution</td>
+            <td>Restart runbook from beginning, track which steps were executed</td>
+            <td>Checklist-style runbooks (each step must be checked off), runbook automation where possible</td>
+            <td class="casc">Incomplete recovery creates a second failure — situation worsens from intervention</td>
+            <td class="troff">Mandatory step-by-step checklists slow response for experienced engineers who know the steps</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Capacity and Scaling Errors</td></tr>
+          <tr>
+            <td>No Load Test Before Major Event<span class="badge-crit">Must Know</span></td>
+            <td>Product launch, sale, or viral event hits system that was never tested at expected load</td>
+            <td>System degrades under event traffic, latency and errors spike</td>
+            <td>Emergency scale-out, enable caching, activate CDN, shed non-critical load</td>
+            <td>Load testing as mandatory pre-launch step, capacity planning for 2x expected peak</td>
+            <td class="casc">Public-facing outage during high-visibility event — business and reputation impact</td>
+            <td class="troff">Realistic load testing requires production-like environment and data volume</td>
+          </tr>
+          <tr>
+            <td>Wrong Autoscaling Policy<span class="badge-crit">Must Know</span></td>
+            <td>Autoscaling configured on wrong metric, wrong threshold, or wrong cooldown — scales too slow or not at all</td>
+            <td>Service not scaling despite load; or scaling triggered by wrong metric during idle</td>
+            <td>Manually scale, override autoscaling policy</td>
+            <td>Test autoscaling policy in load test, monitor effective scale events, review policy quarterly</td>
+            <td class="casc">Saturation — service fails to scale under legitimate load, causing outage</td>
+            <td class="troff">Complex autoscaling policies are hard to test without production-like traffic</td>
+          </tr>
+          <tr>
+            <td>Database Not Scaled Before Application Scaled</td>
+            <td>Application tier scaled out but DB connection pool limit not increased — DB refuses new connections</td>
+            <td>DB connection exhaustion errors despite application looking healthy</td>
+            <td>Scale DB connection pool, add connection pooler (PgBouncer), reduce app replicas temporarily</td>
+            <td>Scale DB tier first, plan connection budget before scaling application replicas</td>
+            <td class="casc">Application instances up but all failing — every request hits DB connection limit</td>
+            <td class="troff">Connection poolers add a layer of operational complexity</td>
+          </tr>
+          <tr>
+            <td>Over-Provisioning That Creates False Confidence</td>
+            <td>System always massively over-provisioned — engineers lose intuition for real capacity limits</td>
+            <td>Discovered during cost review or when budget cuts force right-sizing that exposes limits</td>
+            <td>Right-size gradually with load testing at each step</td>
+            <td>Regular capacity review with load testing to understand actual limits</td>
+            <td class="casc">Sudden exposure of real limits when cost-optimisation forced — system fails at much lower load than assumed</td>
+            <td class="troff">Running close to capacity limit reduces safety margin for traffic spikes</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Incident Response Failures</td></tr>
+          <tr>
+            <td>No Incident Commander — Multiple People Taking Action<span class="badge-crit">Must Know</span></td>
+            <td>Multiple engineers make simultaneous changes during incident — changes conflict, situation worsens</td>
+            <td>Conflicting actions visible in change log, system behaviour unpredictable</td>
+            <td>Designate single incident commander, stop all other changes immediately</td>
+            <td>Incident response training, clear IC role in on-call process, IR runbook includes "declare IC first"</td>
+            <td class="casc">Simultaneous conflicting changes turn fixable incident into extended outage</td>
+            <td class="troff">Single IC may be wrong — team members with better ideas cannot act quickly</td>
+          </tr>
+          <tr>
+            <td>Wrong Root Cause Diagnosis<span class="badge-crit">Must Know</span></td>
+            <td>Team misidentifies root cause under pressure — fix applied to wrong component, real cause continues</td>
+            <td>System not improving after "fix" applied, second symptom not explained by hypothesis</td>
+            <td>Step back, gather more data, revisit hypothesis</td>
+            <td>Hypothesis-driven debugging (list 3 possible causes before fixing), post-incident review</td>
+            <td class="casc">Wasted time on wrong fix — real root cause continues spreading while team celebrates false progress</td>
+            <td class="troff">Hypothesis discipline slows immediate action in obvious cases</td>
+          </tr>
+          <tr>
+            <td>Escalation Delay — Waiting Too Long to Call for Help</td>
+            <td>On-call engineer struggles alone for too long before escalating — incident extends unnecessarily</td>
+            <td>Incident duration much longer than expected for severity level</td>
+            <td>Escalate immediately when stuck for more than 15 minutes without progress</td>
+            <td>Clear escalation criteria in runbook, culture of early escalation without stigma</td>
+            <td class="casc">Outage extends because expertise was available but not called in time</td>
+            <td class="troff">Hair-trigger escalation creates alert fatigue for senior engineers</td>
+          </tr>
+          <tr>
+            <td>Communication Breakdown During Incident</td>
+            <td>Status updates not shared, different teams take conflicting actions, customer not informed</td>
+            <td>Teams working at cross-purposes, duplicate effort, customer complaints</td>
+            <td>Open incident channel immediately, status updates every 15 minutes</td>
+            <td>Incident communication template, dedicated incident Slack channel, status page</td>
+            <td class="casc">Conflicting actions worsen incident; customer trust eroded by silence</td>
+            <td class="troff">Mandatory status updates take engineer time away from fixing the problem</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Access Control and Permission Errors</td></tr>
+          <tr>
+            <td>Overprivileged Service Account<span class="badge-crit">Must Know</span></td>
+            <td>Service runs with admin-level permissions — if compromised, attacker has full access</td>
+            <td>Security audit finding, or discovered after breach when blast radius assessed</td>
+            <td>Immediately restrict permissions to minimum needed, rotate credentials</td>
+            <td>Principle of least privilege, IAM review quarterly, infrastructure-as-code for all IAM</td>
+            <td class="casc">Full system compromise if the overprivileged account is exploited</td>
+            <td class="troff">Minimal permissions require more IAM management effort per service</td>
+          </tr>
+          <tr>
+            <td>Shared Credentials Between Environments</td>
+            <td>Production and staging share same API key or DB password — staging breach affects production</td>
+            <td>Discovered during security audit or after credential compromise</td>
+            <td>Rotate all shared credentials immediately, assign unique per environment</td>
+            <td>Unique credentials per environment enforced by IaC, credential rotation automation</td>
+            <td class="casc">Staging compromise immediately exposes production</td>
+            <td class="troff">Per-environment credential management increases secret management overhead</td>
+          </tr>
+          <tr>
+            <td>Expired Certificate Causing Outage</td>
+            <td>TLS certificate expires without renewal — all HTTPS traffic fails</td>
+            <td>SSL handshake failures, users see certificate error in browser</td>
+            <td>Renew certificate immediately (Let's Encrypt auto-renew if configured)</td>
+            <td>Certificate expiry monitoring with 30/14/7 day alerts, automated renewal (cert-manager)</td>
+            <td class="casc">Complete service unavailability — no HTTPS traffic can succeed</td>
+            <td class="troff">Auto-renewal adds complexity; failure of auto-renewal still causes outage</td>
+          </tr>
+          <tr>
+            <td>Rogue Admin Action Without Change Review</td>
+            <td>Engineer with admin access makes undocumented production change — no peer review, no audit trail</td>
+            <td>Unexplained production behaviour; change traced via audit log after the fact</td>
+            <td>Revert undocumented change, review impact</td>
+            <td>All production changes via reviewed PRs, break-glass access with mandatory post-hoc review</td>
+            <td class="casc">Unknown production state — no one knows what the system should look like</td>
+            <td class="troff">Mandatory review slows legitimate emergency changes during active incidents</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Monitoring and Alert Management Errors</td></tr>
+          <tr>
+            <td>Alert Silenced and Never Unsilenced<span class="badge-crit">Must Know</span></td>
+            <td>Alert silenced during maintenance, team forgets to re-enable — real failure goes undetected</td>
+            <td>Outage discovered by user report, not by alerting system</td>
+            <td>Re-enable alert immediately, establish incident timeline from logs</td>
+            <td>Alert silences must have mandatory TTL and owner, silences reviewed weekly</td>
+            <td class="casc">Silent failure propagates for hours or days before manual discovery</td>
+            <td class="troff">TTL on silences may re-trigger noisy alerts during still-ongoing maintenance</td>
+          </tr>
+          <tr>
+            <td>Alert Threshold Never Updated After Traffic Growth</td>
+            <td>System traffic grows 10x — absolute-value alert thresholds become meaningless (too high or too low)</td>
+            <td>Alerts fire constantly (too sensitive) or never fire for real issues (too lenient)</td>
+            <td>Review and retune alert thresholds immediately</td>
+            <td>SLO-based alerting (percentage-based burn rate, not absolute values), quarterly alert review</td>
+            <td class="casc">Real incidents missed because threshold is now set too high for current scale</td>
+            <td class="troff">SLO-based alerting requires careful SLO definition per service</td>
+          </tr>
+          <tr>
+            <td>Dashboard Shows Wrong Data — Team Makes Wrong Decision</td>
+            <td>Metrics misconfigured — dashboard shows healthy when system is degraded</td>
+            <td>User complaints despite dashboard showing green</td>
+            <td>Validate metrics against raw data source, cross-check with logs</td>
+            <td>Metrics correctness testing, synthetic canary to validate dashboard shows expected values</td>
+            <td class="casc">Team does not respond to real outage because monitoring says everything is fine</td>
+            <td class="troff">Metrics validation adds CI complexity; synthetic canaries add cost</td>
+          </tr>
+          <tr>
+            <td>No Alert for New Service / Feature</td>
+            <td>New service shipped without adding alerts — failure goes undetected until users complain</td>
+            <td>User report or manual dashboard check</td>
+            <td>Add alerts immediately for the new service</td>
+            <td>Observability checklist as deploy gate, alerting-as-code reviewed in same PR as service code</td>
+            <td class="casc">Silent failure for new service — no automatic detection exists</td>
+            <td class="troff">Alerting checklist as deploy gate slows shipping new services</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Change Management Failures</td></tr>
+          <tr>
+            <td>Change Made During Peak Traffic Hours<span class="badge-crit">Must Know</span></td>
+            <td>Engineer deploys or modifies production during business peak — any failure hits maximum user count</td>
+            <td>Failure immediately after peak-hour change, maximum user impact</td>
+            <td>Rollback immediately, schedule future changes for off-peak</td>
+            <td>Change freeze during peak hours, deploy windows enforced in CD pipeline</td>
+            <td class="casc">Outage at maximum blast radius — every user affected, not a fraction</td>
+            <td class="troff">Strict change windows delay urgent security patches and bug fixes</td>
+          </tr>
+          <tr>
+            <td>Cascading Change with No Blast Radius Assessment</td>
+            <td>Change touches shared library, schema, or service depended on by many — blast radius unknown</td>
+            <td>Multiple services fail simultaneously after single change</td>
+            <td>Rollback change, assess all affected services</td>
+            <td>Impact assessment required for all shared-dependency changes, dependency graph visibility</td>
+            <td class="casc">Unexpected wide blast radius — change assumed low-risk affects 20 services</td>
+            <td class="troff">Full blast radius assessment is time-consuming for large dependency graphs</td>
+          </tr>
+          <tr>
+            <td>Undocumented Manual Production Change</td>
+            <td>Engineer makes production change outside of code review — drift between code and reality</td>
+            <td>Behaviour inconsistent with code; discovered on next deploy when change is overwritten</td>
+            <td>Document change immediately, codify in IaC</td>
+            <td>Immutable infrastructure (no manual changes ever), all changes via reviewed pipeline</td>
+            <td class="casc">Undetected configuration drift — system gradually diverges from documented state</td>
+            <td class="troff">Immutable infrastructure requires more upfront IaC investment per change</td>
+          </tr>
+          <tr>
+            <td>Dependency Upgrade Without Testing Downstream Impact</td>
+            <td>Library or platform version bumped — breaking change in dependency breaks consuming services</td>
+            <td>Multiple service failures after dependency upgrade</td>
+            <td>Rollback dependency version</td>
+            <td>Consumer-driven contract testing, upgrade in staging first, canary rollout for dependency changes</td>
+            <td class="casc">All consumers of the dependency fail simultaneously</td>
+            <td class="troff">Canary rollout for dependency upgrades is complex to orchestrate across many consumers</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Knowledge and Documentation Failures</td></tr>
+          <tr>
+            <td>No Runbook — Incident Handled From Memory<span class="badge-crit">Must Know</span></td>
+            <td>Critical service has no runbook — on-call engineer handles incident from personal memory</td>
+            <td>Slow incident response, inconsistent steps taken, institutional knowledge required</td>
+            <td>Document steps as you execute them during the incident</td>
+            <td>Runbook required before any service goes to production, runbook tested in game days</td>
+            <td class="casc">Extended outage when primary expert is unavailable — knowledge locked in one person</td>
+            <td class="troff">Runbook maintenance takes ongoing engineering time as systems change</td>
+          </tr>
+          <tr>
+            <td>Stale Runbook Leading to Wrong Action<span class="badge-crit">Must Know</span></td>
+            <td>Runbook not updated after system changes — engineer follows outdated steps, makes situation worse</td>
+            <td>Actions described in runbook fail or produce unexpected results</td>
+            <td>Stop following runbook, improvise from first principles while updating runbook</td>
+            <td>Runbook review as part of change review for any infrastructure modification, runbook ownership</td>
+            <td class="casc">Wrong action from stale runbook converts fixable incident into extended outage</td>
+            <td class="troff">Mandatory runbook updates add engineering overhead to every infrastructure change</td>
+          </tr>
+          <tr>
+            <td>Bus Factor — Single Engineer Knows Critical System</td>
+            <td>Only one person understands a critical system — when they are unavailable, incidents cannot be resolved</td>
+            <td>Incident cannot be resolved without the specific engineer; on-call escalation chain exhausted</td>
+            <td>Emergency contact the expert; accept longer MTTR</td>
+            <td>Knowledge sharing sessions, pair on-call rotation, architecture documentation, bus factor reviews</td>
+            <td class="casc">Critical system becomes unrecoverable during incident without the key expert</td>
+            <td class="troff">Mandatory knowledge sharing takes time from feature development</td>
+          </tr>
+          <tr>
+            <td>Post-Incident Action Items Never Closed</td>
+            <td>Post-mortem identifies root cause and fixes — action items tracked but never completed</td>
+            <td>Same failure recurs; post-mortem from previous incident has identical root cause</td>
+            <td>Escalate overdue action items, prioritise preventive work</td>
+            <td>Action items tracked in engineering backlog with owner and deadline, reviewed in sprint</td>
+            <td class="casc">Repeated preventable outages — same issue recurs because fix was never shipped</td>
+            <td class="troff">Prioritising post-incident work competes with feature development for team capacity</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Human Failures for Interviews</p>
+      <div class="ncode"> 1. Wrong config to prod    → config-as-code + PR review + canary rollout
+ 2. Accidental data delete  → read-only prod access + soft delete + PITR + restore drills
+ 3. Wrong env targeted      → colour-coded terminals + env confirmation + separate creds
+ 4. No rollback plan        → rollback mandatory in checklist + tested in staging
+ 5. No load test before event → load test as deploy gate + 2x peak capacity plan
+ 6. Alert silenced forever  → TTL on all silences + weekly silence audit
+ 7. No incident commander   → IC declared first + single-change-owner during incident
+ 8. Bus factor = 1          → pair on-call + architecture docs + knowledge sharing sessions
+ 9. No runbook / stale one  → runbook required before prod + updated with every change
+10. Action items not closed → tracked in sprint backlog + owner + deadline + review</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Thinking — 9 Questions to Ask About Your Operational Posture</p>
+      <div class="ncode">1. Can one person delete production data?   → read-only default + two-person confirm
+2. Is every runbook current and tested?    → change review includes runbook update
+3. Who handles incidents when expert gone? → bus factor check + documented procedures
+4. Is prod access separated from staging?  → separate creds + colour-coded terminals
+5. Can we rollback any change in 5 min?    → tested rollback plan before every deploy
+6. Are alerts real and actionable?         → SLO-based burn rate + quarterly review
+7. Are post-incident actions being closed? → tracked in sprint + owner + deadline
+8. Was the system load-tested for peak?    → load test as mandatory pre-launch gate
+9. Is change blast radius understood?      → dependency graph + impact assessment</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Most Common Human Failure Patterns in Production</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Human Action</th><th>Typical Outcome</th><th>Prevention</th></tr></thead>
+        <tbody>
+          <tr><td>Wrong environment targeted</td><td>Production data deleted or misconfigured</td><td>Env confirmation + separate credentials</td></tr>
+          <tr><td>Alert silenced and forgotten</td><td>Real failure undetected for hours</td><td>TTL on silences + weekly audit</td></tr>
+          <tr><td>No incident commander</td><td>Conflicting changes worsen incident</td><td>IC declared as first step in response</td></tr>
+          <tr><td>Stale runbook followed</td><td>Wrong action converts fixable incident into outage</td><td>Runbook updated with every system change</td></tr>
+          <tr><td>Change during peak hours</td><td>Maximum blast radius on failure</td><td>Change freeze windows in CD pipeline</td></tr>
+          <tr><td>Post-mortem actions not closed</td><td>Same failure recurs preventably</td><td>Action items tracked in sprint with deadline</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — Human Failures Reduce to 3 Root Causes</p>
+      <div class="ncode">1. Wrong knowledge  → did not know the correct action (stale runbook / no docs / bus factor)
+2. Wrong context   → knew the action but applied to wrong target (wrong env / wrong WHERE)
+3. Wrong process   → correct knowledge + context but process failed to catch it (no review / no gate)
+
+Prevention maps directly:
+  Wrong knowledge  → documentation + runbooks + knowledge sharing
+  Wrong context    → confirmation prompts + separate environments + colour coding
+  Wrong process    → peer review + automated gates + change management
+
+The most dangerous human failure:
+  one person with production access, no documentation, no peer review, no audit trail
+  -> no detection + no recovery + no prevention</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#3f2006;border:1px solid #713f12;">
+      <p class="text-xs font-bold text-yellow-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-yellow-900 bg-opacity-40 rounded-xl p-3">
+          <p class="text-xs font-bold text-yellow-200">Document</p>
+          <p class="text-xs text-yellow-400 mt-0.5">Runbook + architecture + decisions</p>
+        </div>
+        <div class="bg-yellow-900 bg-opacity-40 rounded-xl p-3">
+          <p class="text-xs font-bold text-yellow-200">Confirm</p>
+          <p class="text-xs text-yellow-400 mt-0.5">Env target + blast radius + rollback</p>
+        </div>
+        <div class="bg-yellow-900 bg-opacity-40 rounded-xl p-3">
+          <p class="text-xs font-bold text-yellow-200">Review</p>
+          <p class="text-xs text-yellow-400 mt-0.5">Peer review + alert audit + action items</p>
+        </div>
+        <div class="bg-yellow-900 bg-opacity-40 rounded-xl p-3">
+          <p class="text-xs font-bold text-yellow-200">Practice</p>
+          <p class="text-xs text-yellow-400 mt-0.5">Game days + restore drills + runbook tests</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

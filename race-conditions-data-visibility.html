@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Race Conditions &amp; Data Visibility — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Race Conditions &amp; Data Visibility</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Race Conditions &amp; Data Visibility</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — volatile, Memory Fences, Atomicity, Visibility &amp; Memory Ordering</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- ═══════════════════ TEXT TAB ═══════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">THE BIG PICTURE</div>
+      <div class="nh">🌍 The Complete Story</div>
+      <p class="text-gray-700 mb-3">Instead of learning <strong>race conditions, visibility issues, volatile, memory fences, CPU caches, compiler optimizations, memory ordering,</strong> and <strong>atomic operations</strong> separately, this page explains <strong>why concurrent programs fail on multicore CPUs, how modern processors reorder instructions, and how Staff Engineers ensure correctness without sacrificing performance.</strong></p>
+      <p class="text-gray-700 mb-3">Modern CPUs execute billions of instructions per second. To maximize performance they:</p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">📦</div><div class="font-semibold text-violet-700 text-sm mt-1">Cache Data Locally</div></div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">🔀</div><div class="font-semibold text-violet-700 text-sm mt-1">Reorder Instructions</div></div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">⚡</div><div class="font-semibold text-violet-700 text-sm mt-1">Out-of-Order Execute</div></div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">🗄️</div><div class="font-semibold text-violet-700 text-sm mt-1">Buffer Writes</div></div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">🔮</div><div class="font-semibold text-violet-700 text-sm mt-1">Speculate Execution</div></div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">🏗️</div><div class="font-semibold text-violet-700 text-sm mt-1">Pipeline Instructions</div></div>
+      </div>
+      <div class="ntip"><strong>Concurrency bugs are almost never caused by the OS</strong> — they are usually caused by incorrect assumptions about memory visibility and execution order.</div>
+    </div>
+
+    <!-- Three Core Problems -->
+    <div class="nc">
+      <div class="section-badge">CORE CONCEPTS</div>
+      <div class="nh">The Three Core Problems</div>
+      <p class="text-gray-700 mb-3">A correct concurrent program must satisfy <strong>all three</strong>:</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+        <div style="background:#fdf4ff;border:2px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div style="font-size:1.6rem;text-align:center;margin-bottom:8px;">⚛️</div>
+          <div class="font-bold text-violet-700 text-center mb-2">Atomicity</div>
+          <p class="text-gray-600 text-sm text-center">Can two threads modify data simultaneously without one seeing a half-written state?</p>
+        </div>
+        <div style="background:#fdf4ff;border:2px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div style="font-size:1.6rem;text-align:center;margin-bottom:8px;">👁️</div>
+          <div class="font-bold text-violet-700 text-center mb-2">Visibility</div>
+          <p class="text-gray-600 text-sm text-center">Can another thread see my update, or is it stuck in a local CPU cache?</p>
+        </div>
+        <div style="background:#fdf4ff;border:2px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div style="font-size:1.6rem;text-align:center;margin-bottom:8px;">📐</div>
+          <div class="font-bold text-violet-700 text-center mb-2">Memory Ordering</div>
+          <p class="text-gray-600 text-sm text-center">Will operations execute and become visible in the correct order?</p>
+        </div>
+      </div>
+      <table class="nt">
+        <thead><tr><th>Problem</th><th>Guarantees</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Atomicity</strong></td><td>Operation completes as one indivisible unit</td><td>Locks, CAS, AtomicInteger</td></tr>
+          <tr><td><strong>Visibility</strong></td><td>Updates become observable by other threads</td><td>volatile, Atomics, synchronized</td></tr>
+          <tr><td><strong>Ordering</strong></td><td>Operations appear in the intended sequence</td><td>Memory fences, Acquire/Release</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip"><strong>You can have one without the others.</strong> volatile gives visibility but not atomicity. CAS gives atomicity and visibility but not necessarily global ordering. Know which problem you're solving.</div>
+    </div>
+
+    <!-- Race Condition -->
+    <div class="nc">
+      <div class="section-badge">RACE CONDITIONS</div>
+      <div class="nh">What Is a Race Condition?</div>
+      <p class="text-gray-700 mb-3">A race condition occurs when multiple threads access the same data, at least one writes, and the final result depends on execution timing.</p>
+      <div class="ncode">// counter++ is NOT atomic — it's 3 CPU operations:
+//   1. READ:   load counter into register
+//   2. MODIFY: add 1
+//   3. WRITE:  store back to memory
+
+Counter = 0
+
+Thread A:  READ(0)  →  MODIFY(1)  →  WRITE(1)
+Thread B:             READ(0)  →  MODIFY(1)  →  WRITE(1)  ← races!
+
+Final Counter = 1 ❌   Expected = 2
+
+// The threads "race" to update shared state
+// Result is non-deterministic — depends on OS scheduler timing
+// Bug may disappear during debugging (Heisenbug)</div>
+
+      <table class="nt mt-3">
+        <thead><tr><th>Property</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Shared State</strong></td><td>Multiple threads access same variable</td></tr>
+          <tr><td><strong>Concurrent Writes</strong></td><td>At least one thread modifies data</td></tr>
+          <tr><td><strong>Timing Dependent</strong></td><td>Result depends on OS scheduling order</td></tr>
+          <tr><td><strong>Non-Deterministic</strong></td><td>Bug may disappear during debugging (Heisenbug)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Visibility -->
+    <div class="nc">
+      <div class="section-badge">DATA VISIBILITY</div>
+      <div class="nh">Data Visibility Problem — Stale Cached Values</div>
+      <p class="text-gray-700 mb-3">Even without data corruption, threads may see <strong>stale values</strong>. Each CPU core has private caches. Core 2 may keep reading its cached copy of a variable even after Core 1 has updated it.</p>
+      <div class="ncode">// Thread A writes:
+running = false;    // stored in Core 1's cache
+
+// Thread B reads:
+while (running) {   // reads Core 2's cache → still sees true!
+    doWork();
+}
+// Thread B may NEVER observe the update → infinite loop
+
+// Why:
+//   Core 1 Cache: running = false (Modified)
+//   Core 2 Cache: running = true  (Stale — not yet invalidated)
+// MESI protocol will eventually propagate, but without barriers
+// there's no ordering guarantee about WHEN</div>
+      <div class="ntip">This is a <strong>visibility bug</strong>, not a race condition. No torn write — just stale read. Fix: declare <code>volatile boolean running</code> (Java) or use atomic store with release ordering.</div>
+    </div>
+
+    <!-- volatile -->
+    <div class="nc">
+      <div class="section-badge">VOLATILE</div>
+      <div class="nh">volatile — Visibility Guarantee</div>
+      <p class="text-gray-700 mb-3"><code>volatile</code> solves the visibility problem. It ensures the latest value is always read from and written to main memory (via cache coherence), and prevents compiler/CPU from reordering around the access.</p>
+
+      <table class="nt mb-3">
+        <thead><tr><th>Guarantee</th><th>volatile</th><th>synchronized</th><th>AtomicInteger</th></tr></thead>
+        <tbody>
+          <tr><td>Latest value visible</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Compiler ordering</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>CPU ordering</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Atomic compound ops (i++)</td><td>❌</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Mutual exclusion</td><td>❌</td><td>✅</td><td>❌ (CAS retry)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="ncode">// CORRECT: volatile for stop flag (visibility only)
+volatile boolean stop = false;
+
+// Thread A (controller):
+stop = true;   // volatile write = full memory barrier on x86
+               // → invalidates all other cores' cached copies
+
+// Thread B (worker):
+while (!stop) {   // volatile read = always reads from cache coherent view
+    doWork();
+}
+// Thread B guaranteed to see stop=true ✅
+
+// WRONG: volatile for counter (not atomic for compound ops)
+volatile int counter = 0;
+counter++;  // NOT atomic — still 3 ops: read, modify, write
+
+// CORRECT: use AtomicInteger
+AtomicInteger counter = new AtomicInteger(0);
+counter.incrementAndGet();  // single atomic CAS operation ✅</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Double-Checked Locking — volatile prevents broken singleton</p>
+      <div class="ncode">// Without volatile: partially constructed object may become visible
+// volatile prevents constructor writes from being reordered after publish
+
+class Singleton {
+    private static volatile Singleton instance;
+
+    public static Singleton getInstance() {
+        if (instance == null) {               // 1st check (no lock)
+            synchronized (Singleton.class) {
+                if (instance == null) {        // 2nd check (with lock)
+                    instance = new Singleton(); // volatile write = release barrier
+                }                              // constructor writes guaranteed visible
+            }
+        }
+        return instance;  // volatile read = acquire barrier
+    }
+}
+// Without volatile: JVM may publish reference before constructor finishes
+// → another thread reads partially initialized object → NPE / corrupt state</div>
+    </div>
+
+    <!-- Memory Barriers -->
+    <div class="nc">
+      <div class="section-badge">MEMORY BARRIERS</div>
+      <div class="nh">Memory Fences — Preventing Reordering</div>
+      <p class="text-gray-700 mb-3">Memory barriers are checkpoints that prevent the compiler and CPU from moving operations across the boundary. Operations cannot cross the fence.</p>
+
+      <table class="nt mb-3">
+        <thead><tr><th>Barrier Type</th><th>Prevents</th><th>x86 Instruction</th><th>Java / C++ Equivalent</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Load (Acquire)</strong></td><td>Later reads moving before this point</td><td><code>LFENCE</code></td><td>Acquire load / volatile read</td></tr>
+          <tr><td><strong>Store (Release)</strong></td><td>Earlier writes moving after this point</td><td><code>SFENCE</code></td><td>Release store / volatile write</td></tr>
+          <tr><td><strong>Full</strong></td><td>Any load/store crossing in either direction</td><td><code>MFENCE</code></td><td>seq_cst / synchronized</td></tr>
+          <tr><td><strong>Compiler only</strong></td><td>Compiler reordering (no CPU effect)</td><td><code>asm volatile("" ::: "memory")</code></td><td><code>Unsafe.loadFence()</code></td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">Acquire/Release Handshake — Most Efficient Pattern</p>
+      <div class="ncode">// Producer (Thread 1):
+data[0] = 1;                         // write data
+data[1] = 2;
+flag.store(true, memory_order_release); // RELEASE: all prior writes visible
+                                        // before this store
+
+// Consumer (Thread 2):
+while (!flag.load(memory_order_acquire)); // ACQUIRE: all reads after this
+                                           // see everything before release
+int v0 = data[0];  // guaranteed: 1 ✅
+int v1 = data[1];  // guaranteed: 2 ✅
+
+// The release store SYNCHRONIZES-WITH the acquire load
+// Everything before release → visible after acquire
+// Cost: much cheaper than full MFENCE on ARM</div>
+    </div>
+
+    <!-- Memory Ordering -->
+    <div class="nc">
+      <div class="section-badge">MEMORY ORDERING</div>
+      <div class="nh">Memory Ordering Levels — Choose the Cheapest That Is Correct</div>
+      <table class="nt mb-3">
+        <thead><tr><th>Ordering</th><th>Cost</th><th>Guarantees</th><th>Typical Usage</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Relaxed</strong></td><td>Lowest</td><td>Atomicity only — no ordering</td><td>Statistics, counters where order doesn't matter</td></tr>
+          <tr><td><strong>Acquire</strong></td><td>Low</td><td>No read/store after moves before this</td><td>Consumers, lock acquire, flag read</td></tr>
+          <tr><td><strong>Release</strong></td><td>Low</td><td>No read/store before moves after this</td><td>Producers, lock release, flag write</td></tr>
+          <tr><td><strong>Acq_Rel</strong></td><td>Medium</td><td>Both acquire and release (for RMW)</td><td>Lock-free queues, CAS in mutex</td></tr>
+          <tr><td><strong>Seq_Cst</strong></td><td>Highest</td><td>Global total order across all threads</td><td>Default Java volatile, safety-first</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">Language / Hardware Mapping</p>
+      <table class="nt">
+        <thead><tr><th>Language</th><th>Visibility Mechanism</th><th>CPU x86</th><th>CPU ARM</th></tr></thead>
+        <tbody>
+          <tr><td>Java</td><td><code>volatile</code>, <code>synchronized</code>, <code>AtomicXxx</code></td><td><code>MFENCE</code></td><td><code>DMB ISH</code></td></tr>
+          <tr><td>C++</td><td><code>std::atomic&lt;T&gt;</code> with memory_order</td><td>LOCK prefix</td><td><code>LDREX/STREX</code></td></tr>
+          <tr><td>Go</td><td><code>sync/atomic</code>, channels</td><td><code>MFENCE</code></td><td><code>DMB</code></td></tr>
+          <tr><td>Rust</td><td><code>Ordering::Acquire/Release/SeqCst</code></td><td>LOCK prefix</td><td><code>DMB</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Common Mistakes -->
+    <div class="nc">
+      <div class="section-badge">COMMON MISTAKES</div>
+      <div class="nh">Mistakes &amp; Failure Modes</div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">volatile for Counters — Does NOT Make i++ Atomic</div>
+        <p class="text-gray-700 text-sm"><code>volatile int count; count++</code> is still 3 operations: read, add, write. Two threads can interleave between read and write → lost updates. <strong>Fix:</strong> <code>AtomicInteger.incrementAndGet()</code></p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Assuming x86 Behavior on ARM</div>
+        <p class="text-gray-700 text-sm">x86 has a strong memory model (TSO). Code that works on x86 may silently fail on ARM (weak model) because ARM allows Load-Load, Store-Store, and Load-Store reordering that x86 doesn't. <strong>Fix:</strong> Always use language-level abstractions (<code>std::atomic</code>, <code>volatile</code>), not architecture assumptions.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Worker Thread Never Stops</div>
+        <p class="text-gray-700 text-sm">Non-volatile stop flag: JIT compiler may hoist the read outside the loop (<code>if (!stop) while(true)</code>) — thread never terminates. <strong>Fix:</strong> <code>volatile boolean stop</code> prevents the hoist.</p>
+      </div>
+      <div class="nc-warn">
+        <div class="nh-warn">Lock-Free Queue Corruption — Missing Release/Acquire</div>
+        <p class="text-gray-700 text-sm">Producer writes data then atomically updates tail pointer — but without release ordering, consumer may read the new tail before the data writes are visible. <strong>Fix:</strong> Release store on tail update; acquire load on tail read.</p>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Level</th><th>Question Asked</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Junior</strong></td><td>"Should I use volatile here?"</td></tr>
+          <tr><td><strong>Senior</strong></td><td>"Do I need AtomicInteger instead? I know volatile doesn't make i++ atomic."</td></tr>
+          <tr><td><strong>Staff</strong></td><td>"Is this an atomicity problem or a visibility problem? Can I avoid shared mutable state entirely? Which memory ordering is sufficient — do I need seq_cst or will acquire/release suffice? Will false sharing dominate performance? Does this algorithm remain correct on ARM as well as x86? Is lock-free complexity justified, or would a simpler mutex be more maintainable?"</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Staff Engineer Decision Framework</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Scenario</th><th>Best Solution</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Stop flag / published boolean</td><td><code>volatile</code></td><td>Visibility only — no compound ops</td></tr>
+          <tr><td>Shared counter</td><td><code>AtomicInteger</code> / CAS</td><td>Atomicity + visibility for increment</td></tr>
+          <tr><td>Complex shared state</td><td>Mutex / RW Lock</td><td>Multiple fields must change together</td></tr>
+          <tr><td>Producer-consumer flag</td><td>Acquire–Release</td><td>Cheaper than full fence, sufficient ordering</td></tr>
+          <tr><td>Real-time / latency-critical</td><td>Wait-Free + Atomics</td><td>Bounded steps, no kernel involvement</td></tr>
+          <tr><td>General thread-safety</td><td>Higher-level concurrent collections</td><td>Correctness over micro-optimization</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Production Readiness Checklist</div>
+      <ul class="dot-ul mt-2">
+        <li>Identify all <strong>shared mutable state</strong> — every field accessed by multiple threads</li>
+        <li>Determine whether the issue is <strong>atomicity</strong> (compound ops) or <strong>visibility</strong> (stale cache)</li>
+        <li>Use <code>volatile</code> only for visibility — never for compound updates</li>
+        <li>Prefer <code>AtomicXxx</code> classes for counters and references</li>
+        <li>Use <strong>Acquire–Release</strong> instead of full fences where possible (cheaper on ARM)</li>
+        <li>Benchmark synchronization overhead under realistic contention</li>
+        <li>Test on both x86 <strong>and</strong> ARM platforms (different memory models)</li>
+        <li>Monitor contention and cache-line false sharing (<code>perf c2c</code>)</li>
+        <li>Avoid unnecessary shared state — immutability eliminates the problem class</li>
+        <li>Document memory-order assumptions in code comments</li>
+      </ul>
+
+      <div class="nq mt-3">"Race conditions, visibility bugs, and ordering violations are three distinct problems requiring three distinct solutions. Staff Engineers distinguish between atomicity (CAS/locks), visibility (volatile), and ordering (acquire/release fences) — choosing the lightest primitive that satisfies correctness for the target CPU architecture."</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">What to Remember</div>
+      <ul class="dot-ul">
+        <li><strong>Race conditions occur when multiple threads modify shared state without proper synchronization</strong>, leading to non-deterministic behavior because operations like read–modify–write are not atomic.</li>
+        <li><strong>Data visibility is a separate problem from atomicity</strong>: even if data is updated correctly, other CPU cores may continue reading stale cached values unless visibility guarantees are provided.</li>
+        <li><strong><code>volatile</code> guarantees visibility and ordering but does not provide atomicity</strong>, making it suitable for shared flags and simple state publication — not for compound operations such as incrementing counters.</li>
+        <li><strong>Memory fences (Acquire, Release, Full)</strong> prevent compiler and CPU instruction reordering, ensuring that writes become visible to other threads in the intended order while enabling efficient lock-free algorithms.</li>
+        <li>Staff Engineers distinguish between <strong>atomicity, visibility, and memory ordering</strong>, choosing the lightest synchronization primitive that satisfies correctness while considering CPU architecture, cache behavior, scalability, and performance.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════════════ ORIGINAL NOTES TAB ═══════════════════ -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — PART 1</div>
+      <div class="nh">Race Conditions &amp; Visibility — Deep Reference</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Race Condition — Classic Counter Example</p>
+      <div class="ncode">// Java — lost update race
+public class RaceCounter {
+    private int count = 0;  // NOT volatile, NOT atomic
+
+    // Thread A and Thread B both call increment() concurrently:
+    public void increment() {
+        count++;  // compiled to: GETFIELD, IADD, PUTFIELD (3 bytecodes)
+    }
+
+    // Timeline of lost update:
+    // T=1: Thread A reads count=0
+    // T=2: Thread B reads count=0  (A hasn't written yet)
+    // T=3: Thread A writes count=1
+    // T=4: Thread B writes count=1  (overwrites A's update)
+    // Expected: 2   Actual: 1   DATA RACE
+}
+
+// Fix 1: synchronized
+public synchronized void increment() { count++; }
+
+// Fix 2: AtomicInteger (CAS-based, no lock)
+private AtomicInteger count = new AtomicInteger(0);
+public void increment() { count.incrementAndGet(); }
+
+// Fix 3: LongAdder (high-contention, per-thread cells)
+private LongAdder count = new LongAdder();
+public void increment() { count.increment(); }
+public long get() { return count.sum(); }</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Visibility — JVM JIT Hoist Problem</p>
+      <div class="ncode">// Non-volatile flag → JIT compiler may hoist read outside loop
+boolean stop = false;  // ← missing volatile
+
+void worker() {
+    // JIT may optimize to:
+    //   if (!stop) {
+    //     while (true) { process(); }  ← infinite loop even when stop=true!
+    //   }
+    while (!stop) {
+        process();
+    }
+}
+
+// Fix: volatile boolean stop = false;
+// volatile prevents JIT from caching the value in a register
+// Every read goes through the memory model → always sees latest write
+
+// C++ equivalent:
+// std::atomic&lt;bool&gt; stop{false};  (with memory_order_relaxed if ordering not needed)
+// std::atomic&lt;bool&gt; stop{false};  stop.store(true, std::memory_order_release);</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Why volatile Alone Isn't Enough for DCL</p>
+      <div class="ncode">// Without volatile — broken Double-Checked Locking:
+Singleton* instance = nullptr;
+
+Singleton* get() {
+    if (instance == nullptr) {          // Thread B reads non-null → uses it
+        lock();
+        if (instance == nullptr) {
+            instance = new Singleton(); // May be reordered as:
+            // 1. Allocate memory
+            // 2. Write reference (instance = ptr)   ← visible BEFORE step 3
+            // 3. Call constructor
+            // Thread B sees non-null instance but uninitialized fields!
+        }
+        unlock();
+    }
+    return instance;
+}
+
+// Fix: volatile / std::atomic (acquire/release semantics)
+// Constructor completes before volatile write publishes reference
+// volatile read = acquire barrier ensures Thread B sees all constructor writes</div>
+
+      <hr class="border-violet-100 my-4"/>
+
+      <p class="font-semibold text-violet-700 mb-1">Memory Reordering — 4 Types</p>
+      <div class="ncode">// 4 types of reordering that compiler + CPU can perform:
+
+// 1. Load-Load: CPU reads B before A even though A appears first in code
+r1 = x;   // may execute AFTER
+r2 = y;   // this
+
+// 2. Store-Store: Store to B visible before Store to A
+x = 1;   // may become visible AFTER
+y = 2;   // this
+
+// 3. Load-Store: Load of y happens after store to x
+r1 = x;  // load may move after
+y = 1;   // store
+
+// 4. Store-Load (most common — x86 allows this via store buffer):
+x = 1;   // store may not be visible
+r1 = y;  // before this load
+
+// x86 (TSO): Only StoreLoad reordering allowed
+// ARM (Weak): All 4 types allowed — more barriers needed!
+
+// Barrier mapping:
+// LFENCE = LoadLoad + LoadStore barrier (x86)
+// SFENCE = StoreStore + LoadStore barrier (x86)
+// MFENCE = All 4 types (x86 full fence)
+// DMB ISH = All 4 types (ARM full fence)</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Java Memory Model — Complete Happens-Before Rules</p>
+      <div class="ncode">// JMM: if action A "happens-before" B → all writes by A visible to B
+
+1. PROGRAM ORDER: Each action in a thread HB later actions in same thread
+2. MONITOR LOCK:  unlock(m) HB subsequent lock(m)
+3. VOLATILE:      write to volatile x HB subsequent read of volatile x
+4. THREAD START:  Thread.start() HB any action in the started thread
+5. THREAD JOIN:   last action in thread T HB Thread.join(T) returns
+6. TRANSITIVITY:  if A HB B and B HB C → A HB C
+
+// Memory barrier summary in Java:
+// volatile write = StoreStore + StoreLoad barrier (full fence on x86)
+// volatile read  = LoadLoad + LoadStore barrier
+// synchronized unlock = StoreStore + StoreLoad
+// synchronized lock   = LoadLoad + LoadStore
+
+// VarHandle precision (Java 9+):
+// setRelease()  → release store  (cheaper than volatile on ARM)
+// getAcquire()  → acquire load
+// setOpaque()   → no fence (compiler barrier only)
+// setVolatile() → full seq_cst (same as volatile field)</div>
+
+      <div class="nq mt-3">"The Java Memory Model does not guarantee that threads see each other's writes unless a happens-before relationship exists. Building correct concurrent Java code requires understanding which operations establish happens-before: volatile, synchronized, start, join, and the transitivity rule."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- ═══════════════════ VISUAL GUIDE TAB ═══════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <img src="images/foundation/l1/OS/1b53edd3-ea36-4c99-b855-a2d51f858894.png" class="w-full rounded-lg shadow-md" alt="Race Conditions and Data Visibility Visual Guide"/>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Failure Types in System Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#ef4444; border-bottom-color:#ef4444; }
+    .tab-btn:hover:not(.active){ color:#b91c1c; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* shared note card */
+    .nc   { background:#fff7f7; border:1px solid #fee2e2; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#ef4444; margin-bottom:.6rem; }
+    .nq   { font-size:.85rem; color:#1e293b; line-height:1.7;
+            border-left:3px solid #f87171; background:#fee2e2;
+            border-radius:.4rem; padding:.65rem .95rem; }
+    .ntip { font-size:.78rem; color:#991b1b; background:#fee2e2;
+            border-radius:.5rem; padding:.5rem .85rem;
+            border-left:3px solid #ef4444; line-height:1.6; }
+    .ncode{ background:#1a0000; color:#fca5a5; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nkw  { display:flex; flex-wrap:wrap; gap:.4rem; }
+    .nkw span{ background:#ef4444; color:#fff; font-size:.68rem; font-weight:600;
+               padding:.22em .7em; border-radius:999px; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.8rem; }
+    .nt th{ background:#fee2e2; color:#991b1b; font-weight:700; font-size:.65rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .75rem; text-align:left; }
+    .nt td{ padding:.4rem .75rem; border-top:1px solid #fee2e2;
+            color:#374151; vertical-align:top; }
+    .check-ul{ list-style:none; padding-left:0; }
+    .check-ul li{ font-size:.82rem; color:#166534; line-height:1.85;
+                  padding-left:1.5rem; position:relative; }
+    .check-ul li::before{ content:''; position:absolute; left:0;
+                          color:#16a34a; font-weight:700; }
+
+    /* category card */
+    .cat-card { border-radius:1rem; padding:1.1rem 1.25rem; }
+    .cat-types { list-style:disc; padding-left:1.1rem; margin:0; }
+    .cat-types li { font-size:.78rem; color:#374151; line-height:1.75; }
+    .cat-types li::marker { color:#ef4444; }
+    .impact-tag { display:inline-block; background:#fee2e2; color:#991b1b;
+                  font-size:.68rem; font-weight:700; border-radius:.4rem;
+                  padding:.25em .7em; margin-top:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="index.html"
+       class="flex items-center gap-1.5 text-red-500 hover:text-red-700 font-semibold
+              bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-red-600 font-semibold">Failure Types in System Design</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+    </div>
+
+      <div>
+      <h1 class="text-xl font-bold text-gray-800">All Failure Types in System Design</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Complete taxonomy — Senior / Staff Engineer level · 27 categories · 150+ failure types</p>
+    </div>
+    <a href="interview-cheat-sheet.html"
+       class="ml-auto shrink-0 flex items-center gap-2 bg-slate-900 hover:bg-slate-800
+              text-yellow-300 font-bold text-xs px-4 py-2.5 rounded-xl border border-yellow-600
+              hover:border-yellow-400 transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      Interview Cheat Sheet
+    </a>
+    <a href="failure-patterns.html"
+       class="shrink-0 flex items-center gap-2 bg-slate-900 hover:bg-slate-800
+              text-cyan-300 font-bold text-xs px-4 py-2.5 rounded-xl border border-cyan-700
+              hover:border-cyan-400 transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+      </svg>
+      Patterns
+    </a>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-6xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('taxonomy',this)">Failure Taxonomy</button>
+    <button class="tab-btn"        onclick="switchTab('interview',this)">Interview Notes</button>
+  </div>
+
+  <!-- TAB 1 — FAILURE TAXONOMY -->
+  <div id="tab-taxonomy" class="tab-pane active pb-16">
+
+    <div class="nc mb-6">
+      <p class="nh">Senior vs Staff Thinking</p>
+      <p class="nq">Good question — this is <strong>exactly what separates Senior vs Staff thinking</strong>.
+        Instead of listing random failures, think in <strong>structured failure categories</strong>.
+        Interviewers want to see a <em>systematic mental model</em>, not a random list.</p>
+    </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="cat-card bg-white border border-red-100 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">1. Infrastructure / Hardware Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Physical-level failures</p>
+        <ul class="cat-types">
+          <li>Server crash (node failure)</li>
+          <li>Disk failure (SSD/HDD corruption)</li>
+          <li>Data center outage</li>
+          <li>Rack failure</li>
+          <li>Power outage</li>
+          <li>Network interface failure</li>
+          <li>Hardware degradation (slow disks / CPU throttling)</li>
+          <li>Memory corruption</li>
+        </ul>
+        <span class="impact-tag"> Node unavailable / data loss risk</span>
+        <a href="infrastructure-failures.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-800">Deep dive — 26 scenarios with mitigations &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-red-100 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">2. Network Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Most common in distributed systems</p>
+        <ul class="cat-types">
+          <li>Network partition (split brain)</li>
+          <li>Packet loss</li>
+          <li>High latency / jitter</li>
+          <li>DNS failure</li>
+          <li>Connection timeout</li>
+          <li>Partial connectivity (some nodes unreachable)</li>
+          <li>Load balancer misrouting</li>
+          <li>TLS handshake failures</li>
+        </ul>
+        <span class="impact-tag"> Services cannot talk to each other</span>
+        <a href="network-failures.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800">Deep dive with mitigations &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-red-100 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">3. Application / Service Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Failures inside your services</p>
+        <ul class="cat-types">
+          <li>Service crash</li>
+          <li>Memory leaks</li>
+          <li>Thread pool exhaustion</li>
+          <li>Deadlocks</li>
+          <li>CPU saturation</li>
+          <li>Dependency failure (downstream service)</li>
+          <li>Misconfiguration</li>
+          <li>Version incompatibility</li>
+          <li>Feature flag misbehavior</li>
+        </ul>
+        <span class="impact-tag"> Service becomes slow or unavailable</span>
+        <a href="server-failures.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800">Deep dive with mitigations &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-red-100 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">4. Data &amp; Storage Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Critical for consistency-heavy systems</p>
+        <ul class="cat-types">
+          <li>Data corruption</li>
+          <li>Lost writes</li>
+          <li>Stale reads</li>
+          <li>Replica inconsistency</li>
+          <li>Disk full</li>
+          <li>Index corruption</li>
+          <li>Partial writes</li>
+          <li>WAL / log corruption</li>
+          <li>Backup failure</li>
+          <li>Snapshot inconsistency</li>
+        </ul>
+        <span class="impact-tag"> Incorrect or lost data</span>
+        <a href="data-consistency-failures.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-800">Deep dive with mitigations &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-rose-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">5. Database Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Source of truth — highest impact when it fails</p>
+        <ul class="cat-types">
+          <li>Primary DB crash / failed failover</li>
+          <li>Replication lag / replica divergence</li>
+          <li>Deadlock / lock contention</li>
+          <li>Slow queries / missing index</li>
+          <li>Disk full / WAL corruption</li>
+          <li>Connection pool exhaustion</li>
+          <li>Split brain DB</li>
+          <li>Backup failure / failed restore</li>
+        </ul>
+        <span class="impact-tag" style="background:#fee2e2;color:#991b1b;"> Data unavailable / corrupted</span>
+        <a href="database-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-800">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-emerald-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">6. Cache Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Cache miss = DB overload — most deceptive failure</p>
+        <ul class="cat-types">
+          <li>Cache node crash / cluster outage</li>
+          <li>Cache stampede (hot key expires)</li>
+          <li>Cache avalanche (mass expiry)</li>
+          <li>Hot key overload</li>
+          <li>Stale cache / lost invalidation</li>
+          <li>Cache penetration (nonexistent keys)</li>
+          <li>Cold cache storm (restart/flush)</li>
+          <li>Write-behind data loss</li>
+        </ul>
+        <span class="impact-tag" style="background:#d1fae5;color:#065f46;"> DB overload / stale data</span>
+        <a href="cache-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-green-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">7. Storage Layer Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Durability foundation — silent corruption is the ultimate danger</p>
+        <ul class="cat-types">
+          <li>Disk failure / bit rot (silent corruption)</li>
+          <li>Storage node failure</li>
+          <li>Filesystem corruption</li>
+          <li>Disk IO saturation / storage hotspot</li>
+          <li>Replication lag / replica divergence</li>
+          <li>Metadata service failure</li>
+          <li>Split brain storage cluster</li>
+          <li>Backup / snapshot / restore failure</li>
+        </ul>
+        <span class="impact-tag" style="background:#f0fdf4;color:#15803d;"> Data loss / unavailable</span>
+        <a href="storage-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-green-700 hover:text-green-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-red-100 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">8. Distributed System Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Hardest to detect and debug</p>
+        <ul class="cat-types">
+          <li>Leader election failure</li>
+          <li>Split brain</li>
+          <li>Inconsistent replicas</li>
+          <li>Clock drift issues</li>
+          <li>Event ordering issues</li>
+          <li>Duplicate events</li>
+          <li>Missing events</li>
+          <li>Consensus failure (Raft / Paxos)</li>
+          <li>Quorum failure</li>
+          <li>Partition healing conflicts</li>
+        </ul>
+        <span class="impact-tag"> System behaves inconsistently</span>
+        <a href="distributed-failures.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800">Deep dive with mitigations &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-purple-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">9. Distributed Coordination Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Brain of distributed systems — split brain is the ultimate failure</p>
+        <ul class="cat-types">
+          <li>Split brain / multiple leaders</li>
+          <li>Quorum loss</li>
+          <li>Leader election failure / flapping</li>
+          <li>Stale leader with fencing bypass</li>
+          <li>Lock leak / duplicate lock ownership</li>
+          <li>Service discovery failure</li>
+          <li>Metadata divergence / config drift</li>
+          <li>Clock skew / lease timing failure</li>
+        </ul>
+        <span class="impact-tag" style="background:#faf5ff;color:#7e22ce;"> Shared truth lost</span>
+        <a href="coordination-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:text-purple-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-lime-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">10. Replication Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Foundation of durability — split brain is the silent killer</p>
+        <ul class="cat-types">
+          <li>Primary replica failure / failover</li>
+          <li>Replication lag / stale reads</li>
+          <li>Replica divergence</li>
+          <li>Split brain / dual write conflict</li>
+          <li>Quorum loss</li>
+          <li>Leader election failure</li>
+          <li>Out-of-order replication</li>
+          <li>Cross-region partition</li>
+        </ul>
+        <span class="impact-tag" style="background:#f7fee7;color:#3f6212;"> Data inconsistency / unavailability</span>
+        <a href="replication-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-lime-700 hover:text-lime-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-yellow-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">11. Partitioning / Sharding Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Horizontal scale enabler — bad shard key causes every failure</p>
+        <ul class="cat-types">
+          <li>Hot partition / hot key overload</li>
+          <li>Skewed hash distribution</li>
+          <li>Metadata service failure</li>
+          <li>Stale partition mapping</li>
+          <li>Shard rebalancing storm</li>
+          <li>Cross-shard query explosion</li>
+          <li>Distributed transaction failure</li>
+          <li>Shard capacity exhaustion</li>
+        </ul>
+        <span class="impact-tag" style="background:#fefce8;color:#a16207;"> Uneven load / routing failure</span>
+        <a href="sharding-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-yellow-700 hover:text-yellow-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-sky-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">12. Message Queue Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Async backbone — lag and retry are silent killers</p>
+        <ul class="cat-types">
+          <li>Broker crash / cluster outage</li>
+          <li>Consumer lag / backlog explosion</li>
+          <li>Poison message / partition blocked</li>
+          <li>Duplicate delivery / message loss</li>
+          <li>Out-of-order delivery</li>
+          <li>Hot partition / rebalance storm</li>
+          <li>Producer retry storm</li>
+          <li>Under-replicated partition</li>
+        </ul>
+        <span class="impact-tag" style="background:#e0f2fe;color:#075985;"> Pipeline stall / data loss</span>
+        <a href="mq-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-800">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-red-100 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">13. Traffic &amp; Load Failures</p>
+        <p class="text-xs text-gray-400 mb-3">When system cannot handle load</p>
+        <ul class="cat-types">
+          <li>Traffic spikes (viral events)</li>
+          <li>Thundering herd problem</li>
+          <li>Hot partition / hot key</li>
+          <li>Cache stampede</li>
+          <li>Queue overload</li>
+          <li>Backpressure failure</li>
+          <li>Rate limiting failure</li>
+          <li>Load balancer overload</li>
+        </ul>
+        <span class="impact-tag"> Latency spikes / system collapse</span>
+        <a href="load-traffic-failures.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-teal-600 hover:text-teal-800">Deep dive with mitigations &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-fuchsia-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">14. Load Balancer Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Traffic control layer — silent routing failures are hardest</p>
+        <ul class="cat-types">
+          <li>LB crash / single point of failure</li>
+          <li>TLS handshake overload</li>
+          <li>Uneven traffic distribution</li>
+          <li>Traffic blackholing (silent drop)</li>
+          <li>False health check (positive / negative)</li>
+          <li>DNS failure to LB</li>
+          <li>Sticky session imbalance</li>
+          <li>Region failover failure</li>
+        </ul>
+        <span class="impact-tag" style="background:#fae8ff;color:#86198f;"> Traffic not routed / misrouted</span>
+        <a href="lb-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-800">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-cyan-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">15. API Gateway Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Entry point — slow backend failure cascades to all APIs</p>
+        <ul class="cat-types">
+          <li>Gateway crash / SPOF</li>
+          <li>Thread pool exhaustion (slow backend)</li>
+          <li>Auth service unavailable</li>
+          <li>Traffic blackholing (silent drop)</li>
+          <li>Incorrect route mapping</li>
+          <li>Rate limiter failure open/closed</li>
+          <li>Retry storm to backends</li>
+          <li>Aggregation failure (N+1)</li>
+        </ul>
+        <span class="impact-tag" style="background:#ecfeff;color:#0e7490;"> Platform appears down</span>
+        <a href="api-gateway-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-cyan-600 hover:text-cyan-800">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-slate-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">16. API Layer Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Contract boundary — retry amplification is the most dangerous pattern</p>
+        <ul class="cat-types">
+          <li>Thread pool exhaustion / slow dep amplification</li>
+          <li>Retry storm / duplicate execution</li>
+          <li>Serialization / deserialization failure</li>
+          <li>Breaking API change / version drift</li>
+          <li>N+1 dependency fanout</li>
+          <li>Partial workflow corruption</li>
+          <li>Silent 200 with hidden error</li>
+          <li>Auth bypass / rate limit bypass</li>
+        </ul>
+        <span class="impact-tag" style="background:#f8fafc;color:#334155;"> Client errors / contract break</span>
+        <a href="api-layer-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-violet-300 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">17. Concurrency &amp; Race Conditions</p>
+        <p class="text-xs text-gray-400 mb-3">Non-deterministic bugs that only appear under concurrent load</p>
+        <ul class="cat-types">
+          <li>Check-then-act race / TOCTOU</li>
+          <li>Lost update / write skew</li>
+          <li>Deadlock / livelock</li>
+          <li>Payment double-spend</li>
+          <li>Inventory oversell</li>
+          <li>At-least-once duplicate processing</li>
+          <li>Hot lock serialisation</li>
+          <li>Distributed TOCTOU / optimistic lock thrash</li>
+        </ul>
+        <span class="impact-tag" style="background:#ede9fe;color:#5b21b6;"> Data correctness issues</span>
+        <a href="concurrency-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-violet-700 hover:text-violet-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-red-100 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">18. Security Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Highest-severity — may persist silently for months</p>
+        <ul class="cat-types">
+          <li>Credential stuffing / brute force / MFA bypass</li>
+          <li>Broken access control / IDOR / privilege escalation</li>
+          <li>Tenant isolation failure</li>
+          <li>Secret / key leakage</li>
+          <li>SQL injection / XSS / SSRF</li>
+          <li>DDoS / application-layer attack</li>
+          <li>Public bucket exposure</li>
+          <li>Audit logging failure</li>
+        </ul>
+        <span class="impact-tag" style="background:#fef2f2;color:#7f1d1d;"> Data breach / system compromise</span>
+        <a href="security-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-red-100 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">19. Dependency Failures</p>
+        <p class="text-xs text-gray-400 mb-3">External or internal dependencies fail</p>
+        <ul class="cat-types">
+          <li>Database outage</li>
+          <li>Cache outage (Redis down)</li>
+          <li>Third-party API failure</li>
+          <li>Payment gateway failure</li>
+          <li>Message queue outage</li>
+          <li>DNS provider failure</li>
+          <li>CDN outage</li>
+        </ul>
+        <span class="impact-tag"> Cascading failures</span>
+        <a href="dependency-failures.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900">Deep dive with mitigations &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-orange-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">20. Deployment &amp; Configuration Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Most common outage cause — canary + rollback + backward-compat</p>
+        <ul class="cat-types">
+          <li>Mixed-version incompatibility</li>
+          <li>Breaking schema migration</li>
+          <li>Cache flush / reconnect storm on deploy</li>
+          <li>Traffic blackholing after route change</li>
+          <li>Canary / blue-green failure</li>
+          <li>Bad config / secret rotation failure</li>
+          <li>Rollback impossible (schema)</li>
+          <li>CI pipeline blocking deploy</li>
+        </ul>
+        <span class="impact-tag" style="background:#fff7ed;color:#9a3412;"> System breaks after release</span>
+        <a href="deployment-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-orange-800 hover:text-orange-950">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-blue-300 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">21. Time &amp; Scheduling Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Often ignored — store UTC, use logical clocks, make jobs idempotent</p>
+        <ul class="cat-types">
+          <li>Clock skew / NTP drift / leap second bug</li>
+          <li>DST duplicate-hour cron run</li>
+          <li>Local timezone stored instead of UTC</li>
+          <li>Cron silently never runs (no dead-man switch)</li>
+          <li>Duplicate cron across replicas</li>
+          <li>Lock TTL expires before work completes</li>
+          <li>Event time vs processing time mismatch</li>
+          <li>JWT/TOTP rejected from clock skew</li>
+        </ul>
+        <span class="impact-tag" style="background:#eff6ff;color:#1e40af;"> Incorrect ordering / wrong execution</span>
+        <a href="time-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-800 hover:text-blue-950">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-yellow-300 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">22. Human / Operational Failures</p>
+        <p class="text-xs text-gray-400 mb-3">70-80% of outages have a human action as contributing cause</p>
+        <ul class="cat-types">
+          <li>Wrong config / wrong environment targeted</li>
+          <li>Accidental data deletion / mass update</li>
+          <li>Deploy without rollback plan</li>
+          <li>No load test before major event</li>
+          <li>Alert silenced and never unsilenced</li>
+          <li>No incident commander during outage</li>
+          <li>Stale / missing runbook</li>
+          <li>Bus factor = 1 / post-mortem actions not closed</li>
+        </ul>
+        <span class="impact-tag" style="background:#fefce8;color:#854d0e;"> System outage due to human error</span>
+        <a href="human-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-yellow-800 hover:text-yellow-950">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-zinc-300 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">23. Latency &amp; Performance Failures</p>
+        <p class="text-xs text-gray-400 mb-3">System is up but unusable — P99 hides the problem P50 misses</p>
+        <ul class="cat-types">
+          <li>P99 tail latency / fan-out amplification</li>
+          <li>Head-of-line blocking</li>
+          <li>Missing DB index / N+1 queries</li>
+          <li>GC pause (stop-the-world)</li>
+          <li>Cold start (JVM / cache / serverless)</li>
+          <li>Noisy neighbour CPU steal</li>
+          <li>Queue depth latency (Little&apos;s Law)</li>
+          <li>Sequential fan-out / chatty API</li>
+        </ul>
+        <span class="impact-tag" style="background:#f4f4f5;color:#3f3f46;"> User sees slow system</span>
+        <a href="latency-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-zinc-600 hover:text-zinc-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-pink-200 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">24. Observability Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Eyes of distributed systems — silent failures are the most dangerous</p>
+        <ul class="cat-types">
+          <li>Metrics pipeline failure / missing metrics</li>
+          <li>Log pipeline failure / log loss</li>
+          <li>Missing trace propagation / partial trace loss</li>
+          <li>Missing alert / false positive storm</li>
+          <li>Alert routing failure</li>
+          <li>High cardinality explosion</li>
+          <li>Logs cannot correlate to traces</li>
+          <li>Audit logging failure</li>
+        </ul>
+        <span class="impact-tag" style="background:#fdf2f8;color:#9d174d;"> Silent failures / extended MTTR</span>
+        <a href="observability-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-pink-700 hover:text-pink-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-stone-300 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">25. Storage Engine Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Deepest level — silent corruption during recovery is most dangerous</p>
+        <ul class="cat-types">
+          <li>WAL failure / corruption</li>
+          <li>Write stall / torn write</li>
+          <li>Read amplification explosion</li>
+          <li>Compaction storm / starvation</li>
+          <li>Lock contention / deadlock</li>
+          <li>MVCC version explosion</li>
+          <li>Buffer pool exhaustion</li>
+          <li>Index corruption / metadata corruption</li>
+        </ul>
+        <span class="impact-tag" style="background:#fafaf9;color:#44403c;"> Data corruption / write failure</span>
+        <a href="storage-engine-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-stone-600 hover:text-stone-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-teal-300 shadow-sm">
+        <p class="font-bold text-gray-800 text-sm leading-tight">26. Search DB Failures</p>
+        <p class="text-xs text-gray-400 mb-3">Elasticsearch / OpenSearch — oversharding + fanout is the silent killer</p>
+        <ul class="cat-types">
+          <li>Indexing backlog / out-of-order updates</li>
+          <li>Query fanout explosion</li>
+          <li>Hot shard / oversharding</li>
+          <li>Merge storm / disk exhaustion</li>
+          <li>Heap exhaustion / fielddata explosion</li>
+          <li>Mapping explosion (dynamic fields)</li>
+          <li>Split brain / election storm</li>
+          <li>Ranking regression</li>
+        </ul>
+        <span class="impact-tag" style="background:#ccfbf1;color:#115e59;"> Stale search / cluster instability</span>
+        <a href="search-db-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-teal-900">Full scenario table &#8250;</a>
+      </div>
+
+      <div class="cat-card bg-white border border-red-200 shadow-sm" style="border-color:#fca5a5;">
+        <p class="font-bold text-red-700 text-sm leading-tight">27. Cascading Failures — Most Dangerous</p>
+        <p class="text-xs text-gray-400 mb-3">One failure causes another causes another — total system collapse</p>
+        <ul class="cat-types">
+          <li>Retry storm / exponential amplification</li>
+          <li>Node failure overload cascade</li>
+          <li>Thread pool chain (slow dep fills all threads)</li>
+          <li>Cache stampede → DB overload</li>
+          <li>OOM cascade across fleet</li>
+          <li>Queue backlog → broker crash</li>
+          <li>Split brain / corrupt data replication</li>
+          <li>Bulkhead absence → total collapse</li>
+        </ul>
+        <span class="impact-tag" style="background:#fca5a5;color:#7f1d1d;"> Entire system outage</span>
+        <a href="cascading-failures-table.html" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-900">Full scenario table &#8250;</a>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-6">
+      <p class="nh"> Staff-Level Mental Model — Remember This, Not 100+ Types</p>
+      <div class="ncode">Failures come from:
+  1. Infrastructure   → hardware, power, disk
+  2. Network          → partition, latency, DNS
+  3. Application      → crash, leak, deadlock
+  4. Data             → corruption, lost writes, stale reads
+  5. Load             → spikes, hot keys, stampede
+  6. Dependencies     → database, cache, third-party
+  7. Humans           → config push, deletion, wrong runbook</div>
+      <p class="ntip mt-3">Memorise <strong>7 buckets</strong>, not 100+ types. Interviewers reward <em>structured thinking</em>.</p>
+    </div>
+
+      <div class="nc">
+      <p class="nh">For ANY System — Ask These 6 Questions</p>
+      <div class="ncode">What can fail in:
+  - Infra?          → servers, disks, data center
+  - Network?        → partition, timeout, DNS
+  - Service?        → crash, leak, exhaustion
+  - Data?           → corruption, stale, lost
+  - Load?           → spike, hot key, stampede
+  - Dependencies?   → DB, cache, third-party</div>
+      <p class="ntip mt-3">This covers <strong>almost all real-world failures</strong> and is what Staff engineers say in system design interviews.</p>
+    </div>
+
+  </div><!-- /tab-taxonomy -->
+
+  <!-- TAB 2 — INTERVIEW NOTES -->
+  <div id="tab-interview" class="tab-pane pb-16">
+
+    <!-- Opening truth -->
+    <div class="nc">
+      <p class="nh">The Core Interview Truth</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-red-100 rounded-xl p-4 text-center">
+          <p class="text-lg font-black text-red-700">Staff engineers don't memorise failures.</p>
+        </div>
+
+      <div class="bg-green-50 rounded-xl p-4 text-center">
+          <p class="text-lg font-black text-green-800">They think: <em>"Everything will fail → design for it."</em></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category table -->
+    <div class="nc">
+      <p class="nh">Complete Category Reference</p>
+      <table class="nt mt-1">
+        <thead><tr><th>#</th><th>Category</th><th>Key Examples</th><th>Impact</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td> Infrastructure</td><td>Server crash, disk fail, power out</td><td>Node unavailable</td></tr>
+          <tr><td>2</td><td> Network</td><td>Partition, packet loss, DNS fail</td><td>Services can't communicate</td></tr>
+          <tr><td>3</td><td> Application</td><td>Memory leak, deadlock, CPU sat.</td><td>Slow or unavailable</td></tr>
+          <tr><td>4</td><td> Data &amp; Storage</td><td>Corruption, lost writes, stale reads</td><td>Incorrect / lost data</td></tr>
+          <tr><td>5</td><td> Database</td><td>Crash, slow query, deadlock, replica lag</td><td>Data unavailable / corrupt</td></tr>
+          <tr><td>6</td><td> Cache</td><td>Stampede, avalanche, hot key, stale data</td><td>DB overload / stale data</td></tr>
+          <tr><td>7</td><td> Storage</td><td>Disk fail, bit rot, metadata down, split brain, backup fail</td><td>Data loss / unavailable</td></tr>
+          <tr><td>8</td><td> Distributed</td><td>Split brain, clock drift, quorum fail</td><td>Inconsistent behaviour</td></tr>
+          <tr><td>9</td><td> Coordination</td><td>Split brain, quorum loss, leader fail, lock duplicate, metadata drift</td><td>Shared truth lost</td></tr>
+          <tr><td>10</td><td> Replication</td><td>Lag, split brain, divergence, quorum loss, out-of-order</td><td>Data inconsistency / unavailability</td></tr>
+          <tr><td>11</td><td> Sharding</td><td>Hot partition, metadata fail, rebalance storm, cross-shard</td><td>Uneven load / routing failure</td></tr>
+          <tr><td>12</td><td> Message Queue</td><td>Consumer lag, retry storm, duplicate, poison msg</td><td>Pipeline stall / data loss</td></tr>
+          <tr><td>13</td><td> Traffic &amp; Load</td><td>Hot key, thundering herd, stampede</td><td>Latency spike / collapse</td></tr>
+          <tr><td>14</td><td> Load Balancer</td><td>LB crash, uneven routing, health check fail, blackholing</td><td>Traffic not routed / misrouted</td></tr>
+          <tr><td>15</td><td> API Gateway</td><td>Thread exhaustion, auth fail, blackholing, retry storm</td><td>Platform appears down</td></tr>
+          <tr><td>16</td><td> API Layer</td><td>Retry storm, serde fail, duplicate exec, contract mismatch, N+1</td><td>Client errors / contract break</td></tr>
+          <tr><td>17</td><td> Concurrency</td><td>Race condition, lost update, deadlock</td><td>Data correctness</td></tr>
+          <tr><td>18</td><td> Security</td><td>DDoS, token leak, injection</td><td>Data breach</td></tr>
+          <tr><td>19</td><td> Dependencies</td><td>DB out, Redis out, 3rd-party fail</td><td>Cascading failures</td></tr>
+          <tr><td>20</td><td> Deployment</td><td>Bad deploy, schema mismatch, rollback fail</td><td>Post-release breakage</td></tr>
+          <tr><td>21</td><td>⏱ Time</td><td>Clock skew, timezone bug, TTL</td><td>Wrong ordering</td></tr>
+          <tr><td>22</td><td> Human</td><td>Wrong config, manual delete</td><td>Outage by human error</td></tr>
+          <tr><td>23</td><td> Latency</td><td>P99 spike, GC pause, cold start</td><td>Unusable system</td></tr>
+          <tr><td>24</td><td> Observability</td><td>Missing alert, log loss, trace gap, cardinality explosion</td><td>Silent failures / extended MTTR</td></tr>
+          <tr><td>25</td><td> Storage Engine</td><td>WAL corruption, compaction storm, write stall, read amplification</td><td>Data corruption / write failure</td></tr>
+          <tr><td>26</td><td> Search DB</td><td>Query fanout, hot shard, merge storm, heap exhaustion, oversharding</td><td>Stale search / cluster instability</td></tr>
+          <tr><td>27</td><td> Cascading</td><td>Retry storm, thread exhaustion chain</td><td>Full system outage</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Engineer progression -->
+    <div class="nc">
+      <p class="nh">Engineer Progression — What Interviewers Expect</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Level</th><th>What They Say</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="font-bold text-blue-600">Junior</span></td>
+            <td>"The server might crash or the database might go down."</td>
+          </tr>
+          <tr>
+            <td><span class="font-bold text-indigo-600">Senior</span></td>
+            <td>"Infrastructure can fail, networks can partition, services can crash, and dependencies can be unavailable — I'd handle each with retries, circuit breakers, and replication."</td>
+          </tr>
+          <tr>
+            <td><span class="font-bold text-purple-600">Staff</span></td>
+            <td>"I categorise failures into 7 buckets: infra, network, application, data, load, dependencies, and human. For each, I define the failure mode, detection signal, and recovery mechanism. The trickiest are distributed failures like split brain and clock drift because they're subtle and data-corrupting."</td>
+          </tr>
+          <tr>
+            <td><span class="font-bold text-red-700">Principal</span></td>
+            <td>"Failures are a design input, not an edge case. I start system design by asking: what is the blast radius of each component failure? How do we detect it within 30 seconds? How do we recover in under 2 minutes without data loss? I design for failure budgets, not for zero failures."</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Hardest to detect -->
+    <div class="nc">
+      <p class="nh">Hardest Failures to Detect (Interviewers Love These)</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-700 mb-1"> Split Brain</p>
+          <p class="text-xs text-gray-600">Two leaders think they're primary. Both accept writes. Data diverges silently.</p>
+        </div>
+
+      <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-700 mb-1">⏱ Clock Drift</p>
+          <p class="text-xs text-gray-600">Timestamps from different nodes disagree. Event ordering breaks. Distributed transactions corrupt.</p>
+        </div>
+
+      <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-700 mb-1"> Lost Update</p>
+          <p class="text-xs text-gray-600">Two concurrent writes — one silently overwrites the other. No error thrown. Data just disappears.</p>
+        </div>
+
+      <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-700 mb-1"> Partial Network</p>
+          <p class="text-xs text-gray-600">Some nodes can reach others but not all. System is alive but split. Consistency breaks.</p>
+        </div>
+
+      <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-700 mb-1"> Stale Reads</p>
+          <p class="text-xs text-gray-600">Read replica lags behind primary. User reads old data after a write. No error — just wrong data.</p>
+        </div>
+
+      <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-700 mb-1"> Retry Storm</p>
+          <p class="text-xs text-gray-600">One failure triggers thousands of retries. Retries overload the recovering service. Full cascade.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to answer -->
+    <div class="nc">
+      <p class="nh">How to Answer "What Can Fail?" in an Interview</p>
+      <div class="ncode">Step 1: State your framework
+  "I think about failures in 7 categories: infra, network,
+   application, data, load, dependencies, and human."
+
+Step 2: Walk through relevant categories for THIS system
+  "For a payment system, the critical failures are:
+   - Data failures: lost writes, double-charging (concurrency)
+   - Dependency failures: payment gateway down
+   - Distributed failures: split brain on DB leader election
+   - Network failures: timeout between services"
+
+Step 3: For each failure — detection + mitigation
+  "Lost writes → use WAL + idempotency keys
+   Gateway down → circuit breaker + retry with backoff
+   Split brain → Raft consensus, fencing tokens
+   Timeout → bulkhead, graceful degradation"
+
+Step 4: Close with a principle
+  "The goal isn't zero failures — it's fast detection,
+   blast radius isolation, and automatic recovery."</div>
+    </div>
+
+    <!-- Golden Rules -->
+    <div class="nc">
+      <p class="nh">Golden Rules — Say These in Interviews</p>
+      <ul class="check-ul mt-1">
+        <li>Failures are a design input, not an afterthought.</li>
+        <li>Every component has a blast radius — design to contain it.</li>
+        <li>Detection speed matters as much as recovery speed.</li>
+        <li>Cascading failures are caused by tight coupling — use bulkheads.</li>
+        <li>Distributed system failures (split brain, clock drift) are the hardest — design consensus carefully.</li>
+        <li>Human failures kill more systems than hardware failures — automate everything.</li>
+      </ul>
+    </div>
+
+    <!-- Interview cheat sheet -->
+    <div class="nc" style="background:#1a0000;border-color:#450a0a;">
+      <p class="text-xs font-bold text-red-300 uppercase tracking-widest mb-3"> Interview Cheat Sheet</p>
+      <div class="ncode" style="background:#0a0000;color:#fca5a5;">7 FAILURE BUCKETS
+  1. Infra        → server/disk/power/DC fail
+  2. Network      → partition/timeout/DNS/TLS
+  3. Application  → crash/leak/deadlock/CPU sat
+  4. Data         → corruption/lost write/stale
+  5. Load         → spike/hot-key/stampede
+  6. Dependency   → DB/cache/3rd-party out
+  7. Human        → wrong config/delete/alert miss
+
+HARDEST TO DETECT
+  → Split brain       → two leaders, data diverges
+  → Clock drift       → ordering breaks
+  → Lost update       → silent overwrite
+  → Retry storm       → amplifies into cascade
+  → Stale reads       → no error, just wrong data
+
+FOR EACH FAILURE ASK
+  → How do we detect it?      (metric / alert)
+  → What is the blast radius? (scope of impact)
+  → How do we recover?        (auto vs manual)
+  → How do we prevent repeat? (design change)
+
+FINAL TRUTH
+  "Everything will fail.
+   Design to detect, isolate, and recover —
+   not to prevent every failure."</div>
+    </div>
+
+    <!-- Principal takeaway -->
+    <div class="rounded-2xl p-5 mt-2" style="background:#450a0a;border:1px solid #7f1d1d;">
+      <p class="text-xs font-bold text-red-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200 mb-0.5">Detect Early</p>
+          <p class="text-xs text-red-300 mt-0.5">Metrics, alerts, health checks</p>
+        </div>
+
+      <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200 mb-0.5">Isolate Blast Radius</p>
+          <p class="text-xs text-red-300 mt-0.5">Bulkheads, circuit breakers</p>
+        </div>
+
+      <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200 mb-0.5">Recover Fast</p>
+          <p class="text-xs text-red-300 mt-0.5">Failover, replication, auto-heal</p>
+        </div>
+
+      <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200 mb-0.5">Keep Serving Users</p>
+          <p class="text-xs text-red-300 mt-0.5">Graceful degradation, caching</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next step: Mitigations link card -->
+    <a href="failures-mitigations.html"
+       class="flex items-center justify-between bg-white border border-green-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-green-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-green-600 mb-1">Next Level</p>
+        <p class="font-bold text-gray-800 text-base">Mitigation Strategies — Staff Answer Sheet</p>
+        <p class="text-sm text-gray-500 mt-0.5">Failure to Detection to Mitigation to Prevention to Trade-off, all 14 categories</p>
+      </div>
+      <svg class="w-6 h-6 text-green-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-interview -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

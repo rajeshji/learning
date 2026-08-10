@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resource Budgeting &amp; Capacity Planning</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .formula{ background:#0f172a; color:#38bdf8; font-family:'Courier New',monospace;
+              font-size:.95rem; font-weight:700; text-align:center;
+              border-radius:.65rem; padding:.85rem 1.25rem; letter-spacing:.02em; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+    .mc { border-radius:.85rem; padding:1rem 1.1rem; flex:1; min-width:0; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Resource Budgeting &amp; Capacity Planning</span>
+  </div>
+</header>
+
+<!-- PAGE TITLE -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Resource Budgeting &amp; Capacity Planning</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Traffic Forecasting &bull; Resource Estimation &bull; Infrastructure Sizing &bull; Headroom</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TEXT TAB ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea — Most Underrated Staff/Principal Topic</p>
+      <p class="nq">Interviewers never ask "Explain Capacity Planning." Instead they ask disguised capacity questions — and Staff Engineers are expected to answer with data, not guesswork.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+        <div class="bg-violet-100 rounded-lg p-2 text-center"><p class="text-xs text-violet-800 font-semibold">How many servers do we need?</p></div>
+        <div class="bg-violet-100 rounded-lg p-2 text-center"><p class="text-xs text-violet-800 font-semibold">Can this handle 10× traffic?</p></div>
+        <div class="bg-violet-100 rounded-lg p-2 text-center"><p class="text-xs text-violet-800 font-semibold">When should we autoscale?</p></div>
+        <div class="bg-violet-100 rounded-lg p-2 text-center"><p class="text-xs text-violet-800 font-semibold">How many Kafka partitions?</p></div>
+        <div class="bg-violet-100 rounded-lg p-2 text-center"><p class="text-xs text-violet-800 font-semibold">CPU/Memory per pod?</p></div>
+        <div class="bg-violet-100 rounded-lg p-2 text-center"><p class="text-xs text-violet-800 font-semibold">DB connections needed?</p></div>
+        <div class="bg-violet-100 rounded-lg p-2 text-center col-span-2"><p class="text-xs text-violet-800 font-semibold">What's the cost if traffic doubles?</p></div>
+      </div>
+      <p class="ntip mt-3">These are all <strong>Resource Budgeting &amp; Capacity Planning</strong> questions.</p>
+    </div>
+
+    <!-- Definition -->
+    <div class="nc">
+      <p class="nh">Definition</p>
+      <div class="formula">Capacity Planning = Infrastructure needed to meet demand<br/>while maintaining SLA, reliability &amp; cost efficiency</div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-center">
+          <p class="text-xs font-bold text-blue-700">Can it handle<br/>current traffic?</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-lg p-3 text-center">
+          <p class="text-xs font-bold text-green-700">Can it handle<br/>future growth?</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 text-center">
+          <p class="text-xs font-bold text-orange-700">Can it do so at<br/>acceptable cost?</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Mental Model + Resource Budget -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Core Mental Model</p>
+        <div class="ncode">Business Growth
+  ↓
+Traffic Forecast
+  ↓
+Capacity Estimation
+  ↓
+Resource Budget
+  ↓
+Deployment
+  ↓
+Monitoring
+  ↓
+Scale if Needed</div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Resource Budget Example — API Service</p>
+        <div class="ncode">CPU         4 Cores
+Memory      8 GB
+Threads     200
+Connections 500
+Network     1 Gbps
+Storage     200 GB
+
+If any budget exceeded →
+  Performance degrades</div>
+        <p class="ntip mt-2">Every service has a budget. Track it or pay for it in outages.</p>
+      </div>
+    </div>
+
+    <!-- What Resources + Workflow -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">What Resources Do We Budget?</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Resource</th><th>Why It Matters</th></tr></thead>
+          <tbody>
+            <tr><td>CPU</td><td>Processing capacity</td></tr>
+            <tr><td>Memory</td><td>Object storage &amp; cache</td></tr>
+            <tr><td>Disk / IOPS</td><td>Storage &amp; IO throughput</td></tr>
+            <tr><td>Network</td><td>Bandwidth limit</td></tr>
+            <tr><td>DB Connections</td><td>DB capacity ceiling</td></tr>
+            <tr><td>Thread Pool</td><td>Concurrent request handling</td></tr>
+            <tr><td>Connection Pool</td><td>External dependency limits</td></tr>
+            <tr><td>Queue Capacity</td><td>Burst absorption</td></tr>
+            <tr><td>Cache Memory</td><td>Reduce DB load</td></tr>
+            <tr><td>Kafka Partitions</td><td>Consumer scalability</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Capacity Planning Workflow</p>
+        <div class="ncode">1. Estimate Traffic
+  ↓
+2. Requests / sec (RPS)
+  ↓
+3. Concurrency (Little's Law)
+     L = λ × W
+  ↓
+4. Estimate Resources
+     CPU / Memory / Threads
+  ↓
+5. Provision Infrastructure
+     Pods / Servers / LBs
+  ↓
+6. Monitor &amp; Scale</div>
+        <p class="ntip mt-2">Staff Engineer mindset: <em>What traffic do we expect in 6 months?</em> Not just "how many pods today?"</p>
+      </div>
+    </div>
+
+    <!-- Capacity Estimation Example -->
+    <div class="nc">
+      <p class="nh">Capacity Planning Example — Using Little's Law</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <div class="ncode">Users (Monthly)     100,000
+Peak Active (10%)    10,000
+Avg Req/User/Sec          2
+Total Peak RPS       20,000
+Avg Latency          100 ms (0.1 sec)
+
+Concurrency = λ × W
+  = 20,000 × 0.1
+  = 2,000 concurrent requests</div>
+        </div>
+        <div class="space-y-2">
+          <p class="sub-h">Now Estimate Resources</p>
+          <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 flex justify-between items-center">
+            <p class="text-xs font-bold text-blue-700">Threads</p>
+            <p class="text-xs font-mono text-blue-600">~2,500 (with headroom)</p>
+          </div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 flex justify-between items-center">
+            <p class="text-xs font-bold text-green-700">CPU</p>
+            <p class="text-xs font-mono text-green-600">~8–10 Cores</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-2 flex justify-between items-center">
+            <p class="text-xs font-bold text-orange-700">Memory</p>
+            <p class="text-xs font-mono text-orange-600">~16–20 GB</p>
+          </div>
+          <div class="bg-violet-50 border border-violet-100 rounded-lg p-2 flex justify-between items-center">
+            <p class="text-xs font-bold text-violet-700">Pods</p>
+            <p class="text-xs font-mono text-violet-600">~10 pods (2 per pod)</p>
+          </div>
+          <div class="bg-pink-50 border border-pink-100 rounded-lg p-2 flex justify-between items-center">
+            <p class="text-xs font-bold text-pink-700">Load Balancers</p>
+            <p class="text-xs font-mono text-pink-600">2 (Active–Active)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Headroom -->
+    <div class="nc">
+      <p class="nh">Headroom — Always Keep 20–40% Buffer</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+          <p class="text-xs font-black text-green-700 mb-2"> Good — With Headroom</p>
+          <div class="ncode" style="font-size:.72rem; padding:.65rem .85rem">Current:  60% CPU
+  ↓ Traffic Spike
+  85% CPU
+  ↓ Still Healthy</div>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+          <p class="text-xs font-black text-red-700 mb-2"> Risky — No Headroom</p>
+          <div class="ncode" style="font-size:.72rem; padding:.65rem .85rem">Current:  95% CPU
+  ↓ Traffic Spike
+  100% CPU
+  ↓ Outage </div>
+        </div>
+      </div>
+      <p class="ntip mt-2">Never plan for exactly 100%. Always leave runway for spikes, retries, and incident recovery.</p>
+    </div>
+
+    <!-- Budgeting Principles Grid -->
+    <div class="nc">
+      <p class="nh">Resource Budgeting Principles</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3">
+          <p class="text-xs font-black text-blue-700 mb-1">CPU Budget</p>
+          <ul class="dot-ul"><li>CPU %, Load Avg</li><li>Context switches</li></ul>
+          <p class="text-xs font-mono text-blue-600 mt-2 font-bold">Target: 60–70%</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-lg p-3">
+          <p class="text-xs font-black text-green-700 mb-1">Memory Budget</p>
+          <ul class="dot-ul"><li>Heap, RSS</li><li>GC frequency</li></ul>
+          <p class="text-xs font-mono text-green-600 mt-2 font-bold">Target: 70–80%</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+          <p class="text-xs font-black text-amber-700 mb-1">Database Budget</p>
+          <ul class="dot-ul"><li>QPS, Connections</li><li>Lock wait time</li></ul>
+          <p class="text-xs font-mono text-amber-600 mt-2 font-bold">Keep 20–30% headroom</p>
+        </div>
+        <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
+          <p class="text-xs font-black text-indigo-700 mb-1">Network Budget</p>
+          <ul class="dot-ul"><li>Bandwidth, RTT</li><li>Packet loss</li></ul>
+          <p class="text-xs font-mono text-indigo-600 mt-2 font-bold">Target: 70–80%</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-black text-violet-700 mb-1">Thread Pool</p>
+          <ul class="dot-ul"><li>Active threads</li><li>Queue length</li></ul>
+          <p class="text-xs font-mono text-violet-600 mt-2 font-bold">Queue ≈ 0 (most of the time)</p>
+        </div>
+        <div class="bg-pink-50 border border-pink-100 rounded-lg p-3">
+          <p class="text-xs font-black text-pink-700 mb-1">Connection Pool</p>
+          <ul class="dot-ul"><li>Active / idle ratio</li><li>Wait time</li></ul>
+          <p class="text-xs font-mono text-pink-600 mt-2 font-bold">Leave 20–30% idle</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scaling + Inputs + Failure Symptoms -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Scaling Strategies</p>
+        <p class="sub-h">Vertical (Scale Up)</p>
+        <div class="ncode" style="font-size:.72rem; padding:.65rem .85rem">4 Core → 8 Core
+Simple but limited</div>
+        <p class="sub-h">Horizontal (Scale Out)</p>
+        <div class="ncode" style="font-size:.72rem; padding:.65rem .85rem">4 Servers → 20 Servers
+Preferred. Adds coordination.</div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Capacity Planning Inputs</p>
+        <ul class="dot-ul mt-1">
+          <li>Historical Traffic &amp; Trends</li>
+          <li>Peak Traffic (daily/weekly)</li>
+          <li>Growth Rate (MoM / YoY)</li>
+          <li>Business Forecast</li>
+          <li>Seasonality (weekday/weekend)</li>
+          <li>Flash Sales / Spikes</li>
+          <li>Marketing Campaigns / Events</li>
+        </ul>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Failure Symptoms</p>
+        <ul class="dot-ul mt-1">
+          <li class="text-red-700">CPU constantly &gt; 90%</li>
+          <li class="text-red-700">Memory exhaustion / OOM</li>
+          <li class="text-red-700">Queue keeps growing</li>
+          <li class="text-red-700">Connection pool exhausted</li>
+          <li class="text-red-700">High P99 latency</li>
+          <li class="text-red-700">Frequent autoscaling events</li>
+          <li class="text-red-700">Timeouts during traffic spikes</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Capacity Planning vs Autoscaling + Common Components -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Capacity Planning vs Autoscaling</p>
+        <div class="grid grid-cols-2 gap-2 mt-1">
+          <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-center">
+            <p class="text-xs font-black text-blue-700 mb-1">Capacity Planning</p>
+            <p class="text-xs text-blue-600">Predict → Prepare<br/>Plan ahead</p>
+          </div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-3 text-center">
+            <p class="text-xs font-black text-green-700 mb-1">Autoscaling</p>
+            <p class="text-xs text-green-600">React → Recover<br/>Respond real-time</p>
+          </div>
+        </div>
+        <p class="ntip mt-2">Staff Engineers do <strong>both</strong>. Autoscaling complements planning — it does not replace it.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Capacity Metrics by Component</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Component</th><th>Capacity Metric</th></tr></thead>
+          <tbody>
+            <tr><td>API / Web Service</td><td>Requests/sec (RPS)</td></tr>
+            <tr><td>Database</td><td>Transactions/sec (TPS)</td></tr>
+            <tr><td>Kafka</td><td>Messages/sec, Partitions, Lag</td></tr>
+            <tr><td>Redis</td><td>Ops/sec</td></tr>
+            <tr><td>Load Balancer</td><td>Concurrent Connections/sec</td></tr>
+            <tr><td>Queue (SQS/RMQ)</td><td>Queue Depth / Messages</td></tr>
+            <tr><td>Thread Pool</td><td>Active Threads / Queue Length</td></tr>
+            <tr><td>Storage / Disk</td><td>IOPS, Throughput, Latency</td></tr>
+            <tr><td>Network</td><td>Bandwidth (Mbps / Gbps), RTT</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Decision Tree + Interview Q&As -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Resource Budget Decision Tree</p>
+        <div class="ncode">Traffic Increasing?
+  ↓ Yes
+Which resource saturates first?
+  CPU? Memory? Disk?
+  Network? Connections?
+  Queue? Cache? Database?
+  ↓
+Scale Out  OR  Optimize
+  (Scale / Cache / Async / Shard)</div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">System Design Interview Q&amp;A</p>
+        <div class="space-y-2 mt-1">
+          <div>
+            <p class="text-xs font-bold text-violet-700">Q1: Traffic becomes 5×. What do you do?</p>
+            <p class="text-xs text-gray-600 mt-0.5">Identify which resource saturates first. Scale pods, Kafka partitions, or read replicas accordingly. Ensure headroom.</p>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-violet-700">Q2: CPU is only 50% but latency is high?</p>
+            <p class="text-xs text-gray-600 mt-0.5">Check queue buildup, DB slowness, network RTT, lock contention, or connection pool exhaustion. CPU ≠ only bottleneck.</p>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-violet-700">Q3: How many Kafka partitions should we create?</p>
+            <p class="text-xs text-gray-600 mt-0.5">Current throughput × growth rate × future consumers over 12–24 months. Partitions = consumer parallelism ceiling. Over-provision.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Checklist -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Checklist — Before Approving a Design</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0.5 mt-1">
+        <p class="text-sm text-green-700 font-medium"> What is the expected peak RPS?</p>
+        <p class="text-sm text-green-700 font-medium"> What is the concurrency?</p>
+        <p class="text-sm text-green-700 font-medium"> Which resource saturates first?</p>
+        <p class="text-sm text-green-700 font-medium"> How much headroom do we have?</p>
+        <p class="text-sm text-green-700 font-medium"> Can the system survive 2× or 10× spikes?</p>
+        <p class="text-sm text-green-700 font-medium"> Is autoscaling fast enough to react?</p>
+        <p class="text-sm text-green-700 font-medium"> What is the infrastructure cost?</p>
+        <p class="text-sm text-green-700 font-medium"> What is the failure plan if capacity is exceeded?</p>
+      </div>
+    </div>
+
+    <!-- Cheat Sheets -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Capacity Planning Cheat Sheet</p>
+        <div class="ncode">Estimate Demand
+  ↓ Requests / sec
+  ↓ Concurrency (L = λ × W)
+  ↓ CPU / Memory
+  ↓ Pods / Servers
+  ↓ Leave Headroom (20–40%)
+  ↓ Configure Autoscaling
+  ↓ Monitor Everything</div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Interview Cheat Sheet</p>
+        <div class="ncode">Resource Budgeting
+  • CPU  • Memory  • Network
+  • Disk  • Thread Pool
+  • Connection Pool
+  • Queue  • Cache
+
+Capacity Planning
+  • Estimate future traffic
+  • Calculate concurrency
+  • Size infrastructure
+  • Leave 20–40% headroom
+  • Monitor and scale
+
+Golden Rules
+  • Plan for peak, not average
+  • Keep 20–40% headroom
+  • Autoscaling ≠ planning
+  • Budget every critical resource</div>
+      </div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white">How much traffic will we have in <strong>12 months</strong>?</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white">Which resource becomes the <strong>first bottleneck</strong>?</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white">What is the cost of supporting <strong>10× growth</strong>?</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white">Capacity reserved for <strong>failures &amp; regional outages</strong>?</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Resource budgeting allocates limits for CPU, memory, network, storage, threads, and connections.
+        Capacity planning predicts future demand and ensures the system has enough resources — with sufficient headroom —
+        to meet performance, reliability, and cost objectives.</strong>
+        This is the level of reasoning expected from Staff and Principal Engineers during system design interviews.
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== IMAGE TAB ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/ResourceBudgeting/resource-budgeting.png"
+           alt="Resource Budgeting &amp; Capacity Planning visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

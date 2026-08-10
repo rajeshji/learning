@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Storage Engine Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#44403c; border-bottom-color:#44403c; }
+    .tab-btn:hover:not(.active) { color:#0c0a09; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fafaf9; border:1px solid #d6d3d1; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#44403c; margin-bottom:.6rem; }
+    .ncode{ background:#0c0a09; color:#d6d3d1; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #d6d3d1; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#292524; color:#d6d3d1; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #e7e5e4;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fafaf9; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#44403c; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#292524; color:#d6d3d1; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #e7e5e4; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-stone-700 hover:text-stone-900 font-semibold
+              bg-stone-50 hover:bg-stone-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-stone-800 font-semibold">Storage Engine Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-stone-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Storage Engine Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 36 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Write Path Failures</td></tr>
+          <tr>
+            <td>WAL Failure<span class="badge-crit">Must Know</span></td>
+            <td>WAL disk corruption or crash before memtable flush — write-ahead log unreadable</td>
+            <td>WAL replay errors on startup, missing committed records after recovery</td>
+            <td>Restore from replica or backup, replay from last clean checkpoint</td>
+            <td>Replicated WAL, WAL checksums, RAID on WAL disk</td>
+            <td class="casc">Data loss risk — all writes since last checkpoint may be irrecoverable</td>
+            <td class="troff">Replicated WAL doubles write IO; checksums add per-write CPU overhead</td>
+          </tr>
+          <tr>
+            <td>Write Stall<span class="badge-crit">Must Know</span></td>
+            <td>Memtable full and flush/compaction cannot keep up — engine stops accepting writes</td>
+            <td>Write latency spike, "write stall" event in engine logs</td>
+            <td>Apply backpressure to producers, throttle write rate</td>
+            <td>Better compaction tuning, faster flush, write rate limiting upstream</td>
+            <td class="casc">Queue buildup upstream → buffer overflow → producer data loss</td>
+            <td class="troff">Tighter write rate limits reduce throughput headroom</td>
+          </tr>
+          <tr>
+            <td>Partial / Torn Write<span class="badge-crit">Must Know</span></td>
+            <td>Power loss or crash during multi-sector write — only part of page written</td>
+            <td>Checksum mismatch on page read, data corruption error on recovery</td>
+            <td>Replay WAL to reconstruct page, restore from replica</td>
+            <td>Atomic page writes (double-write buffer in InnoDB), WAL for all mutations</td>
+            <td class="casc">Corrupted page silently served — downstream queries return wrong data</td>
+            <td class="troff">Double-write buffer adds 2× write IO for every dirty page flush</td>
+          </tr>
+          <tr>
+            <td>fsync Latency Explosion</td>
+            <td>Slow SSD or overloaded IO scheduler — fsync blocks commit for hundreds of ms</td>
+            <td>Commit latency P99 spike, transaction throughput drop</td>
+            <td>Batch commits (group commit), reduce fsync frequency for non-critical paths</td>
+            <td>NVMe SSD, separate WAL disk, group commit design</td>
+            <td class="casc">Transaction backlog → client timeouts → upstream retry storm</td>
+            <td class="troff">Group commit increases commit latency for individual transactions</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Read Path Failures</td></tr>
+          <tr>
+            <td>Read Amplification Explosion<span class="badge-crit">Must Know</span></td>
+            <td>LSM-tree has too many SSTables — each read must check many levels before finding data</td>
+            <td>Read latency spike, high IO despite small result set, many SSTable reads per query</td>
+            <td>Trigger major compaction to merge SSTables</td>
+            <td>Better compaction strategy (leveled vs tiered), bloom filters per SSTable</td>
+            <td class="casc">Cache miss storms — read amplification overwhelms disk IO budget</td>
+            <td class="troff">Leveled compaction reduces read amplification but increases write amplification</td>
+          </tr>
+          <tr>
+            <td>Cache Miss Storm<span class="badge-crit">Must Know</span></td>
+            <td>Working set larger than buffer pool — every read goes to disk</td>
+            <td>Cache hit ratio drops, disk IO 100%, read latency explosion</td>
+            <td>Warm cache from replica, limit concurrent read rate</td>
+            <td>Sufficient buffer pool sizing (working set fits in RAM), tiered storage</td>
+            <td class="casc">Disk IO saturation — all queries slow simultaneously, service unavailable</td>
+            <td class="troff">Larger buffer pool reduces available RAM for other processes</td>
+          </tr>
+          <tr>
+            <td>Corrupted Read Path</td>
+            <td>Bit rot or write corruption — block returns wrong data silently or with error</td>
+            <td>Checksum failure on block read, unexpected data in query results</td>
+            <td>Read from replica, rebuild from backup, run storage scrub</td>
+            <td>End-to-end checksums on every block, regular scrubbing</td>
+            <td class="casc">Incorrect query results served silently — corrupt data propagates to application</td>
+            <td class="troff">Per-block checksum adds CPU overhead and slightly increases IO size</td>
+          </tr>
+          <tr>
+            <td>Range Scan Slowdown</td>
+            <td>Fragmented SSTables — range scan must read many non-contiguous files</td>
+            <td>Range query latency spike while point lookups remain fast</td>
+            <td>Trigger compaction to defragment SSTables for affected key range</td>
+            <td>Better data organisation, consider B-tree engine for range-heavy workloads</td>
+            <td class="casc">API latency increase for all range-based queries — secondary index scans too</td>
+            <td class="troff">Frequent compaction for locality reduces write throughput</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — WAL and Recovery Failures</td></tr>
+          <tr>
+            <td>WAL Corruption<span class="badge-crit">Must Know</span></td>
+            <td>Disk bit flip or incomplete write corrupts WAL records</td>
+            <td>Recovery replay failure on startup, CRC mismatch in WAL segment</td>
+            <td>Restore from replica WAL, rebuild from last valid checkpoint</td>
+            <td>WAL checksums per record, replicated WAL to separate storage</td>
+            <td class="casc">Startup failure — engine cannot start until WAL repaired</td>
+            <td class="troff">Per-record checksums add latency to every WAL write operation</td>
+          </tr>
+          <tr>
+            <td>Recovery Replay Storm<span class="badge-crit">Must Know</span></td>
+            <td>Huge WAL backlog at crash — replaying thousands of records takes hours</td>
+            <td>Long recovery time, node offline for extended period after restart</td>
+            <td>Incremental checkpoints to reduce WAL replay scope</td>
+            <td>Frequent checkpoint snapshots, bounded WAL size</td>
+            <td class="casc">Extended downtime — node unavailable for hours, capacity reduced</td>
+            <td class="troff">Frequent checkpoints add IO overhead and temporarily increase write latency</td>
+          </tr>
+          <tr>
+            <td>Checkpoint Corruption<span class="badge-crit">Must Know</span></td>
+            <td>Power loss or crash during checkpoint write — checkpoint partially written</td>
+            <td>Recovery detects invalid checkpoint, falls back to older checkpoint</td>
+            <td>Roll back to previous valid checkpoint, replay WAL from that point</td>
+            <td>Atomic checkpoint write (write to temp, then rename), dual checkpoints</td>
+            <td class="casc">Data inconsistency — must replay larger WAL window, increasing recovery time</td>
+            <td class="troff">Dual checkpoint adds storage overhead and checkpoint write complexity</td>
+          </tr>
+          <tr>
+            <td>Double Recovery Replay</td>
+            <td>Crash recovery replays same WAL records twice — idempotency not guaranteed</td>
+            <td>Duplicate records detected, inconsistent state after recovery</td>
+            <td>Deduplicate by sequence number, apply idempotent replay logic</td>
+            <td>Sequence tracking per WAL record, at-most-once apply guarantees</td>
+            <td class="casc">Duplicate state — phantom records, double-applied mutations corrupt data</td>
+            <td class="troff">Sequence tracking adds metadata overhead per WAL entry</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Compaction and GC Failures</td></tr>
+          <tr>
+            <td>Compaction Storm<span class="badge-crit">Must Know</span></td>
+            <td>Multiple large compactions triggered simultaneously — disk IO fully consumed</td>
+            <td>Disk IO at 100%, write latency spike, CPU spike on compaction threads</td>
+            <td>Throttle compaction rate, pause lower-priority compactions</td>
+            <td>Compaction scheduling with priority levels, IO rate limiting</td>
+            <td class="casc">IO starvation — live read/write requests cannot complete alongside compaction</td>
+            <td class="troff">Throttling extends compaction duration — read amplification stays higher longer</td>
+          </tr>
+          <tr>
+            <td>Compaction Starvation<span class="badge-crit">Must Know</span></td>
+            <td>Write rate exceeds compaction throughput — SSTables accumulate faster than merged</td>
+            <td>SSTable count growing, read latency increasing over time</td>
+            <td>Increase compaction threads, throttle write rate</td>
+            <td>Write rate limiting, compaction capacity planning for peak write load</td>
+            <td class="casc">Read amplification explosion — each read must check ever-more SSTables</td>
+            <td class="troff">More compaction threads consume CPU that could serve read/write requests</td>
+          </tr>
+          <tr>
+            <td>Space Amplification Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Old versions accumulate faster than GC/compaction cleans them — disk fills</td>
+            <td>Disk growth faster than data ingestion rate, old SSTable files not deleted</td>
+            <td>Force full compaction, enable more aggressive GC</td>
+            <td>TTL/GC tuning, space amplification monitoring with threshold alerts</td>
+            <td class="casc">Disk full — engine stops accepting new writes entirely</td>
+            <td class="troff">Aggressive GC increases compaction IO and CPU pressure</td>
+          </tr>
+          <tr>
+            <td>Tombstone Explosion</td>
+            <td>Excessive deletes generate many tombstone markers — reads must scan all before finding data</td>
+            <td>Read latency increasing despite small live data set, tombstone warning in logs</td>
+            <td>Trigger compaction to purge tombstones, reduce delete rate</td>
+            <td>Better delete strategy (TTL over explicit deletes), compaction tuning for tombstone GC</td>
+            <td class="casc">Query latency explosion — all reads must traverse tombstone sea before finding live data</td>
+            <td class="troff">Aggressive tombstone compaction generates extra IO and temporary space usage</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Concurrency and Locking Failures</td></tr>
+          <tr>
+            <td>Lock Contention<span class="badge-crit">Must Know</span></td>
+            <td>Heavy concurrent writes on same row/page — threads queue waiting for locks</td>
+            <td>Lock wait metrics spike, throughput drop while CPU is low</td>
+            <td>Backoff and retry, partition hot rows</td>
+            <td>Better key partitioning, avoid sequential hot keys, use lock-free structures</td>
+            <td class="casc">Throughput collapse — all writers serialize on single hot lock</td>
+            <td class="troff">More partitioning reduces locality and increases coordination complexity</td>
+          </tr>
+          <tr>
+            <td>Deadlock<span class="badge-crit">Must Know</span></td>
+            <td>Transaction A holds lock X waiting for Y; Transaction B holds Y waiting for X</td>
+            <td>Deadlock detection log entry, transaction aborted with deadlock error</td>
+            <td>Abort one transaction, apply consistent global lock ordering</td>
+            <td>Consistent lock ordering across all transactions, deadlock detection with timeout</td>
+            <td class="casc">Request hangs if deadlock detection too slow — throughput collapses</td>
+            <td class="troff">Deadlock detection adds overhead; global ordering limits concurrency patterns</td>
+          </tr>
+          <tr>
+            <td>MVCC Version Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Long-running transactions prevent old MVCC versions from being garbage-collected</td>
+            <td>Old version accumulation in pg_stat_activity / bloat metrics, storage growing</td>
+            <td>Kill/complete long-running transactions, run VACUUM (Postgres) or equivalent</td>
+            <td>Transaction TTL, regular VACUUM/autovacuum tuning, monitor transaction age</td>
+            <td class="casc">Storage bloat → disk full → engine stops accepting writes</td>
+            <td class="troff">Aggressive vacuum/GC adds background IO pressure</td>
+          </tr>
+          <tr>
+            <td>Latch Contention</td>
+            <td>Engine-internal metadata operations (B-tree splits, buffer pool) serialize on latches</td>
+            <td>CPU spin/wait spike, throughput drops while CPU is high</td>
+            <td>Fine-grained latch partitioning, reduce latch scope</td>
+            <td>Lock-free data structures, partitioned latch design</td>
+            <td class="casc">CPU exhaustion from spinning — server hot despite low actual work being done</td>
+            <td class="troff">Lock-free structures are significantly more complex to implement correctly</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Index and Metadata Failures</td></tr>
+          <tr>
+            <td>Index Corruption<span class="badge-crit">Must Know</span></td>
+            <td>Crash during index update or bit flip corrupts index B-tree/LSM structure</td>
+            <td>Query mismatch — index returns rows not matching predicate, or missing valid rows</td>
+            <td>Rebuild index from primary data (costly but correct)</td>
+            <td>Index page checksums, validate index against primary data periodically</td>
+            <td class="casc">Incorrect query results silently — wrong data returned to all users of that index</td>
+            <td class="troff">Index validation adds IO overhead; rebuild is expensive for large tables</td>
+          </tr>
+          <tr>
+            <td>Index Rebuild Storm</td>
+            <td>Multiple large index rebuilds triggered — CPU and disk IO saturated</td>
+            <td>CPU and disk IO at 100% during rebuild, query latency spike</td>
+            <td>Incremental index rebuild, throttle rebuild IO rate</td>
+            <td>Online indexing (non-blocking), schedule rebuilds during low-traffic windows</td>
+            <td class="casc">Cluster-wide slowdown — index rebuild competes with live query IO</td>
+            <td class="troff">Online indexing is more complex and takes longer than offline rebuild</td>
+          </tr>
+          <tr>
+            <td>Metadata Corruption<span class="badge-crit">Must Know</span></td>
+            <td>System catalog or engine metadata tables corrupted — engine cannot map data locations</td>
+            <td>Engine startup failure, "table not found" for existing tables</td>
+            <td>Restore metadata from backup, apply replica metadata</td>
+            <td>Metadata replication to separate storage, atomic metadata writes</td>
+            <td class="casc">Entire DB inaccessible — cannot find any data without correct metadata</td>
+            <td class="troff">Metadata replication adds coordination overhead and storage cost</td>
+          </tr>
+          <tr>
+            <td>Secondary Index Lag</td>
+            <td>Async secondary index update — primary data updated but index not yet reflecting it</td>
+            <td>Missing rows in index-based queries, eventual consistency lag detected</td>
+            <td>Read from primary scan as fallback, rebuild index</td>
+            <td>Synchronous index update (higher write latency) or bounded-staleness index</td>
+            <td class="casc">Query inconsistency — queries via secondary index return stale results</td>
+            <td class="troff">Synchronous index update adds write latency for every indexed write</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Buffer Pool and Memory Failures</td></tr>
+          <tr>
+            <td>Buffer Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>Working set exceeds buffer pool — all reads miss cache and go to disk</td>
+            <td>Cache hit ratio drops to &lt;50%, disk IO 100%, read latency explodes</td>
+            <td>Increase buffer pool size, limit working set with partitioning</td>
+            <td>Right-size buffer pool to working set, tiered hot/warm storage</td>
+            <td class="casc">Disk IO explosion — every read hits disk simultaneously, service collapses</td>
+            <td class="troff">Large buffer pool reduces memory available for other processes</td>
+          </tr>
+          <tr>
+            <td>Dirty Page Flush Storm</td>
+            <td>Too many modified pages in buffer pool — checkpoint forces massive flush to disk</td>
+            <td>Write latency spike during checkpoint, disk IO spike in bursts</td>
+            <td>Controlled page flushing (InnoDB adaptive flushing), reduce checkpoint interval</td>
+            <td>Better checkpoint tuning, adaptive flushing to spread IO evenly</td>
+            <td class="casc">Disk saturation during checkpoint — reads and writes both blocked</td>
+            <td class="troff">More frequent controlled flushing adds baseline IO but removes IO spikes</td>
+          </tr>
+          <tr>
+            <td>OOM Crash</td>
+            <td>Unbounded memory growth (cache + connections + query memory) — OS kills process</td>
+            <td>OOM kill in kernel log, process crash with no application error</td>
+            <td>Restart engine, reduce per-query memory limits</td>
+            <td>Memory quotas, per-query memory limits, monitor heap growth</td>
+            <td class="casc">Recovery storm — all in-flight transactions lost, replica must catch up</td>
+            <td class="troff">Strict per-query memory limits may reject complex analytical queries</td>
+          </tr>
+          <tr>
+            <td>Eviction Thrashing</td>
+            <td>Working set slightly larger than cache — every page evicted is needed again immediately</td>
+            <td>Cache churn metrics high, IO amplification despite normal query rate</td>
+            <td>Tune eviction policy (LRU vs LFU vs ARC), add cache capacity</td>
+            <td>Better data locality design, partition hot/cold data</td>
+            <td class="casc">IO amplification — effective throughput drops as cache does no useful work</td>
+            <td class="troff">More cache capacity costs RAM; advanced policies add implementation complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Replication and Distributed Engine Failures</td></tr>
+          <tr>
+            <td>Replication Apply Lag<span class="badge-crit">Must Know</span></td>
+            <td>Replica engine slower than leader — cannot apply changes at write rate</td>
+            <td>Replica lag metric growing, replication offset falling behind leader</td>
+            <td>Scale replica vertically, batch apply changes for efficiency</td>
+            <td>Parallel replication apply, replica sizing matching leader write throughput</td>
+            <td class="casc">Stale reads — queries on replica return old values, inconsistent results</td>
+            <td class="troff">Parallel apply adds complexity and may reorder transactions</td>
+          </tr>
+          <tr>
+            <td>Out-of-Order Replication Apply</td>
+            <td>Async replay with parallel threads — dependent operations applied in wrong order</td>
+            <td>Sequence mismatch, foreign key violation during apply, inconsistent replica state</td>
+            <td>Replay in dependency order, serialise conflicting operations</td>
+            <td>Ordered replication log, write-set ordering in parallel apply</td>
+            <td class="casc">Inconsistent replica state — reads return logically impossible data combinations</td>
+            <td class="troff">Strict ordering reduces parallelism benefit of parallel replication</td>
+          </tr>
+          <tr>
+            <td>Storage Engine Split Brain<span class="badge-crit">Must Know</span></td>
+            <td>Network partition — both leader and replica think they are the writer</td>
+            <td>Conflicting writes on both sides, version vectors diverge</td>
+            <td>Fence stale leader using fencing tokens, reject writes from old leader</td>
+            <td>Consensus protocol for leadership (Raft/Paxos), unclean leader election off</td>
+            <td class="casc">Silent data corruption — two leaders write conflicting data to same keys</td>
+            <td class="troff">Strict consensus reduces availability during partition (CA trade-off)</td>
+          </tr>
+          <tr>
+            <td>Replica Recovery Overload</td>
+            <td>Replica falls so far behind it must sync full SSTable snapshot — massive transfer</td>
+            <td>Network IO spike, replica unavailable during full sync, disk write surge</td>
+            <td>Throttle snapshot transfer rate, incremental sync where possible</td>
+            <td>Bounded replication lag monitoring, replica restart before lag exceeds snapshot threshold</td>
+            <td class="casc">Cluster slowdown — snapshot transfer competes with live replication IO</td>
+            <td class="troff">Throttling extends recovery window — replica lags longer before becoming consistent</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Storage Engine Scaling Failures</td></tr>
+          <tr>
+            <td>LSM Tree Level Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Write rate exceeds compaction throughput — SSTables accumulate across many levels</td>
+            <td>SSTable count growing monotonically, read latency increasing over time</td>
+            <td>Add compaction capacity, throttle write rate</td>
+            <td>Write pacing, compaction capacity pre-planned for peak write load</td>
+            <td class="casc">Read amplification cascade — each read touches more levels, latency explodes</td>
+            <td class="troff">Pre-planned compaction capacity over-provisions CPU/disk at normal load</td>
+          </tr>
+          <tr>
+            <td>Shard Hotspot</td>
+            <td>Sequential or monotonic keys cause all new writes to land on one shard/node</td>
+            <td>One engine instance at 100% IO/CPU while others idle</td>
+            <td>Rebalance hot shard, add a local cache in front of hot engine</td>
+            <td>Better shard key (hashed, not sequential), consistent hashing with virtual nodes</td>
+            <td class="casc">Localised engine collapse — the hot shard fails, that key range fully unavailable</td>
+            <td class="troff">Hashed keys lose range locality — range scans require cross-shard scatter-gather</td>
+          </tr>
+          <tr>
+            <td>Metadata Scaling Bottleneck</td>
+            <td>Too many tables, partitions, or files — engine metadata operations become slow</td>
+            <td>Metadata operation latency increasing, engine catalog queries slow</td>
+            <td>Hierarchical metadata, reduce file count via compaction</td>
+            <td>File count monitoring, fewer larger SSTables, compaction keeping file count bounded</td>
+            <td class="casc">Cluster instability — metadata slowdown affects all operations across the engine</td>
+            <td class="troff">Fewer larger files means coarser compaction granularity</td>
+          </tr>
+          <tr>
+            <td>File Descriptor Exhaustion</td>
+            <td>Too many open SSTable files exceed OS file descriptor limit</td>
+            <td>EMFILE errors in engine logs, new connections refused</td>
+            <td>Increase OS fd limit (ulimit), compact SSTables to reduce file count</td>
+            <td>Monitor open fd count, set ulimit well above expected SSTable count</td>
+            <td class="casc">Engine instability — cannot open new files for reads or writes</td>
+            <td class="troff">Very high fd limits add OS-level resource tracking overhead</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Storage Engine Failures for Interviews</p>
+      <div class="ncode"> 1. WAL failure/corruption  → replicated WAL + checksums + checkpoint frequently
+ 2. Write stall             → compaction tuning + write rate limiting + backpressure
+ 3. Read amplification      → compaction strategy + bloom filters + leveled compaction
+ 4. Compaction storm        → IO rate limiting + priority levels + compaction scheduling
+ 5. Lock contention         → partition hot rows + lock-free structures + backoff
+ 6. MVCC version explosion  → vacuum tuning + transaction TTL + monitor old snapshots
+ 7. Buffer pool exhaustion  → right-size pool to working set + tiered storage
+ 8. Index corruption        → checksums + rebuild + periodic validation
+ 9. Recovery replay storm   → frequent checkpoints + bounded WAL + incremental sync
+10. Storage engine split brain → consensus protocol + fencing + unclean election off</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="storage-failures-table.html" class="text-green-700 font-semibold hover:underline">Storage Layer Failures</a> &nbsp;|&nbsp;
+      <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failures</a> &nbsp;|&nbsp;
+      <a href="replication-failures-table.html" class="text-lime-700 font-semibold hover:underline">Replication Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Storage Engine Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Writes durable before ACK?    → WAL + fsync + sync commit
+2. Compaction overwhelm disk?   → IO rate limiting + compaction priority + write pacing
+3. Read amplification explode?  → compaction strategy + bloom filters + cache sizing
+4. Recovery itself fail?        → frequent checkpoints + WAL checksums + dual checkpoints
+5. Lock contention collapse?    → partition hot rows + lock-free + MVCC + deadlock detect
+6. Old MVCC versions accumulate? → vacuum/GC tuning + transaction TTL + snapshot age monitor
+7. Index silently corrupt?      → periodic validation + checksums + rebuild procedures
+8. Replication lag stale?       → parallel apply + replica sizing + lag monitoring
+9. Metadata become bottleneck?  → hierarchical metadata + bounded file count + compaction</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Storage Engine Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Engine Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Compaction storm</td><td>Disk IO 100% → reads/writes stall → upstream timeout cascade</td></tr>
+          <tr><td>Buffer pool exhaustion</td><td>All reads go to disk → disk IO saturation → read latency explosion</td></tr>
+          <tr><td>WAL corruption</td><td>Recovery failure → engine cannot start → extended outage</td></tr>
+          <tr><td>Write stall</td><td>Queue buildup upstream → buffer overflow → producer data loss</td></tr>
+          <tr><td>Lock contention</td><td>All writers serialise → throughput collapses → timeout storm</td></tr>
+          <tr><td>Index corruption</td><td>Incorrect query results silently → wrong data in application</td></tr>
+          <tr><td>MVCC version explosion</td><td>Storage bloat → disk full → engine rejects all new writes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">LSM-Tree vs B-Tree — Engine Architecture Trade-offs</p>
+      <div class="ncode">LSM-Tree (RocksDB, Cassandra, LevelDB):
+  Strength:  sequential writes, high write throughput, compresses well
+  Weakness:  read amplification, compaction overhead, tombstone explosion
+  Failures:  compaction storm, write stall, SSTable explosion, tombstone lag
+
+B-Tree (InnoDB, WiredTiger, PostgreSQL):
+  Strength:  random reads, range scans, ACID, consistent read performance
+  Weakness:  write amplification (page splits), buffer pool dependency, lock contention
+  Failures:  buffer pool exhaustion, page fragmentation, lock/latch contention
+
+Interview rule:
+  Write-heavy + append → LSM-Tree
+  Read-heavy + ACID + range → B-Tree
+  Both have different dominant failure modes — know which you are designing for</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Storage Engine Failures Reduce to 4 States</p>
+      <div class="ncode">1. Write path broken    → WAL fail / write stall / torn write / fsync latency
+2. Read path broken    → read amplification / cache miss storm / index corruption
+3. Recovery broken     → WAL corruption / checkpoint corruption / replay storm
+4. Resource exhausted  → compaction storm / buffer pool exhaustion / lock contention
+
+Most dangerous: silent corruption during recovery or replication
+  corruption propagates to replicas → backups may contain corrupt data
+  → recovery makes corruption permanent → data loss irrecoverable</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#0c0a09;border:1px solid #292524;">
+      <p class="text-xs font-bold text-stone-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-stone-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-stone-200">Durable?</p>
+          <p class="text-xs text-stone-400 mt-0.5">WAL + fsync + replicated WAL</p>
+        </div>
+        <div class="bg-stone-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-stone-200">Compaction?</p>
+          <p class="text-xs text-stone-400 mt-0.5">Rate limit + priority + schedule</p>
+        </div>
+        <div class="bg-stone-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-stone-200">Recoverable?</p>
+          <p class="text-xs text-stone-400 mt-0.5">Checkpoint + checksums + replica</p>
+        </div>
+        <div class="bg-stone-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-stone-200">Concurrent?</p>
+          <p class="text-xs text-stone-400 mt-0.5">Partition + MVCC + deadlock detect</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

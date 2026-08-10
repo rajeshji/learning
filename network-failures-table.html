@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Network Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#1d4ed8; border-bottom-color:#1d4ed8; }
+    .tab-btn:hover:not(.active) { color:#1e3a8a; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#eff6ff; border:1px solid #bfdbfe; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#1d4ed8; margin-bottom:.6rem; }
+    .ncode{ background:#0f172a; color:#93c5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    /* main table */
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #bfdbfe; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#1e3a8a; color:#bfdbfe; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #dbeafe;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#eff6ff; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc { color:#991b1b; font-size:.71rem; }
+    .troff { color:#5b21b6; font-size:.71rem; }
+
+    /* category header row */
+    .cat-hdr td { background:#1d4ed8; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    /* cascading table */
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#1e3a8a; color:#bfdbfe; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #dbeafe; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-blue-700 hover:text-blue-900 font-semibold
+              bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-blue-800 font-semibold">Network Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Network-Level Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 7 categories · 32 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ══════════ TAB 1 — FAILURE TABLE ══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Network Failures Are Hardest</p>
+      <div class="ncode">Networks are: slow + unreliable + partially failing + asymmetric
+
+Unlike server crashes, network failures are often:
+  intermittent  → sometimes works, sometimes doesn't
+  partial       → A can reach B but B cannot reach A
+  asymmetric    → one direction works, other fails
+  silent        → no error thrown, just a timeout</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- CAT 1: CONNECTIVITY -->
+          <tr class="cat-hdr"><td colspan="7">1 — Connectivity Failures</td></tr>
+          <tr>
+            <td>Network Partition (Split Brain)<span class="badge-crit">Must Know</span></td>
+            <td>Network link cut — nodes isolated from each other</td>
+            <td>Heartbeat timeout, missing peer responses</td>
+            <td>Leader election, quorum writes, isolate minority partition</td>
+            <td>Multi-path networking, quorum-based systems</td>
+            <td class="casc">Multiple leaders → conflicting writes → data divergence</td>
+            <td class="troff">Availability reduced during partition (CP tradeoff)</td>
+          </tr>
+          <tr>
+            <td>Host Unreachable</td>
+            <td>Node disconnected from network — NIC, cable, switch</td>
+            <td>Ping / health check failure, node unreachable alerts</td>
+            <td>Failover traffic to healthy nodes</td>
+            <td>Redundant NICs, multiple network paths</td>
+            <td class="casc">Retry storm on unreachable node → healthy nodes overload</td>
+            <td class="troff">Extra infra cost for redundancy</td>
+          </tr>
+          <tr>
+            <td>One-Way Connectivity</td>
+            <td>A can reach B but B cannot reach A (asymmetric)</td>
+            <td>Asymmetric traffic monitoring, connection tracking</td>
+            <td>Reset and re-establish connections</td>
+            <td>Bidirectional health checks</td>
+            <td class="casc">Inconsistent replication — leader sends, follower can't ack</td>
+            <td class="troff">More complex monitoring logic</td>
+          </tr>
+          <tr>
+            <td>Intermittent Packet Drops</td>
+            <td>Flaky switches, NIC, congestion bursts</td>
+            <td>TCP retransmission spikes, packet loss metrics</td>
+            <td>Retries with exponential backoff</td>
+            <td>Reliable network hardware, traffic shaping</td>
+            <td class="casc">Retries increase load → congestion worsens</td>
+            <td class="troff">More retries increase overall latency</td>
+          </tr>
+          <tr>
+            <td>Connection Refused</td>
+            <td>Service port closed or process not listening</td>
+            <td>TCP RST / connection refused errors</td>
+            <td>Retry with backoff, failover to healthy instance</td>
+            <td>Deployment validation, readiness probes</td>
+            <td class="casc">Clients repeatedly retry → amplified load on restart</td>
+            <td class="troff">Retry overhead</td>
+          </tr>
+
+          <!-- CAT 2: LATENCY -->
+          <tr class="cat-hdr"><td colspan="7">2 — Latency and Slow Network Failures</td></tr>
+          <tr>
+            <td>High Network Latency<span class="badge-crit">Must Know</span></td>
+            <td>Congestion, long routing paths, cross-region calls</td>
+            <td>P95/P99 latency metrics, latency histogram</td>
+            <td>Timeout + retry with backoff, caching</td>
+            <td>Regional routing optimisation, latency budgets</td>
+            <td class="casc">Timeouts → retries → overload → full cascade</td>
+            <td class="troff">Aggressive timeouts may abort valid slow requests</td>
+          </tr>
+          <tr>
+            <td>Packet Loss<span class="badge-crit">Must Know</span></td>
+            <td>Congestion, hardware errors, faulty network equipment</td>
+            <td>TCP retransmission spikes, error rate increase</td>
+            <td>Retry with backoff, reduce payload size</td>
+            <td>Traffic shaping/QoS, hardware health checks</td>
+            <td class="casc">Retry amplification → retry storm</td>
+            <td class="troff">Retries add traffic and latency</td>
+          </tr>
+          <tr>
+            <td>Jitter (Latency Variability)</td>
+            <td>Unstable routing, network congestion bursts</td>
+            <td>High latency variance, P99 vs median gap</td>
+            <td>Buffering, hedged requests</td>
+            <td>Better routing paths, stable QoS</td>
+            <td class="casc">Real-time / streaming systems destabilised</td>
+            <td class="troff">Buffering adds end-to-end delay</td>
+          </tr>
+          <tr>
+            <td>Bandwidth Saturation<span class="badge-crit">Must Know</span></td>
+            <td>Traffic exceeds NIC/link capacity, large file transfers</td>
+            <td>Throughput maxed, packet drops, latency spike</td>
+            <td>Throttle traffic, compress payloads, CDN</td>
+            <td>Capacity planning, CDN for static assets</td>
+            <td class="casc">Replication lag → replica inconsistency → queue buildup</td>
+            <td class="troff">Higher bandwidth capacity costs money</td>
+          </tr>
+          <tr>
+            <td>Tail Latency Spikes (P99)</td>
+            <td>Queue buildup, garbage collection, transient congestion</td>
+            <td>P99/P999 latency monitoring, outlier detection</td>
+            <td>Load shedding, hedged requests (backup requests)</td>
+            <td>Distributed load balancing, avoid hot paths</td>
+            <td class="casc">Cascading retries from slow responses</td>
+            <td class="troff">Hedged requests double traffic on slow paths</td>
+          </tr>
+
+          <!-- CAT 3: ROUTING -->
+          <tr class="cat-hdr"><td colspan="7">3 — Routing and Load Balancing Failures</td></tr>
+          <tr>
+            <td>Load Balancer Misrouting<span class="badge-crit">Must Know</span></td>
+            <td>Bad routing rules, stale backend list, misconfiguration</td>
+            <td>Uneven traffic distribution, error rate on backends</td>
+            <td>Reroute traffic, remove bad backend, rollback config</td>
+            <td>Health checks, config validation in CI/CD</td>
+            <td class="casc">Hotspot overload → retry storm on overloaded node</td>
+            <td class="troff">More LB routing logic adds complexity</td>
+          </tr>
+          <tr>
+            <td>Traffic Blackholing</td>
+            <td>Router silently drops traffic — no RST, no response</td>
+            <td>Requests time out with no error response</td>
+            <td>Alternate routing path, failover</td>
+            <td>Redundant routing, route monitoring</td>
+            <td class="casc">Services appear completely down — cascades to all callers</td>
+            <td class="troff">Network redundancy adds cost and complexity</td>
+          </tr>
+          <tr>
+            <td>Asymmetric Routing</td>
+            <td>Forward and reverse path use different routes</td>
+            <td>Connection instability, stateful session failures</td>
+            <td>Re-establish routing, force symmetric path</td>
+            <td>Consistent routing rules, ECMP tuning</td>
+            <td class="casc">Stateful services (TCP, sessions) break unpredictably</td>
+            <td class="troff">Routing constraints reduce flexibility</td>
+          </tr>
+          <tr>
+            <td>Hotspot Routing</td>
+            <td>Too much traffic routed to one node or shard</td>
+            <td>Uneven node metrics, one node at 100% CPU</td>
+            <td>Rebalance traffic, dynamic routing</td>
+            <td>Better LB algorithms, consistent hashing</td>
+            <td class="casc">One node overloaded → retry storm → neighbours overload</td>
+            <td class="troff">Rebalancing adds routing overhead</td>
+          </tr>
+          <tr>
+            <td>Anycast Instability</td>
+            <td>Traffic jumps between regions due to BGP changes</td>
+            <td>Regional traffic fluctuations, session resets</td>
+            <td>Sticky routing, session affinity</td>
+            <td>Smarter geo-routing, BGP stability</td>
+            <td class="casc">Session inconsistency for stateful services</td>
+            <td class="troff">Sticky sessions reduce load balancing efficiency</td>
+          </tr>
+
+          <!-- CAT 4: DNS -->
+          <tr class="cat-hdr"><td colspan="7">4 — DNS Failures</td></tr>
+          <tr>
+            <td>DNS Resolution Failure<span class="badge-crit">Must Know</span></td>
+            <td>DNS server unavailable, network unreachable to resolver</td>
+            <td>DNS lookup errors, service connection failures</td>
+            <td>Retry with secondary DNS provider</td>
+            <td>Multi-DNS providers, DNS caching on client</td>
+            <td class="casc">Entire service unreachable — healthy servers exist but unfindable</td>
+            <td class="troff">Multiple providers increase cost and config complexity</td>
+          </tr>
+          <tr>
+            <td>Stale DNS Cache</td>
+            <td>DNS TTL too long — old IP still cached after failover</td>
+            <td>Requests routed to dead IP, connection refused</td>
+            <td>Force DNS refresh, lower TTL before failover</td>
+            <td>Proper TTL tuning for failover scenarios</td>
+            <td class="casc">Traffic continues hitting failed node after recovery</td>
+            <td class="troff">Lower TTL increases DNS resolver load significantly</td>
+          </tr>
+          <tr>
+            <td>Slow DNS Lookup</td>
+            <td>DNS server overloaded or network issue to resolver</td>
+            <td>Increased lookup latency, request latency spikes</td>
+            <td>Local DNS cache, DNS prefetching</td>
+            <td>DNS caching layers, dedicated DNS infrastructure</td>
+            <td class="casc">Every new connection slows → latency cascade</td>
+            <td class="troff">Cached DNS can serve stale records</td>
+          </tr>
+          <tr>
+            <td>Wrong DNS Record</td>
+            <td>Misconfiguration — IP changed, record not updated</td>
+            <td>Sudden routing failures, unexpected connection errors</td>
+            <td>Rollback DNS changes immediately</td>
+            <td>DNS change validation, automated testing pipelines</td>
+            <td class="casc">Global routing failure — entire service unreachable</td>
+            <td class="troff">Slower DNS validation slows deployments</td>
+          </tr>
+
+          <!-- CAT 5: TLS -->
+          <tr class="cat-hdr"><td colspan="7">5 — TLS and Security Communication Failures</td></tr>
+          <tr>
+            <td>TLS Handshake Failure</td>
+            <td>Certificate mismatch, protocol version incompatibility</td>
+            <td>TLS/SSL errors in logs, connection refused before request</td>
+            <td>Retry connection, check cert validity</td>
+            <td>Certificate management automation, cert-manager</td>
+            <td class="casc">Services completely cannot communicate</td>
+            <td class="troff">TLS overhead adds latency to every new connection</td>
+          </tr>
+          <tr>
+            <td>Certificate Expiry<span class="badge-crit">Must Know</span></td>
+            <td>SSL/TLS certificate not renewed before expiry</td>
+            <td>Cert expiry monitoring, TLS errors in logs</td>
+            <td>Emergency cert renewal, hot-swap cert</td>
+            <td>Automated cert rotation (cert-manager, ACM), expiry alerts at 30d</td>
+            <td class="casc">Entire API unavailable — all clients reject cert</td>
+            <td class="troff">Automation adds operational complexity</td>
+          </tr>
+          <tr>
+            <td>mTLS Authentication Failure</td>
+            <td>Service identity mismatch, cert rotation during active connections</td>
+            <td>Auth handshake errors, 403 / connection refused</td>
+            <td>Re-authenticate, hot-reload certs</td>
+            <td>Centralised cert management, coordinated rotation</td>
+            <td class="casc">Service isolation failure — whole mesh breaks</td>
+            <td class="troff">mTLS adds significant operational overhead</td>
+          </tr>
+          <tr>
+            <td>Firewall Blocking Valid Traffic</td>
+            <td>Wrong ACL, security group misconfiguration, policy change</td>
+            <td>Traffic blocked unexpectedly, connection timeouts</td>
+            <td>Update firewall/security group rules immediately</td>
+            <td>Infrastructure-as-code, pre-deployment validation</td>
+            <td class="casc">Services appear unreachable though infra is healthy</td>
+            <td class="troff">Strict firewall rules reduce routing flexibility</td>
+          </tr>
+
+          <!-- CAT 6: PROTOCOL -->
+          <tr class="cat-hdr"><td colspan="7">6 — Protocol and Connection-Level Failures</td></tr>
+          <tr>
+            <td>TCP Connection Reset (RST)</td>
+            <td>Abrupt socket close — LB timeout, proxy, firewall idle timeout</td>
+            <td>Connection reset metrics, RST packet spikes</td>
+            <td>Retry idempotent requests</td>
+            <td>Consistent keepalive settings, timeout alignment</td>
+            <td class="casc">Client retry amplification on RST burst</td>
+            <td class="troff">More retries add traffic</td>
+          </tr>
+          <tr>
+            <td>Half-Open Connection</td>
+            <td>One side thinks connection alive, other has closed it</td>
+            <td>Requests hang with no response, idle timeout mismatch</td>
+            <td>Connection timeout cleanup, reset stale sockets</td>
+            <td>TCP keepalive probes, aligned idle timeouts</td>
+            <td class="casc">Connection leaks exhaust file descriptors</td>
+            <td class="troff">More keepalive traffic overhead</td>
+          </tr>
+          <tr>
+            <td>Connection Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>Too many active connections, slow consumers hold connections</td>
+            <td>Pool wait time metrics, connection queue depth</td>
+            <td>Queue / rate limit new requests, scale instances</td>
+            <td>Connection pooling, async/non-blocking IO</td>
+            <td class="casc">New requests all fail → retry storm → amplified load</td>
+            <td class="troff">Larger pools consume memory and FDs</td>
+          </tr>
+          <tr>
+            <td>WebSocket Disconnects</td>
+            <td>Mobile network switch, proxy timeout, LB restart</td>
+            <td>Frequent reconnect metrics, connection duration histograms</td>
+            <td>Auto-reconnect logic with backoff</td>
+            <td>Sticky sessions, connection-aware LB</td>
+            <td class="casc">Reconnect storms on LB restart</td>
+            <td class="troff">Persistent connections consume server resources</td>
+          </tr>
+          <tr>
+            <td>gRPC Stream Breaks</td>
+            <td>Long-lived stream interrupted by proxy/LB timeout</td>
+            <td>Stream reset metrics, error rate on streaming RPCs</td>
+            <td>Resume / reconnect stream with backoff</td>
+            <td>Heartbeat pings on streams, max-age tuning</td>
+            <td class="casc">Streaming service unavailability cascades to subscribers</td>
+            <td class="troff">Stream recovery adds client complexity</td>
+          </tr>
+
+          <!-- CAT 7: DEPENDENCY COMMS -->
+          <tr class="cat-hdr"><td colspan="7">7 — Dependency Communication Failures</td></tr>
+          <tr>
+            <td>Downstream Service Unreachable<span class="badge-crit">Must Know</span></td>
+            <td>Dependency network failure, connection refused</td>
+            <td>Connection timeout / error rate spike on dep calls</td>
+            <td>Circuit breaker + fallback to cached/default response</td>
+            <td>Service mesh, redundant routing to dependency</td>
+            <td class="casc">Cascades upstream — callers fail, then their callers fail</td>
+            <td class="troff">Fallback may return stale or default data</td>
+          </tr>
+          <tr>
+            <td>Service Discovery Failure</td>
+            <td>Registry unavailable, service not registered</td>
+            <td>Lookup failures, connection errors to healthy services</td>
+            <td>Cached service endpoints as fallback</td>
+            <td>Replicated service registry (etcd/Consul HA)</td>
+            <td class="casc">Entire service cluster unreachable despite running</td>
+            <td class="troff">Registry replication adds consistency complexity</td>
+          </tr>
+          <tr>
+            <td>Cross-Region Communication Failure</td>
+            <td>WAN link failure, cloud provider inter-region outage</td>
+            <td>Regional traffic errors, elevated inter-region latency</td>
+            <td>Failover to local region, reduce cross-region sync</td>
+            <td>Multi-region active-active, local read replicas</td>
+            <td class="casc">Global service degradation, data divergence across regions</td>
+            <td class="troff">Cross-region replication adds significant cost and latency</td>
+          </tr>
+          <tr>
+            <td>Message Queue Connectivity Failure</td>
+            <td>Broker network issue, consumer/producer disconnect</td>
+            <td>Consumer lag increasing, producer errors</td>
+            <td>Retry/reconnect consumers and producers</td>
+            <td>Multi-broker clusters, replication across brokers</td>
+            <td class="casc">Queue backlog explosion → memory exhaustion → broker crash</td>
+            <td class="troff">Multi-broker replication adds overhead</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div><!-- /it-wrap -->
+
+    <div class="nc">
+      <p class="nh">8 Must-Know Network Failures for Interviews</p>
+      <div class="ncode">1. Network partition    → quorum + leader election + minority isolation
+2. High latency        → timeouts + retries + caching + regional routing
+3. Packet loss         → retry + backoff + idempotency
+4. DNS failure         → multi-DNS + client-side cache + lower TTL
+5. LB failure          → HA LB + health checks + fallback routing
+6. Retry storm         → circuit breaker + jitter + rate limit
+7. Dep. unreachable    → circuit breaker + fallback + async decoupling
+8. TLS/cert expiry     → automated cert rotation + expiry alerting</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- ══════════ TAB 2 — STAFF INSIGHTS ══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Network Thinking — 5 Questions to Ask Always</p>
+      <div class="ncode">1. Is the network DOWN or just SLOW?
+   → down: fail fast, failover
+   → slow: timeout tuning, retries, async
+
+2. Is the failure partial or total?
+   → total: straightforward failover
+   → partial: hardest — some succeed, some fail silently
+
+3. Will retries amplify traffic?
+   → is there a circuit breaker? jitter? retry cap?
+
+4. Can a fallback serve a degraded response?
+   → cached data? default value? graceful degradation?
+
+5. Can the failure isolate a region or service?
+   → is data diverging? are writes happening in both partitions?</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Network Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>High latency</td><td>Timeouts → retries → load increase → overload → further latency (death spiral)</td></tr>
+          <tr><td>Packet loss</td><td>TCP retransmissions → congestion → more loss → throughput collapses</td></tr>
+          <tr><td>DNS failure</td><td>All new connections fail → service appears down → users retry → amplifies DNS load</td></tr>
+          <tr><td>LB misrouting</td><td>One backend overloaded → slow → callers time out → retry → overload gets worse</td></tr>
+          <tr><td>Dependency timeout</td><td>Threads held open waiting → thread pool exhausts → new requests fail → full outage</td></tr>
+          <tr><td>Network partition</td><td>Split brain → two leaders → conflicting writes → data corruption or blocked writes</td></tr>
+          <tr><td>Retry storm</td><td>Failed requests × retry count → dependency collapse → wider outage</td></tr>
+          <tr><td>Bandwidth saturation</td><td>Replication lags → replicas diverge → stale reads → consistency breaks</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Slow vs Down — Why Slow Is More Dangerous in Networks</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-700 mb-2">Network Down (Hard Failure)</p>
+          <ul class="text-xs text-blue-800 space-y-1 list-disc pl-4">
+            <li>Immediate connection refused / RST</li>
+            <li>Client detects quickly</li>
+            <li>Circuit breaker opens fast</li>
+            <li>Failover triggers promptly</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">Network Slow (More Dangerous)</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>Requests hang, threads held open</li>
+            <li>Health checks still pass</li>
+            <li>Callers queue up waiting</li>
+            <li>Thread pool exhausts silently</li>
+            <li>Retries amplify the problem</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Network Failures Reduce to 4 States</p>
+      <div class="ncode">1. Cannot connect      → partition / DNS / firewall / TLS
+2. Connects slowly     → latency / bandwidth / congestion
+3. Connects incorrectly → misrouting / wrong DNS / blackhole
+4. Connection unstable → intermittent drops / jitter / resets
+
+And in distributed systems:
+  slow networks are often MORE dangerous than dead networks
+  because they trigger: retries → queue buildup → thread exhaustion → cascade</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#0f172a;border:1px solid #1e3a8a;">
+      <p class="text-xs font-bold text-blue-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-blue-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-200">Down or Slow?</p>
+          <p class="text-xs text-blue-400 mt-0.5">Different strategies for each</p>
+        </div>
+        <div class="bg-blue-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-200">Partial or Total?</p>
+          <p class="text-xs text-blue-400 mt-0.5">Partial is hardest to detect</p>
+        </div>
+        <div class="bg-blue-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-200">Retry Risk?</p>
+          <p class="text-xs text-blue-400 mt-0.5">Circuit breaker + jitter + cap</p>
+        </div>
+        <div class="bg-blue-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-200">Fallback Ready?</p>
+          <p class="text-xs text-blue-400 mt-0.5">Cache or degraded response</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Load and Traffic Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#0f766e; border-bottom-color:#0f766e; }
+    .tab-btn:hover:not(.active) { color:#042f2e; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#f0fdfa; border:1px solid #99f6e4; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#0f766e; margin-bottom:.6rem; }
+    .ncode{ background:#022c22; color:#6ee7b7; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #99f6e4; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#042f2e; color:#99f6e4; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #ccfbf1;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f0fdfa; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#5b21b6; font-size:.71rem; }
+    .cat-hdr td { background:#0f766e; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#042f2e; color:#99f6e4; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #ccfbf1; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-teal-700 hover:text-teal-900 font-semibold
+              bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-teal-800 font-semibold">Load &amp; Traffic Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Load &amp; Traffic Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 7 categories · 29 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ══════════ TAB 1 — TABLE ══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Load Failures Are the Most Common Cause of Large-Scale Outages</p>
+      <div class="ncode">Systems fail when: incoming traffic > processing capacity
+
+Unlike hard crashes, load failures start as slow degradation:
+  slow response → caller retries → load amplifies → thread exhaustion → cascade
+
+7 root sources:
+  too much traffic | uneven traffic | sudden spikes | slow processing
+  retry amplification | resource exhaustion | traffic misrouting</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Traffic Spike and Overload Failures</td></tr>
+          <tr>
+            <td>Sudden Traffic Spike<span class="badge-crit">Must Know</span></td>
+            <td>Viral event, flash sale, breaking news, scheduled launch</td>
+            <td>RPS surge alert, latency spike, error rate increase</td>
+            <td>Autoscaling, CDN for static content, load shedding</td>
+            <td>Capacity planning, pre-scaling for known events</td>
+            <td class="casc">Retries from slow responses overload downstream services</td>
+            <td class="troff">Over-provisioning for rare spikes is expensive</td>
+          </tr>
+          <tr>
+            <td>Sustained High Load</td>
+            <td>Continuous traffic growth exceeds current capacity</td>
+            <td>CPU/memory consistently above safe threshold</td>
+            <td>Horizontal scaling, async offload, read replicas</td>
+            <td>Better partitioning, async processing, capacity growth plan</td>
+            <td class="casc">Resource exhaustion cascades across cluster gradually</td>
+            <td class="troff">More nodes increase infra cost linearly</td>
+          </tr>
+          <tr>
+            <td>Burst Traffic (Spiky Load)</td>
+            <td>Traffic arrives in short bursts — cron jobs, batch triggers</td>
+            <td>High traffic variance metrics, short P99 spikes</td>
+            <td>Queue buffering to smooth bursts</td>
+            <td>Token bucket rate limiting, request smoothing</td>
+            <td class="casc">Queue explosion during burst → memory exhaustion</td>
+            <td class="troff">Buffering adds end-to-end latency</td>
+          </tr>
+          <tr>
+            <td>Traffic Surge After Downtime<span class="badge-crit">Must Know</span></td>
+            <td>Service recovers — millions of users reconnect simultaneously</td>
+            <td>Massive reconnect/request spike immediately after recovery</td>
+            <td>Gradual traffic ramp-up, connection throttling during recovery</td>
+            <td>Recovery traffic shaping, circuit breaker on reconnect</td>
+            <td class="casc">Connection storm overloads LB and DB during recovery</td>
+            <td class="troff">Slower ramp-up delays full service restoration</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Retry and Amplification Failures</td></tr>
+          <tr>
+            <td>Retry Storm<span class="badge-crit">Must Know</span></td>
+            <td>Clients retry failed/slow requests without backoff</td>
+            <td>Retry traffic spike, outgoing request count 2-10× normal</td>
+            <td>Exponential backoff + jitter, circuit breaker</td>
+            <td>Proper retry policy with cap, backoff, and jitter</td>
+            <td class="casc">Dependency receives multiplied traffic → collapses</td>
+            <td class="troff">Fewer retries reduce resilience for transient failures</td>
+          </tr>
+          <tr>
+            <td>Thundering Herd Problem<span class="badge-crit">Must Know</span></td>
+            <td>Many clients wake or retry at the same instant</td>
+            <td>Sudden synchronized spike — DB/cache hit in one burst</td>
+            <td>Request coalescing (single-flight), staggered retry</td>
+            <td>Jittered TTLs, randomised reconnect delays</td>
+            <td class="casc">DB/cache overload from synchronized surge</td>
+            <td class="troff">Coordination overhead adds per-request complexity</td>
+          </tr>
+          <tr>
+            <td>Reconnect Storm</td>
+            <td>Millions of clients reconnect after network blip or service restart</td>
+            <td>Connection rate spikes orders of magnitude above normal</td>
+            <td>Connection rate limiting at LB, exponential backoff clients</td>
+            <td>Persistent sessions, client-side jittered reconnect</td>
+            <td class="casc">LB thread/connection exhaustion → service unavailable again</td>
+            <td class="troff">Slower reconnect means longer user-visible outage</td>
+          </tr>
+          <tr>
+            <td>Cache Stampede<span class="badge-crit">Must Know</span></td>
+            <td>Frequently-read cache key expires under high load</td>
+            <td>DB QPS spike coinciding with cache miss rate spike</td>
+            <td>Cache locking / single-flight (only one thread rebuilds)</td>
+            <td>Staggered TTLs, probabilistic refresh, cache pre-warming</td>
+            <td class="casc">DB overwhelmed → slow → callers timeout → retry → worse</td>
+            <td class="troff">Cache coordination adds implementation complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Uneven Traffic and Hotspot Failures</td></tr>
+          <tr>
+            <td>Hot Key / Hot Partition<span class="badge-crit">Must Know</span></td>
+            <td>One entity (user, video, product) attracts disproportionate traffic</td>
+            <td>One shard/node at 100% CPU/throughput, others idle</td>
+            <td>Replicate hot key to multiple nodes, local caching</td>
+            <td>Better shard key selection, virtual nodes, consistent hashing</td>
+            <td class="casc">Single shard saturates → requests fail → retries → collapse</td>
+            <td class="troff">Replication of hot data increases storage and coordination</td>
+          </tr>
+          <tr>
+            <td>Skewed Load Distribution</td>
+            <td>Hash function or LB sends disproportionate traffic to one node</td>
+            <td>Uneven node CPU/memory metrics across cluster</td>
+            <td>Rebalance traffic, dynamic routing adjustments</td>
+            <td>Consistent hashing with virtual nodes, power-of-two-choices LB</td>
+            <td class="casc">Overloaded node saturates → retry storm on that node</td>
+            <td class="troff">Rebalancing adds routing overhead and latency</td>
+          </tr>
+          <tr>
+            <td>Celebrity / Fan-out Problem</td>
+            <td>One popular entity's action triggers massive fan-out reads/writes</td>
+            <td>Feed/read amplification spike for one account</td>
+            <td>Hybrid fanout: push for normal users, pull for celebrities</td>
+            <td>Tiered caching, read-optimised materialized feeds</td>
+            <td class="casc">Feed generation service collapses from amplified reads</td>
+            <td class="troff">Higher read latency for celebrity-tier users</td>
+          </tr>
+          <tr>
+            <td>Regional Traffic Imbalance</td>
+            <td>One region absorbs abnormal share of global traffic</td>
+            <td>Region-specific CPU/error rate spikes vs others</td>
+            <td>Geo-routing failover, shift traffic to underloaded region</td>
+            <td>Multi-region active-active with capacity planning per region</td>
+            <td class="casc">Overloaded region degrades → cross-region latency spikes</td>
+            <td class="troff">Cross-region traffic adds latency and egress cost</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Queue and Backpressure Failures</td></tr>
+          <tr>
+            <td>Queue Backlog<span class="badge-crit">Must Know</span></td>
+            <td>Producers enqueue faster than consumers process — lag grows</td>
+            <td>Queue lag metrics growing unboundedly</td>
+            <td>Scale consumers, prioritise critical jobs, DLQ for overflow</td>
+            <td>Backpressure on producers, consumer autoscaling</td>
+            <td class="casc">Growing lag → delayed workflows → callers timeout → retries</td>
+            <td class="troff">More consumers increase cost; larger queues consume memory</td>
+          </tr>
+          <tr>
+            <td>Consumer Lag (Kafka/Queue)</td>
+            <td>Consumers fall behind producers — slow processing, small batch</td>
+            <td>Consumer group lag metrics increasing over time</td>
+            <td>Autoscale consumers, increase batch size</td>
+            <td>Efficient consumer logic, parallelism, batching</td>
+            <td class="casc">Delayed event propagation → stale downstream state</td>
+            <td class="troff">Larger batches increase per-message processing latency</td>
+          </tr>
+          <tr>
+            <td>Infinite Queue Growth</td>
+            <td>Incoming load permanently exceeds processing capacity</td>
+            <td>Queue size continuously growing with no plateau</td>
+            <td>Drop low-priority requests, traffic shaping</td>
+            <td>Load shedding, backpressure, bounded queues with rejection</td>
+            <td class="casc">Storage exhaustion → broker crash → full pipeline failure</td>
+            <td class="troff">Dropping requests impacts user experience</td>
+          </tr>
+          <tr>
+            <td>Backpressure Failure</td>
+            <td>Producers ignore downstream capacity signals — keep sending</td>
+            <td>Queue overflow, consumer error rate spike</td>
+            <td>Throttle producers, implement bounded queues with rejection</td>
+            <td>Flow-control protocols, producer rate limiting</td>
+            <td class="casc">Entire pipeline collapses — broker, consumer, and producer all fail</td>
+            <td class="troff">Throttling producers reduces overall throughput</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Resource Exhaustion Under Load</td></tr>
+          <tr>
+            <td>Thread Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>Blocking operations hold threads; too many concurrent requests</td>
+            <td>Queue wait time spike, task rejection errors</td>
+            <td>Backpressure, async processing, rate limiting</td>
+            <td>Non-blocking IO, right-sized thread pools, bulkheads</td>
+            <td class="casc">All new requests queue/fail → timeout → retry storm</td>
+            <td class="troff">Async systems are harder to reason about and debug</td>
+          </tr>
+          <tr>
+            <td>Connection Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>More concurrent requests than available DB/network connections</td>
+            <td>Pool wait time maxed, connection refused errors</td>
+            <td>Queue/rate-limit requests, increase pool size cautiously</td>
+            <td>Connection reuse, async IO, proper pool sizing</td>
+            <td class="casc">DB overwhelmed with concurrent connections → collapse</td>
+            <td class="troff">Larger pools can overwhelm downstream DB with connections</td>
+          </tr>
+          <tr>
+            <td>CPU Saturation Under Load</td>
+            <td>Heavy computation under high traffic — no headroom left</td>
+            <td>CPU &gt;90%, latency spike, run queue depth increase</td>
+            <td>Horizontal scaling, caching, load shedding</td>
+            <td>Precomputation, caching, algorithmic optimisation</td>
+            <td class="casc">Latency increase → callers timeout → retry → worse saturation</td>
+            <td class="troff">Over-provisioning for peak is expensive</td>
+          </tr>
+          <tr>
+            <td>Memory Exhaustion Under Load</td>
+            <td>Too many active sessions, requests buffered in memory</td>
+            <td>Heap growth trending upward, OOM kill events</td>
+            <td>Load shedding, reduce in-memory buffering</td>
+            <td>Bounded queues and caches, memory limits</td>
+            <td class="casc">OOM kill → restart → traffic lost during restart</td>
+            <td class="troff">Smaller memory limits may reject valid in-flight requests</td>
+          </tr>
+          <tr>
+            <td>File Descriptor Exhaustion</td>
+            <td>Massive open connections under load — sockets not released</td>
+            <td>"Too many open files" errors, failed socket accepts</td>
+            <td>Increase OS FD limits, cleanup idle connections</td>
+            <td>Connection pooling, idle timeout cleanup, keepalive tuning</td>
+            <td class="casc">All new connections fail → service appears down to new users</td>
+            <td class="troff">Higher FD limits increase kernel memory overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Load Balancing and Routing Failures</td></tr>
+          <tr>
+            <td>Load Balancer Overload<span class="badge-crit">Must Know</span></td>
+            <td>LB tier becomes the bottleneck — exceeds its connection/CPU capacity</td>
+            <td>LB CPU/connection count maxed, dropped connections</td>
+            <td>Scale LBs horizontally, anycast / DNS-based distribution</td>
+            <td>Multi-tier load balancing, LB capacity planning</td>
+            <td class="casc">Entire service inaccessible — traffic never reaches backends</td>
+            <td class="troff">More LBs add cost and routing complexity</td>
+          </tr>
+          <tr>
+            <td>Misrouted Traffic</td>
+            <td>Bad routing rules, stale backend list, misconfiguration</td>
+            <td>Uneven backend traffic, error spike on specific routes</td>
+            <td>Re-route traffic, rollback routing config</td>
+            <td>Config validation in CI/CD, gradual routing changes</td>
+            <td class="casc">Hotspot overload on misrouted backend</td>
+            <td class="troff">More routing logic adds configuration complexity</td>
+          </tr>
+          <tr>
+            <td>Sticky Session Imbalance</td>
+            <td>Session affinity routes too much to one node</td>
+            <td>Session-heavy nodes at high CPU/memory, others idle</td>
+            <td>Session redistribution, drain-and-redirect sessions</td>
+            <td>Stateless services (store session in Redis/DB not local)</td>
+            <td class="casc">One node overloaded → slow → all its users affected</td>
+            <td class="troff">Stateless design adds external session storage complexity</td>
+          </tr>
+          <tr>
+            <td>DNS Traffic Surge</td>
+            <td>DNS resolver overloaded by massive lookup volume</td>
+            <td>Slow DNS lookup times, request latency increase</td>
+            <td>DNS caching at client and resolver, TTL tuning</td>
+            <td>Multi-provider DNS, dedicated DNS infrastructure</td>
+            <td class="casc">Global request latency spike as every connection waits on DNS</td>
+            <td class="troff">Cached DNS can serve stale records after failover</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Cascading and Systemic Load Failures</td></tr>
+          <tr>
+            <td>Cascading Failure<span class="badge-crit">Must Know</span></td>
+            <td>One overloaded service slows others — failure propagates</td>
+            <td>Multi-service latency and error rate spikes simultaneously</td>
+            <td>Circuit breakers + bulkheads to contain blast radius</td>
+            <td>Service isolation, timeouts, async decoupling</td>
+            <td class="casc">Entire system collapses starting from one overloaded node</td>
+            <td class="troff">Partial degradation may result — non-critical features fail first</td>
+          </tr>
+          <tr>
+            <td>Slow Dependency Amplification<span class="badge-crit">Must Know</span></td>
+            <td>Slow DB or API causes callers to hold threads open waiting</td>
+            <td>Latency spike + thread pool queue depth growing</td>
+            <td>Timeout/fail fast, async processing, circuit breaker</td>
+            <td>Timeouts on every network call, async processing</td>
+            <td class="casc">Thread pool exhaustion → all requests fail for all users</td>
+            <td class="troff">Faster failures may abort valid slow-but-correct operations</td>
+          </tr>
+          <tr>
+            <td>Retry Amplification Cascade</td>
+            <td>Retries multiply load across multiple service tiers</td>
+            <td>Retry traffic explosion, multi-tier error rate spike</td>
+            <td>Retry budget, circuit breaker, load shedding</td>
+            <td>Smarter retry logic — cap, backoff, jitter, idempotency</td>
+            <td class="casc">Multi-tier collapse — each tier amplifies load on tier below</td>
+            <td class="troff">Reduced retries reduce resilience against transient failures</td>
+          </tr>
+          <tr>
+            <td>Control Plane Overload</td>
+            <td>Autoscaling API or service discovery overloaded during incident</td>
+            <td>Infra API failures, autoscaling stops responding</td>
+            <td>Prioritise critical control-plane operations, manual scaling</td>
+            <td>Separate control-plane capacity, rate-limit infra API calls</td>
+            <td class="casc">Autoscaling stops during outage — system cannot heal itself</td>
+            <td class="troff">Extra dedicated control-plane infra increases cost</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Load / Traffic Failures for Interviews</p>
+      <div class="ncode"> 1. Traffic spike           → autoscale + CDN + load shedding + pre-scale
+ 2. Retry storm            → exponential backoff + jitter + circuit breaker
+ 3. Queue backlog          → scale consumers + backpressure + DLQ
+ 4. Hot partition          → virtual nodes + replicate hot key + better shard key
+ 5. Cache stampede         → single-flight + staggered TTL + pre-warming
+ 6. Thread pool exhaustion → async IO + backpressure + rate limit
+ 7. Cascading failure      → circuit breaker + bulkhead + load shedding
+ 8. Consumer lag           → autoscale consumers + batching + parallelism
+ 9. LB overload            → multi-tier LB + anycast + capacity planning
+10. Reconnect storm        → jittered reconnect + connection rate limiting</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- ══════════ TAB 2 — STAFF INSIGHTS ══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Load Thinking — 7 Questions to Ask Always</p>
+      <div class="ncode">1. Is load TEMPORARY or SUSTAINED?
+   → temporary: autoscale + CDN + shed load
+   → sustained: horizontal scale + async + partitioning
+
+2. Is traffic EVENLY DISTRIBUTED?
+   → hotspot: virtual nodes, replicate hot key, local cache
+
+3. Will RETRIES AMPLIFY load?
+   → circuit breaker? jitter? retry cap? idempotency?
+
+4. Can the system DEGRADE GRACEFULLY?
+   → load shedding: drop non-critical, serve cached, 503 fast
+
+5. Is PROCESSING SLOWER than arrival rate?
+   → queue: scale consumers + backpressure + batching
+
+6. Can ONE HOTSPOT collapse the system?
+   → bulkhead: isolate hot resource, replicate hot key
+
+7. Is BACKPRESSURE WORKING?
+   → bounded queues + producer throttling + flow control</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Load Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Traffic spike</td><td>CPU saturation → latency → caller retries → retry storm → collapse</td></tr>
+          <tr><td>Retry storm</td><td>Dependency receives 5× traffic → overloads → slower → more retries</td></tr>
+          <tr><td>Cache stampede</td><td>All requests hit DB simultaneously → DB saturates → timeouts → cascade</td></tr>
+          <tr><td>Queue backlog</td><td>Delayed workflows → callers timeout → retry → backlog grows faster</td></tr>
+          <tr><td>Slow dependency</td><td>Threads held open → pool exhausts → all requests queued/rejected</td></tr>
+          <tr><td>Hot partition</td><td>One shard saturates → requests fail → retries → shard collapses</td></tr>
+          <tr><td>LB overload</td><td>Entry point saturates → all traffic dropped → entire service down</td></tr>
+          <tr><td>Reconnect storm</td><td>Recovery triggers massive surge → overwhelms freshly restarted service</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Slow Degradation vs Sudden Crash — Load Failures Are Insidious</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-teal-50 border border-teal-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-700 mb-2">Hard Failure (Obvious)</p>
+          <ul class="text-xs text-teal-800 space-y-1 list-disc pl-4">
+            <li>Process crashes → alert fires</li>
+            <li>LB removes node immediately</li>
+            <li>Error clearly visible in logs</li>
+            <li>Recovery is straightforward</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">Load Degradation (More Dangerous)</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>Service alive — just slow</li>
+            <li>Health checks still pass</li>
+            <li>Clients retry → amplify load</li>
+            <li>Thread pool fills silently</li>
+            <li>System collapses gradually</li>
+            <li>Recovery re-triggers surge</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Load Failures Reduce to 5 States</p>
+      <div class="ncode">1. Too much traffic   → spike / overload / celebrity problem
+2. Uneven traffic    → hotspot / skew / regional imbalance
+3. Sudden traffic    → thundering herd / reconnect storm / post-downtime surge
+4. Slow processing   → queue backlog / consumer lag / dependency slowness
+5. Retry amplification → retry storm / cascading failure / death spiral
+
+Cascading failures are most dangerous:
+  failure spreads → amplifies → overwhelms healthy systems → harder to stop</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#022c22;border:1px solid #065f46;">
+      <p class="text-xs font-bold text-teal-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-teal-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-200">Temp or Sustained?</p>
+          <p class="text-xs text-teal-400 mt-0.5">Different scale strategy</p>
+        </div>
+        <div class="bg-teal-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-200">Even or Hotspot?</p>
+          <p class="text-xs text-teal-400 mt-0.5">Virtual nodes + hot key cache</p>
+        </div>
+        <div class="bg-teal-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-200">Retry Risk?</p>
+          <p class="text-xs text-teal-400 mt-0.5">Breaker + jitter + cap</p>
+        </div>
+        <div class="bg-teal-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-200">Degrade Gracefully?</p>
+          <p class="text-xs text-teal-400 mt-0.5">Load shed + bulkhead + 503</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Distributed System Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#4338ca; border-bottom-color:#4338ca; }
+    .tab-btn:hover:not(.active) { color:#1e1b4b; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#eef2ff; border:1px solid #c7d2fe; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#4338ca; margin-bottom:.6rem; }
+    .ncode{ background:#1e1b4b; color:#a5b4fc; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #c7d2fe; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#1e1b4b; color:#c7d2fe; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #e0e7ff;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#eef2ff; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#0369a1; font-size:.71rem; }
+    .cat-hdr td { background:#4338ca; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#1e1b4b; color:#c7d2fe; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #e0e7ff; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-semibold
+              bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-indigo-800 font-semibold">Distributed System Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-indigo-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Distributed System Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 38 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ══════════ TAB 1 — TABLE ══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Distributed Failures Are the Hardest</p>
+      <div class="ncode">Once multiple machines coordinate, failures become:
+  partial + asynchronous + inconsistent + non-deterministic
+
+Root causes: coordination | replication | ordering | consensus
+  partition | time sync | distributed transactions | state divergence</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Network Partition and Split Brain Failures</td></tr>
+          <tr>
+            <td>Network Partition<span class="badge-crit">Must Know</span></td>
+            <td>Network link cut — some nodes cannot communicate with others</td>
+            <td>Heartbeat timeout, missing peer responses, split cluster view</td>
+            <td>Quorum-based writes, isolate minority partition (no writes)</td>
+            <td>Multi-path networking, quorum-based systems (Raft/Paxos)</td>
+            <td class="casc">Cluster splits → two sides each think they are authoritative</td>
+            <td class="troff">Availability reduced during partition (CP over AP)</td>
+          </tr>
+          <tr>
+            <td>Split Brain<span class="badge-crit">Must Know</span></td>
+            <td>Partition causes both sides to elect a leader — two leaders exist</td>
+            <td>Multiple leaders detected, conflicting writes in audit logs</td>
+            <td>Fence minority partition with fencing tokens, refuse writes</td>
+            <td>Raft/Paxos consensus — only majority can elect leader</td>
+            <td class="casc">Both leaders accept writes → data diverges → reconciliation nightmare</td>
+            <td class="troff">Lower write availability during partition</td>
+          </tr>
+          <tr>
+            <td>Partial Partition</td>
+            <td>Some nodes can reach others but not all — uneven reachability</td>
+            <td>Inconsistent peer visibility in cluster health checks</td>
+            <td>Dynamic routing/re-election to restore clean majority</td>
+            <td>Better network topology, redundant paths between all nodes</td>
+            <td class="casc">Replica inconsistency — different nodes see different cluster state</td>
+            <td class="troff">More complex recovery logic required</td>
+          </tr>
+          <tr>
+            <td>Asymmetric Partition</td>
+            <td>A can reach B but B cannot reach A — one-way communication</td>
+            <td>Bidirectional heartbeat mismatch alerts</td>
+            <td>Force reconnection, rebuild from clean state</td>
+            <td>Symmetric health checks, bidirectional probes</td>
+            <td class="casc">Inconsistent cluster state — one side thinks link is healthy</td>
+            <td class="troff">Monitoring and recovery add significant complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Coordination and Leader Election Failures</td></tr>
+          <tr>
+            <td>Leader Election Failure<span class="badge-crit">Must Know</span></td>
+            <td>Consensus timeout, network issue, insufficient quorum for election</td>
+            <td>No leader detected, write requests all fail</td>
+            <td>Trigger re-election, add nodes to restore quorum</td>
+            <td>Stable election timeout tuning, reliable heartbeat intervals</td>
+            <td class="casc">Write unavailability until new leader elected — service stalls</td>
+            <td class="troff">Slower elections reduce the frequency of false leader changes</td>
+          </tr>
+          <tr>
+            <td>Multiple Leaders (Dual Primary)</td>
+            <td>Partition or race condition — two nodes both believe they are leader</td>
+            <td>Conflicting writes detected, version/term collision</td>
+            <td>Force fencing — one leader's writes rejected via fencing token</td>
+            <td>Strong consensus (Raft epoch/term validation), monotonic token</td>
+            <td class="casc">Silent data corruption — both leaders accepting incompatible writes</td>
+            <td class="troff">Lower write availability during fencing resolution</td>
+          </tr>
+          <tr>
+            <td>Leader Flapping</td>
+            <td>Frequent re-elections due to unstable heartbeat or overloaded leader</td>
+            <td>Rapid leader changes in cluster event log</td>
+            <td>Stabilise election timeout, reduce leader load</td>
+            <td>Proper health check tuning, separate leader from data IO</td>
+            <td class="casc">Continuous write interruptions — service effectively unavailable</td>
+            <td class="troff">Slower failover but more stable once leader elected</td>
+          </tr>
+          <tr>
+            <td>Coordinator Node Failure</td>
+            <td>Metadata server / transaction coordinator crashes</td>
+            <td>Coordinator health alerts, all coordinated ops fail</td>
+            <td>Failover to standby coordinator</td>
+            <td>Replicated coordinators, standby ready to take over immediately</td>
+            <td class="casc">Entire cluster coordination failure — all distributed ops stall</td>
+            <td class="troff">Coordination replication adds latency to every coordinated write</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Replication and Replica Failures</td></tr>
+          <tr>
+            <td>Replica Lag<span class="badge-crit">Must Know</span></td>
+            <td>Follower falls behind leader — slow network, large write burst</td>
+            <td>Replication lag metrics (seconds behind leader)</td>
+            <td>Route critical reads to leader, set bounded staleness</td>
+            <td>Tune replication pipeline, synchronous replication on critical paths</td>
+            <td class="casc">Stale reads at scale — all users on that replica see old data</td>
+            <td class="troff">Synchronous replication increases write latency significantly</td>
+          </tr>
+          <tr>
+            <td>Replica Divergence<span class="badge-crit">Must Know</span></td>
+            <td>Missed replication events, network error mid-stream</td>
+            <td>Checksum mismatch between replicas</td>
+            <td>Read repair, anti-entropy sync from leader</td>
+            <td>Quorum replication, synchronous ack before commit</td>
+            <td class="casc">Different users on different replicas see different data</td>
+            <td class="troff">More replication network traffic and bandwidth</td>
+          </tr>
+          <tr>
+            <td>Failed Replica Sync</td>
+            <td>Sync process interrupted — node partially rebuilt</td>
+            <td>Persistent divergence after repair attempt</td>
+            <td>Full replica rebuild from primary</td>
+            <td>Incremental sync with checkpointing, resume on failure</td>
+            <td class="casc">Long-term inconsistency if diverged replica serves reads</td>
+            <td class="troff">Full rebuild increases IO and network load significantly</td>
+          </tr>
+          <tr>
+            <td>Replica Overload During Rebuild</td>
+            <td>Re-replication storm after node failure — primary bombarded</td>
+            <td>High IO/network throughput on primary during recovery</td>
+            <td>Throttle rebuild bandwidth, stagger replica recovery</td>
+            <td>Smarter replica placement, controlled rebuild rate limits</td>
+            <td class="casc">Primary overloaded → writes slow → latency cascade for live traffic</td>
+            <td class="troff">Throttling slows recovery — longer inconsistency window</td>
+          </tr>
+          <tr>
+            <td>Replication Storm</td>
+            <td>Massive resync needed after outage — all replicas rebuilding at once</td>
+            <td>Replication traffic spike, network saturation during recovery</td>
+            <td>Rate-limit replication, stagger recovery of replicas</td>
+            <td>Controlled repair scheduling, repair priority queues</td>
+            <td class="casc">Network saturation → live traffic degrades during recovery</td>
+            <td class="troff">Slower controlled recovery extends window of inconsistency</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Event Ordering and Messaging Failures</td></tr>
+          <tr>
+            <td>Duplicate Event Processing<span class="badge-crit">Must Know</span></td>
+            <td>At-least-once delivery retries same message after uncertain ack</td>
+            <td>Duplicate IDs, repeated side effects in consumer logs</td>
+            <td>Consumer-side idempotency key deduplication</td>
+            <td>Exactly-once semantics (Kafka idempotent producer + transactions)</td>
+            <td class="casc">Double payment, double order, duplicate notifications</td>
+            <td class="troff">Exactly-once semantics add significant implementation complexity</td>
+          </tr>
+          <tr>
+            <td>Missing Event / Data Loss<span class="badge-crit">Must Know</span></td>
+            <td>Broker crash, consumer acks before processing, network failure</td>
+            <td>Sequence gap detection, consumer lag anomaly</td>
+            <td>Replay events from durable log (Kafka, WAL)</td>
+            <td>Persistent queues, acks=all, replication factor ≥ 3</td>
+            <td class="casc">Missing workflow steps — order never fulfilled, state incomplete</td>
+            <td class="troff">Persistent brokers with high RF cost significantly more</td>
+          </tr>
+          <tr>
+            <td>Out-of-Order Events<span class="badge-crit">Must Know</span></td>
+            <td>Parallel consumers, network reordering, different partition speeds</td>
+            <td>Sequence mismatch, invalid state transition in downstream</td>
+            <td>Buffer and reorder using sequence numbers before processing</td>
+            <td>Per-key ordered partitioning (Kafka partition by entity key)</td>
+            <td class="casc">Invalid workflow state — cancel processed before create</td>
+            <td class="troff">Per-key ordering reduces consumer parallelism</td>
+          </tr>
+          <tr>
+            <td>Poison Message</td>
+            <td>Corrupt, malformed, or unprocessable message enters queue</td>
+            <td>Consumer fails repeatedly on same offset/message</td>
+            <td>Dead-letter queue — move poison message aside, continue</td>
+            <td>Message validation at producer, schema registry enforcement</td>
+            <td class="casc">Queue processing blocked entirely — all subsequent messages stall</td>
+            <td class="troff">DLQ management adds operational overhead and monitoring</td>
+          </tr>
+          <tr>
+            <td>Consumer Group Rebalance Failure</td>
+            <td>Consumer crashes or re-joins — triggers partition reassignment</td>
+            <td>Rebalance instability, processing pauses, lag spike</td>
+            <td>Graceful rebalance, cooperative incremental rebalancing</td>
+            <td>Sticky partition assignment, longer session timeouts</td>
+            <td class="casc">Processing pauses during rebalance → lag builds → delay cascade</td>
+            <td class="troff">Slower rebalancing reduces elasticity of consumer group</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Consensus and Quorum Failures</td></tr>
+          <tr>
+            <td>Quorum Loss<span class="badge-crit">Must Know</span></td>
+            <td>Too many nodes unavailable — insufficient nodes for majority</td>
+            <td>Cluster alerts: insufficient quorum, write failures</td>
+            <td>Switch to read-only mode, restore nodes to regain quorum</td>
+            <td>Distribute quorum nodes across multiple AZs/regions</td>
+            <td class="casc">Write unavailability — entire system stalls waiting for quorum</td>
+            <td class="troff">Multi-AZ quorum adds cross-AZ latency to every write</td>
+          </tr>
+          <tr>
+            <td>Consensus Timeout</td>
+            <td>Slow network or high load prevents consensus round from completing</td>
+            <td>Consensus latency metrics, write delay spikes</td>
+            <td>Retry consensus round, reduce network latency</td>
+            <td>Optimise network, co-locate quorum nodes, reduce log payload</td>
+            <td class="casc">Write delays cascade — queued writes build up behind stalled consensus</td>
+            <td class="troff">Faster timeout increases risk of false leader changes</td>
+          </tr>
+          <tr>
+            <td>Stale Leader</td>
+            <td>Old leader, isolated by partition, still accepts writes</td>
+            <td>Version/term mismatch between writes from old and new leader</td>
+            <td>Fencing tokens: new leader increments token, old leader rejected</td>
+            <td>Strong term/epoch validation, monotonic fencing</td>
+            <td class="casc">Conflicting writes from two leaders → data corruption on heal</td>
+            <td class="troff">Extra coordination on every write for term validation</td>
+          </tr>
+          <tr>
+            <td>Consensus Deadlock</td>
+            <td>No progress in leader voting — perpetual split vote</td>
+            <td>Repeated failed elections, no progress in Raft log</td>
+            <td>Force leader reset, randomise election timeout</td>
+            <td>Randomised election timeouts (built into Raft), stable quorum</td>
+            <td class="casc">Entire cluster freezes — no writes accepted until deadlock resolved</td>
+            <td class="troff">More operational complexity to monitor and recover from</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Time Synchronization and Clock Failures</td></tr>
+          <tr>
+            <td>Clock Skew<span class="badge-crit">Must Know</span></td>
+            <td>Different nodes have different wall-clock times — NTP diverged</td>
+            <td>Timestamp drift monitoring alerts, ordering anomalies</td>
+            <td>Use logical clocks (Lamport) or vector clocks for ordering</td>
+            <td>Reliable NTP/PTP sync, never use wall clock for ordering</td>
+            <td class="casc">Incorrect event ordering → wrong TTL expiry → wrong scheduling</td>
+            <td class="troff">Logical clocks add complexity; vector clocks scale poorly</td>
+          </tr>
+          <tr>
+            <td>Time Drift</td>
+            <td>Node clock slowly diverges from reference over time</td>
+            <td>Drift monitoring, gradual timestamp anomalies</td>
+            <td>Resync NTP, apply monotonic clock correction</td>
+            <td>Better time servers (GPS-backed NTP), frequent sync intervals</td>
+            <td class="casc">Expired sessions/leases fired incorrectly → spurious evictions</td>
+            <td class="troff">Frequent sync adds extra network traffic overhead</td>
+          </tr>
+          <tr>
+            <td>Event Ordering Error by Clock</td>
+            <td>Two events with close timestamps have reversed order due to skew</td>
+            <td>Timestamp anomalies in event log, events appear out of causal order</td>
+            <td>Sequence-number-based ordering instead of timestamp</td>
+            <td>Event-time semantics with watermarks, logical clocks</td>
+            <td class="casc">Wrong workflow execution — later event treated as earlier</td>
+            <td class="troff">More metadata storage for sequence numbers per event</td>
+          </tr>
+          <tr>
+            <td>Lease Expiry Misfire</td>
+            <td>Clock mismatch causes lease to expire prematurely or not at all</td>
+            <td>Lease conflict detection, dual ownership signals</td>
+            <td>Fencing tokens on lease acquisition, reject stale holders</td>
+            <td>Monotonic clocks for lease duration, conservative lease timing</td>
+            <td class="casc">Dual ownership of lease → two nodes act as primary simultaneously</td>
+            <td class="troff">Conservative lease timing reduces throughput due to idle periods</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Distributed Transaction and Workflow Failures</td></tr>
+          <tr>
+            <td>Partial Distributed Transaction<span class="badge-crit">Must Know</span></td>
+            <td>Multi-service workflow — one step succeeds, another fails mid-flow</td>
+            <td>Cross-service reconciliation finds mismatched state</td>
+            <td>Saga pattern — run compensating transactions to undo completed steps</td>
+            <td>Idempotent workflow design, avoid 2PC, use outbox pattern</td>
+            <td class="casc">Payment deducted, order not created — user charged with no delivery</td>
+            <td class="troff">Saga complexity grows with number of services involved</td>
+          </tr>
+          <tr>
+            <td>2PC Coordinator Failure</td>
+            <td>Coordinator crashes after prepare phase, before commit decision</td>
+            <td>Participants stuck in prepared state — locks held indefinitely</td>
+            <td>Transaction recovery protocol, timeout and rollback</td>
+            <td>Avoid 2PC where possible — use Saga or event-driven patterns</td>
+            <td class="casc">All participating services hold locks → writes blocked system-wide</td>
+            <td class="troff">2PC hurts availability — any participant failure blocks commit</td>
+          </tr>
+          <tr>
+            <td>Saga Compensation Failure</td>
+            <td>Compensating transaction also fails — cannot undo partial work</td>
+            <td>Workflow stuck in compensating state with no resolution</td>
+            <td>Retry compensation with exponential backoff, manual fallback</td>
+            <td>Idempotent compensating actions, persistent retry tracking</td>
+            <td class="casc">Permanent inconsistent state requiring expensive manual reconciliation</td>
+            <td class="troff">Extra operational complexity for monitoring compensation failures</td>
+          </tr>
+          <tr>
+            <td>Distributed Deadlock</td>
+            <td>Services wait on each other in circular dependency for resources</td>
+            <td>Timeout/deadlock detection, workflow makes no progress</td>
+            <td>Abort one transaction, apply global resource ordering</td>
+            <td>Global lock ordering, timeout on all resource acquisitions</td>
+            <td class="casc">Workflow freeze — no progress until manually resolved</td>
+            <td class="troff">Global ordering reduces concurrency and parallelism</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Service Discovery and Membership Failures</td></tr>
+          <tr>
+            <td>Service Discovery Failure<span class="badge-crit">Must Know</span></td>
+            <td>Registry (etcd/Consul/Zookeeper) unavailable or returning wrong data</td>
+            <td>Service lookup failures, connection errors to healthy services</td>
+            <td>Cached service endpoints as fallback</td>
+            <td>HA registry cluster, client-side endpoint caching</td>
+            <td class="casc">All services unable to find each other → cluster-wide outage</td>
+            <td class="troff">Cached endpoints risk routing to stale/dead instances</td>
+          </tr>
+          <tr>
+            <td>Stale Membership Information</td>
+            <td>Delayed heartbeat updates — dead node still listed as healthy</td>
+            <td>Traffic routed to dead node, connection failures on those routes</td>
+            <td>Force membership refresh, remove stale entries</td>
+            <td>Faster heartbeat intervals, aggressive stale-entry eviction</td>
+            <td class="casc">Traffic routed to dead nodes → requests fail → caller retries</td>
+            <td class="troff">More frequent heartbeats increase membership gossip overhead</td>
+          </tr>
+          <tr>
+            <td>Zombie Node</td>
+            <td>Dead node appears alive to registry — still responding to pings</td>
+            <td>Inconsistent heartbeat, node responds to pings but fails on requests</td>
+            <td>Force fencing and removal from cluster membership</td>
+            <td>Better liveness checks — health check must test actual functionality</td>
+            <td class="casc">Traffic routed to zombie → requests fail → cascades to callers</td>
+            <td class="troff">Aggressive fencing risks false positives — removes live nodes</td>
+          </tr>
+          <tr>
+            <td>Node Join / Leave Storm</td>
+            <td>Rapid autoscaling, crash-restart loops, or mass eviction</td>
+            <td>Membership churn spike, cluster rebalancing continuously</td>
+            <td>Stabilise scaling, dampen membership changes</td>
+            <td>Controlled scaling policies, cool-down periods</td>
+            <td class="casc">Rebalance instability → consumer lag spike → processing delay</td>
+            <td class="troff">Slower elasticity — nodes take longer to join/leave cleanly</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Distributed State Divergence Failures</td></tr>
+          <tr>
+            <td>State Divergence<span class="badge-crit">Must Know</span></td>
+            <td>Concurrent conflicting updates on different nodes — no coordination</td>
+            <td>Version mismatch between nodes, reconciliation job finds conflicts</td>
+            <td>Reconciliation job — merge or pick winner using business rules</td>
+            <td>Strong consistency on critical writes, single-writer ownership</td>
+            <td class="casc">Different users on different nodes see different truth simultaneously</td>
+            <td class="troff">Strong consistency reduces availability during failures</td>
+          </tr>
+          <tr>
+            <td>Conflict Resolution Failure</td>
+            <td>Merge logic cannot automatically reconcile divergent versions</td>
+            <td>Persistent conflict state, stuck records in reconciliation queue</td>
+            <td>Manual reconciliation, expose conflict to application layer</td>
+            <td>CRDT data structures, operational transforms for collaborative state</td>
+            <td class="casc">Corrupted shared state if bad merge applied — propagates to readers</td>
+            <td class="troff">CRDT and OT algorithms add significant implementation complexity</td>
+          </tr>
+          <tr>
+            <td>Cache-Replica Divergence</td>
+            <td>Cache not invalidated when replica updates — lag between layers</td>
+            <td>Cache value differs from replica value in spot checks</td>
+            <td>Cache refresh, force cache invalidation on write</td>
+            <td>Event-driven invalidation (CDC), write-through cache</td>
+            <td class="casc">Stale data served at scale across entire fleet of cache nodes</td>
+            <td class="troff">More frequent invalidation increases cache miss rate and DB load</td>
+          </tr>
+          <tr>
+            <td>Metadata Inconsistency</td>
+            <td>Coordinator replication lag — different nodes have different schema/config view</td>
+            <td>Metadata mismatch between nodes, conflicting routing decisions</td>
+            <td>Rebuild metadata from authoritative source</td>
+            <td>Consensus-backed metadata store (etcd/Raft), strong read guarantee</td>
+            <td class="casc">Entire cluster confused about topology → routing chaos system-wide</td>
+            <td class="troff">Consensus-backed metadata adds latency to every metadata operation</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Distributed Failures for Interviews</p>
+      <div class="ncode"> 1. Network partition       → quorum writes + minority isolation + Raft/Paxos
+ 2. Split brain            → fencing tokens + consensus + epoch validation
+ 3. Replica lag/divergence → read from leader + quorum reads + read repair
+ 4. Duplicate events       → idempotency keys + exactly-once + dedup store
+ 5. Missing events         → acks=all + replay from log + sequence gaps
+ 6. Out-of-order events    → per-key partitioning + sequence numbers + reorder buffer
+ 7. Quorum loss            → multi-AZ quorum + read-only mode + restore nodes
+ 8. Clock skew             → logical/vector clocks + NTP sync + avoid wall clock ordering
+ 9. Partial distributed tx → Saga + compensation + outbox pattern
+10. Service discovery fail → HA registry + client-side cache + endpoint fallback</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- ══════════ TAB 2 — STAFF INSIGHTS ══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Distributed Thinking — 8 Questions to Ask Always</p>
+      <div class="ncode">1. Communicate?    → partition: quorum + minority isolation
+2. Agree?          → consensus: Raft/Paxos + fencing tokens
+3. Replicas diverge? → quorum writes + read repair + sync
+4. Ordering break? → per-key partition + sequence numbers + vector clocks
+5. Partial workflow? → Saga + compensating actions + outbox pattern
+6. Retry duplicate? → idempotency keys + exactly-once semantics
+7. Time inconsistent? → logical clocks + NTP sync + lease fencing
+8. Multiple truths? → fencing + strong consistency on critical paths</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Distributed Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Network partition</td><td>Split brain → two leaders → conflicting writes → reconciliation required</td></tr>
+          <tr><td>Replica lag</td><td>Stale reads system-wide → wrong business decisions → data inconsistency</td></tr>
+          <tr><td>Replication storm</td><td>Network saturation → live traffic degrades → latency cascade</td></tr>
+          <tr><td>Leader flapping</td><td>Continuous write interruptions → queued writes timeout → cascades to callers</td></tr>
+          <tr><td>Clock skew</td><td>Incorrect event ordering → wrong TTL → expired sessions/leases</td></tr>
+          <tr><td>Partial transaction</td><td>Cross-service inconsistency → user charged without order created</td></tr>
+          <tr><td>Discovery failure</td><td>Services cannot locate each other → entire cluster unreachable</td></tr>
+          <tr><td>Poison message</td><td>Queue processing blocked → all subsequent messages delayed → lag explosion</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Monolith vs Distributed — Why Distributed Is Fundamentally Harder</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-indigo-700 mb-2">Monolith (Simpler)</p>
+          <ul class="text-xs text-indigo-800 space-y-1 list-disc pl-4">
+            <li>One process — clear failure boundary</li>
+            <li>Either up or down — no partial state</li>
+            <li>No replication lag or divergence</li>
+            <li>Recovery: restart one process</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">Distributed (Fundamentally Harder)</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>Partial failures — some up, some down</li>
+            <li>Replicas diverge silently</li>
+            <li>Split brain creates multiple truths</li>
+            <li>Clock skew breaks ordering</li>
+            <li>Recovery may create new inconsistencies</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Distributed Failures Reduce to 6 States</p>
+      <div class="ncode">1. Cannot communicate  → partition: quorum + isolation
+2. Cannot agree        → consensus: Raft/Paxos + fencing
+3. Replicas diverge    → sync + read repair + quorum reads
+4. Ordering breaks     → per-key partition + sequence numbers
+5. Transactions partial → Saga + compensation + outbox
+6. Time inconsistent   → logical clocks + NTP + lease fencing
+
+Hardest = split brain: alive system, multiple leaders, silent conflict</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#1e1b4b;border:1px solid #3730a3;">
+      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-indigo-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-indigo-200">Communicate?</p>
+          <p class="text-xs text-indigo-400 mt-0.5">Quorum + isolation</p>
+        </div>
+        <div class="bg-indigo-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-indigo-200">Agree?</p>
+          <p class="text-xs text-indigo-400 mt-0.5">Raft + fencing tokens</p>
+        </div>
+        <div class="bg-indigo-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-indigo-200">Order correct?</p>
+          <p class="text-xs text-indigo-400 mt-0.5">Per-key partition + seq#</p>
+        </div>
+        <div class="bg-indigo-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-indigo-200">Transaction safe?</p>
+          <p class="text-xs text-indigo-400 mt-0.5">Saga + idempotency</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

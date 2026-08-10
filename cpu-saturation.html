@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CPU Utilization vs Saturation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">CPU Utilization vs Saturation</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">CPU Utilization vs Saturation</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Busy Time &bull; Run Queue &bull; Load Average &bull; Context Switches &bull; Latency Impact &bull; Scaling Decisions</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea — One Metric Is Never Enough</p>
+      <p class="nq">Utilization tells you <strong>how busy the CPU is</strong>. Saturation tells you <strong>how much work is waiting for CPU</strong>. A system can be 70% utilized and completely saturated — or 90% utilized and perfectly healthy. You need both metrics to understand whether to optimize, tune, or scale.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-1">CPU Utilization</p>
+          <div class="ncode" style="font-size:.7rem; padding:.5rem .75rem; background:#1e3a5f; color:#93c5fd">CPU Utilization = CPU Busy Time / Total Time
+
+Busy 0.8s out of 1s  →  80% utilization</div>
+          <p class="text-xs text-gray-600 mt-2">Measures: how much of available CPU capacity is being used. Does NOT tell you whether tasks are waiting.</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-black text-orange-700 mb-1">CPU Saturation</p>
+          <div class="ncode" style="font-size:.7rem; padding:.5rem .75rem; background:#431407; color:#fed7aa">Runnable threads: 20
+CPU cores:        8
+Waiting in queue: 12  ← SATURATED</div>
+          <p class="text-xs text-gray-600 mt-2">Measures: work queued up waiting for CPU. High saturation = tasks waiting = latency rising even if utilization looks OK.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CPU Time Breakdown + Utilization vs Saturation Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">CPU Time Breakdown (Linux top / mpstat)</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Metric</th><th>Meaning</th><th>High Value Alert</th></tr></thead>
+          <tbody>
+            <tr><td><code>%user</code></td><td>Application code (user space)</td><td>CPU-bound workload</td></tr>
+            <tr><td><code>%system</code></td><td>Kernel code (syscalls, drivers)</td><td>Too many kernel crossings</td></tr>
+            <tr><td><code>%iowait</code></td><td>Waiting for disk / network</td><td>I/O bottleneck, not CPU</td></tr>
+            <tr><td><code>%irq</code> / <code>%softirq</code></td><td>Interrupt handling</td><td>NIC / disk interrupt storm</td></tr>
+            <tr><td><code>%steal</code></td><td>CPU taken by hypervisor (VM)</td><td>Noisy neighbour on cloud</td></tr>
+            <tr><td><code>%idle</code></td><td>CPU doing nothing</td><td>Underutilised</td></tr>
+          </tbody>
+        </table>
+        <p class="ntip mt-2">High <code>%system</code> often means excessive syscalls, interrupts, or network processing — not application logic bottlenecks. Investigate differently.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Utilization vs Saturation — System State Grid</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Utilization</th><th>Saturation</th><th>State</th><th>Behaviour</th></tr></thead>
+          <tbody>
+            <tr><td class="text-green-600">Low</td><td class="text-green-600">Low</td><td>Idle</td><td>CPU mostly waiting</td></tr>
+            <tr><td class="text-blue-600">Medium</td><td class="text-green-600">Low</td><td class="text-green-600">Healthy</td><td>Balanced, good latency</td></tr>
+            <tr><td class="text-amber-600">High 60–85%</td><td class="text-green-600">Low</td><td class="text-green-600">Efficient</td><td>Good throughput &amp; latency</td></tr>
+            <tr><td class="text-orange-600">High 80%+</td><td class="text-orange-600">High</td><td class="text-orange-600">Overloaded</td><td>Queues grow, latency rises</td></tr>
+            <tr><td class="text-red-600">100%</td><td class="text-red-600">Very High</td><td class="text-red-600">Thrashing</td><td>Severe latency, poor throughput</td></tr>
+            <tr><td class="text-amber-600">Medium</td><td class="text-orange-600">High</td><td class="text-orange-600">Contention</td><td>Scheduler bottleneck</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h">Key Saturation Indicators</p>
+        <ul class="dot-ul">
+          <li>Run queue length &gt; number of CPU cores</li>
+          <li>Load average &gt; core count (1m / 5m / 15m)</li>
+          <li>High context switches per second</li>
+          <li>High CPU migrations between cores</li>
+          <li>High steal time (virtualised environments)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Impact chain + Throughput vs Latency -->
+    <div class="nc">
+      <p class="nh">How Saturation Kills Latency — The Chain</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <div class="ncode">More requests arrive
+  ↓ Run queue grows (saturation starts)
+  ↓ More context switches (scheduler overhead)
+  ↓ Cache / TLB invalidated on each switch
+  ↓ Tasks wait longer before executing
+  ↓ Average latency rises
+  ↓ P95 / P99 latency spikes dramatically
+  ↓ Throughput plateaus — then drops</div>
+          <p class="ntip mt-2"><strong>Rule of Thumb:</strong> Keep utilization at 60–85% for best balance. Beyond that, latency rises exponentially. Run queue length should stay close to (but not much higher than) core count.</p>
+        </div>
+        <div>
+          <p class="sub-h">Trade-off: Low vs High vs Saturated</p>
+          <table class="nt">
+            <thead><tr><th>Parameter</th><th>Low Util</th><th>Healthy</th><th>Saturated</th></tr></thead>
+            <tbody>
+              <tr><td>Throughput</td><td>Low</td><td class="text-green-600">High</td><td class="text-red-500">Plateaus/Drops</td></tr>
+              <tr><td>Avg Latency</td><td class="text-green-600">Low</td><td class="text-green-600">Moderate</td><td class="text-red-500">High</td></tr>
+              <tr><td>P95/P99</td><td class="text-green-600">Low</td><td>Moderate</td><td class="text-red-500">Very High</td></tr>
+              <tr><td>Run Queue</td><td>0</td><td>0 – cores</td><td class="text-red-500">&gt; cores</td></tr>
+              <tr><td>Ctx Switches</td><td class="text-green-600">Low</td><td>Stable</td><td class="text-red-500">Very High</td></tr>
+              <tr><td>CPU Efficiency</td><td class="text-amber-600">Under-used</td><td class="text-green-600">Optimal</td><td class="text-red-500">Poor</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-world examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-2">Web Server (Nginx)</p>
+          <div class="ncode" style="font-size:.68rem; padding:.5rem .7rem">8 CPU cores
+Utilization = 85%
+Load average = 18
+
+18 runnable &gt; 8 cores
+→ SATURATED</div>
+          <p class="text-xs text-gray-600 mt-2">Symptoms: slow responses, growing queues, high P99. Fix: fewer blocking calls, tune workers, scale out.</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3">
+          <p class="text-xs font-black text-green-700 mb-2">Database (PostgreSQL)</p>
+          <div class="ncode" style="font-size:.68rem; padding:.5rem .7rem">16 cores
+100 connections
+Only 16 run at once
+84 waiting
+
+→ Scheduler saturation</div>
+          <p class="text-xs text-gray-600 mt-2">High ctx switches, long query latency. Fix: connection pooling (PgBouncer) — limit max backends to 16–32.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-xl p-3">
+          <p class="text-xs font-black text-violet-700 mb-2">Java Microservice</p>
+          <div class="ncode" style="font-size:.68rem; padding:.5rem .7rem">8 cores
+500 worker threads
+Utilization = 75%
+
+Run queue always &gt; 8
+→ Scheduler thrashing</div>
+          <p class="text-xs text-gray-600 mt-2">Looks OK on CPU% but latency is high. Fix: reduce thread pool to ~16–32, or use async I/O.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection Tools + System Design -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Detecting CPU Saturation — Tools</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Tool / Command</th><th>What It Shows</th><th>Saturation Signal</th></tr></thead>
+          <tbody>
+            <tr><td><code>top</code> / <code>htop</code></td><td>CPU %, per-core usage</td><td>High %us, high load avg</td></tr>
+            <tr><td><code>uptime</code></td><td>Load average 1/5/15m</td><td>Load avg &gt; core count</td></tr>
+            <tr><td><code>vmstat 1</code></td><td>r (run queue), b (blocked)</td><td>r (run queue) &gt; cores</td></tr>
+            <tr><td><code>pidstat -w 1</code></td><td>Context switches / sec</td><td>Very high cswch/s</td></tr>
+            <tr><td><code>mpstat -P ALL 1</code></td><td>Per-core CPU breakdown</td><td>All cores near 100%</td></tr>
+            <tr><td><code>sar -q 1</code></td><td>Run queue over time</td><td>Queue consistently high</td></tr>
+            <tr><td><code>perf sched timehist</code></td><td>Scheduler latency / delay</td><td>High scheduling delay</td></tr>
+            <tr><td><code>dstat</code> / <code>nmon</code></td><td>Combined system view</td><td>Run queue + CPU high</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h mt-2">Quick Commands</p>
+        <div class="ncode" style="font-size:.7rem"># Run queue (r column) — should be &lt;= CPU cores
+vmstat 1
+
+# Load average — 1m/5m/15m
+uptime
+
+# Context switches per process
+pidstat -w 1
+
+# Per-core utilization
+mpstat -P ALL 1
+
+# CPU over time
+sar -u 1</div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">System Design Implications</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Design Choice</th><th>Scheduling Impact</th></tr></thead>
+          <tbody>
+            <tr><td>Thread-per-request</td><td class="text-red-500">High runnable threads → high saturation</td></tr>
+            <tr><td>Thread Pool</td><td class="text-yellow-600">Controlled concurrency → less contention</td></tr>
+            <tr><td>Event-driven (epoll)</td><td class="text-green-600">Few threads handle many connections</td></tr>
+            <tr><td>Async I/O (io_uring)</td><td class="text-green-600">Minimize blocking → very low scheduler pressure</td></tr>
+            <tr><td>CPU Pinning / Affinity</td><td class="text-green-600">Better cache locality, fewer migrations</td></tr>
+            <tr><td>Real-Time Scheduling</td><td class="text-green-600">Predictable CPU time, low latency</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h mt-2">Best Practices</p>
+        <div class="space-y-1.5">
+          <div class="bg-green-50 border border-green-100 rounded p-2 text-xs text-green-800">Monitor both utilization AND run queue — never rely on one alone</div>
+          <div class="bg-green-50 border border-green-100 rounded p-2 text-xs text-green-800">Keep runnable threads close to number of CPU cores for CPU-bound work</div>
+          <div class="bg-green-50 border border-green-100 rounded p-2 text-xs text-green-800">Use async/non-blocking I/O to reduce thread count and scheduler pressure</div>
+          <div class="bg-green-50 border border-green-100 rounded p-2 text-xs text-green-800">Batch operations (readv, writev, sendmmsg) to reduce syscall frequency</div>
+          <div class="bg-green-50 border border-green-100 rounded p-2 text-xs text-green-800">Use connection pooling (DB, HTTP) to cap concurrent active threads</div>
+          <div class="bg-green-50 border border-green-100 rounded p-2 text-xs text-green-800">Pin critical threads to CPU cores to prevent migration and cache eviction</div>
+          <div class="bg-green-50 border border-green-100 rounded p-2 text-xs text-green-800">Capacity plan with 20–30% headroom — saturation above 85% causes P99 spikes</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures + Staff Engineer Thinking -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Production Failure Scenarios</p>
+        <div class="space-y-2">
+          <div class="bg-green-50 border border-green-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-green-700">High CPU, stable latency</p>
+            <p class="text-xs text-gray-600 mt-0.5">Expected healthy workload. Run queue near core count. No action required — this is efficient utilization.</p>
+          </div>
+          <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-red-700">High CPU + rising P99 latency</p>
+            <p class="text-xs text-gray-600 mt-0.5">CPU saturated. Scheduler queues growing. Fix: reduce runnable threads, add CPU capacity, or adopt async I/O.</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-orange-700">Low CPU but high latency</p>
+            <p class="text-xs text-gray-600 mt-0.5">CPU is NOT the bottleneck. Investigate I/O wait, lock contention, network latency, or slow external dependencies.</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-amber-700">High context switch rate</p>
+            <p class="text-xs text-gray-600 mt-0.5">Thread oversubscription. Too many runnable threads fighting for CPU. Reduce thread count or move to event-driven architecture.</p>
+          </div>
+          <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-yellow-700">High load average, low per-core usage</p>
+            <p class="text-xs text-gray-600 mt-0.5">Check <code>%iowait</code> — processes blocked on disk or network inflate load average even though cores are idle.</p>
+          </div>
+        </div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Staff Engineer Decision Framework</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Observation</th><th>Likely Cause</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>High util, low saturation</td><td class="text-green-600">Healthy workload</td><td>Monitor; keep headroom</td></tr>
+            <tr><td>High util, high saturation</td><td class="text-red-500">CPU bottleneck</td><td>Scale out or optimize code</td></tr>
+            <tr><td>Low util, high latency</td><td>I/O bottleneck</td><td>Fix storage / network / locks</td></tr>
+            <tr><td>High ctx switches</td><td>Too many threads</td><td>Reduce concurrency or go async</td></tr>
+            <tr><td>High load avg &gt; cores</td><td>Scheduler pressure</td><td>Tune worker count; profile run queue</td></tr>
+            <tr><td>High %steal</td><td>Noisy neighbour (VM)</td><td>Move to dedicated host or larger instance</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h mt-2">Engineer Progression</p>
+        <div class="space-y-1">
+          <div class="bg-gray-50 border border-gray-200 rounded p-2 text-xs"><span class="font-bold text-gray-500">Junior:</span> "Is CPU usage high?"</div>
+          <div class="bg-blue-50 border border-blue-100 rounded p-2 text-xs"><span class="font-bold text-blue-700">Senior:</span> "Which process is consuming CPU?"</div>
+          <div class="bg-violet-50 border border-violet-100 rounded p-2 text-xs"><span class="font-bold text-violet-700">Staff:</span> Is CPU actually saturated? Are queues growing? Should I optimize or reduce concurrency? Is this a CPU or I/O problem?</div>
+          <div class="bg-purple-50 border border-purple-200 rounded p-2 text-xs"><span class="font-bold text-purple-700">Principal:</span> Design with 20–30% headroom. Define saturation SLOs. Capacity plan from traffic forecasts not current usage.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">CPU Utilization  = CPU Busy Time / Total Time
+                     Measures: how busy the CPU is
+                     Healthy range: 60–85%
+
+CPU Saturation   = work waiting because CPU can't keep up
+                     Measured by: run queue length, load average
+                     Healthy: run queue &lt;= CPU core count
+
+Key difference
+  High util + low saturation  →  Efficient (good)
+  High util + high saturation →  Overloaded (latency rising)
+  Low util  + high latency    →  NOT a CPU problem — check I/O / locks
+
+Linux CPU time breakdown (top / mpstat)
+  %user    application code       → CPU-bound work
+  %system  kernel code            → excessive syscalls / interrupts
+  %iowait  waiting for disk/net   → I/O bottleneck, not CPU
+  %steal   hypervisor taking CPU  → noisy neighbour
+
+Saturation detection
+  vmstat 1        r column = run queue length
+  uptime          load average 1m/5m/15m vs core count
+  pidstat -w 1    context switches per process
+  mpstat -P ALL   per-core breakdown
+  perf sched      scheduler latency analysis
+
+Impact of saturation
+  More switches → cache/TLB eviction → higher avg + P99 latency
+  Throughput plateaus → then drops as overhead dominates
+
+Golden Rules
+  Monitor BOTH utilization AND run queue — never just one
+  Keep threads near core count for CPU-bound work
+  Async I/O + event loops eliminate most scheduling pressure
+  Capacity plan with 20–30% headroom — saturation hits P99 hard</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Utilization</strong> — how busy. Does not reveal whether tasks are waiting.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Saturation</strong> — work queued. The real cause of P99 latency spikes.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Both required</strong> — high util + low saturation = healthy. Same util + high saturation = crisis.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Design goal</strong> — maximize useful work, prevent saturation, keep 20–30% headroom.</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Staff Engineers monitor both utilization and scheduler pressure — run queue length, load average, context switches — before deciding whether to optimize code, tune thread pools, or scale the system. The goal is not low CPU utilization; it's maximum useful work without saturation.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/CPUSaturation/cpu-saturation.png"
+           alt="CPU Utilization vs Saturation visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

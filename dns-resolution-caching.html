@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DNS Resolution, Caching, TTL & Connection Reuse — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">DNS Resolution, Caching, TTL & Connection Reuse</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">DNS Resolution, Caching, TTL & Connection Reuse</h1>
+      <p class="text-xs text-gray-400 mt-0.5">How every request finds its destination — and how to avoid paying for it twice</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">Every request starts with <strong>finding the service (DNS)</strong> then <strong>connecting to it (TCP/TLS)</strong>. Without optimization, these two phases easily add <strong>100–300 ms</strong> of avoidable latency per request. Every cache hit saves a network round trip.</p>
+      <div class="ncode">User Request
+  ↓
+Browser DNS Cache       ← hit: ~0ms
+  ↓ (miss)
+OS DNS Cache            ← hit: ~1ms
+  ↓ (miss)
+Recursive DNS Resolver  ← hit: ~5ms
+  ↓ (miss)
+Root Server → TLD Server (.com) → Authoritative DNS
+  ↓ (returns IP, ~50–200ms full resolution)
+TCP Handshake + TLS Handshake
+  ↓
+Application Server</div>
+      <div class="nkw mt-3">
+        <span>DNS Resolution</span>
+        <span>TTL</span>
+        <span>GeoDNS</span>
+        <span>Keep-Alive</span>
+        <span>Connection Pool</span>
+        <span>TLS Resumption</span>
+        <span>0-RTT</span>
+        <span>TIME_WAIT</span>
+      </div>
+    </div>
+
+    <!-- DNS Resolution Flow -->
+    <div class="nc">
+      <p class="nh">DNS Resolution — Step by Step</p>
+      <div class="space-y-2 mt-1">
+        <div class="flex gap-3 items-start">
+          <span class="w-6 h-6 rounded-full bg-violet-100 text-violet-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+          <div><p class="text-xs font-bold text-violet-700">Browser Cache</p><p class="text-xs text-gray-500">Checks local browser DNS cache. Hit → immediate, 0ms.</p></div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="w-6 h-6 rounded-full bg-violet-100 text-violet-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+          <div><p class="text-xs font-bold text-violet-700">OS Resolver Cache</p><p class="text-xs text-gray-500">Checks OS DNS cache (systemd-resolved, Windows DNS Client, macOS resolver).</p></div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="w-6 h-6 rounded-full bg-violet-100 text-violet-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+          <div><p class="text-xs font-bold text-violet-700">Recursive Resolver</p><p class="text-xs text-gray-500">Queries ISP / Google 8.8.8.8 / Cloudflare 1.1.1.1 / Route 53. Resolver does the work on the client's behalf.</p></div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="w-6 h-6 rounded-full bg-violet-100 text-violet-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">4</span>
+          <div><p class="text-xs font-bold text-violet-700">Root Server</p><p class="text-xs text-gray-500">"Where is .com?" → returns TLD name servers.</p></div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="w-6 h-6 rounded-full bg-violet-100 text-violet-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">5</span>
+          <div><p class="text-xs font-bold text-violet-700">TLD Server</p><p class="text-xs text-gray-500">"Where is example.com?" → returns authoritative name servers.</p></div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="w-6 h-6 rounded-full bg-violet-100 text-violet-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">6</span>
+          <div><p class="text-xs font-bold text-violet-700">Authoritative DNS</p><p class="text-xs text-gray-500">Source of truth. Returns the A/AAAA record (IP). Resolver caches and returns to client.</p></div>
+        </div>
+      </div>
+      <p class="ntip">Full recursive resolution costs 3–4 UDP round trips and can take 50–200ms. Every cache layer eliminates this cost.</p>
+    </div>
+
+    <!-- DNS Record Types -->
+    <div class="nc">
+      <p class="nh">DNS Record Types</p>
+      <table class="nt">
+        <thead><tr><th>Record</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><strong>A</strong></td><td>IPv4 address</td></tr>
+          <tr><td><strong>AAAA</strong></td><td>IPv6 address</td></tr>
+          <tr><td><strong>CNAME</strong></td><td>Alias to another hostname (chain)</td></tr>
+          <tr><td><strong>MX</strong></td><td>Mail server</td></tr>
+          <tr><td><strong>TXT</strong></td><td>SPF, DKIM, domain verification</td></tr>
+          <tr><td><strong>NS</strong></td><td>Name servers for this domain</td></tr>
+          <tr><td><strong>SRV</strong></td><td>Service discovery (host + port)</td></tr>
+          <tr><td><strong>PTR</strong></td><td>Reverse DNS lookup (IP → hostname)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TTL -->
+    <div class="nc">
+      <p class="nh">TTL — Time To Live</p>
+      <p class="text-sm text-gray-600 mb-2">TTL controls how long a DNS record can be cached before requiring a fresh lookup:</p>
+      <table class="nt">
+        <thead><tr><th>TTL Value</th><th>Use Case</th></tr></thead>
+        <tbody>
+          <tr><td>30–60 seconds</td><td>Active failover, blue/green deployments, canary releases</td></tr>
+          <tr><td>300 seconds (5 min)</td><td>APIs, dynamic services</td></tr>
+          <tr><td>3600 seconds (1 hr)</td><td>General web services</td></tr>
+          <tr><td>86400 seconds (1 day)</td><td>Stable records, static assets</td></tr>
+        </tbody>
+      </table>
+      <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+        <div class="bg-green-50 border border-green-100 rounded-lg p-3">
+          <p class="font-bold text-green-700 mb-1">Low TTL</p>
+          <ul class="dot-ul">
+            <li>Fast failover</li>
+            <li>Dynamic routing</li>
+            <li>Higher DNS query volume</li>
+            <li>More resolver load</li>
+          </ul>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="font-bold text-violet-700 mb-1">High TTL</p>
+          <ul class="dot-ul">
+            <li>Better cache hit rate</li>
+            <li>Lower DNS traffic</li>
+            <li>Slower propagation</li>
+            <li>Better scalability</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Migration best practice:</strong> Lower TTL to 60s well before a deployment. After migration stabilizes, restore to normal TTL. Clients stuck on old TTL will continue using stale IPs for up to the previous TTL duration.</p>
+    </div>
+
+    <!-- DNS Traffic Steering -->
+    <div class="nc">
+      <p class="nh">DNS-Based Traffic Steering</p>
+      <table class="nt">
+        <thead><tr><th>Strategy</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Round Robin</td><td>Rotate through multiple IPs per response</td></tr>
+          <tr><td>GeoDNS</td><td>Return IP of nearest region based on client location</td></tr>
+          <tr><td>Weighted DNS</td><td>Send % of traffic to each region (canary, blue/green)</td></tr>
+          <tr><td>Health-Aware DNS</td><td>Exclude unhealthy endpoints from responses</td></tr>
+          <tr><td>Anycast</td><td>Same IP announced from multiple global PoPs — routing finds nearest</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Connection Reuse -->
+    <div class="nc">
+      <p class="nh">Connection Reuse — Why It Matters</p>
+      <p class="text-sm text-gray-600 mb-2">Creating a new connection for every request wastes time and CPU:</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-red-700 mb-1">Without Reuse (per request)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Request 1:
+  DNS lookup    ~50ms
+  TCP handshake ~1 RTT
+  TLS handshake ~1–2 RTT
+  Request       ~1 RTT
+  Total: ~200ms+
+
+Request 2: same cost again!
+Request 3: same cost again!</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-green-700 mb-1">With Connection Reuse</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Request 1: full setup ~200ms
+
+Request 2: ~1 RTT (reuse conn)
+Request 3: ~1 RTT (reuse conn)
+Request 4: ~1 RTT (reuse conn)
+
+DNS + TCP + TLS paid ONCE</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reuse Strategies -->
+    <div class="nc">
+      <p class="nh">Connection Reuse Strategies</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">HTTP Keep-Alive (HTTP/1.1)</p>
+          <p class="text-xs text-gray-600">Keeps TCP connection open between requests. Reduces per-request overhead from 3 handshakes to 0.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">HTTP/2 Multiplexed Streams</p>
+          <p class="text-xs text-gray-600">Many concurrent requests over a single connection. One TCP+TLS handshake for all streams.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">gRPC Long-Lived Channels</p>
+          <p class="text-xs text-gray-600">HTTP/2 connections kept alive for many RPCs. Eliminates handshake overhead for microservice communication.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">TLS Session Resumption</p>
+          <p class="text-xs text-gray-600">Resume a previous TLS session instead of full handshake. TLS 1.3 enables 0-RTT for eligible repeat requests.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Connection Pooling</p>
+          <p class="text-xs text-gray-600">Application maintains a pool of open connections (HTTP clients, DB clients, NGINX upstream pools). Workers pick from the pool instead of opening new connections.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">QUIC Connection Migration</p>
+          <p class="text-xs text-gray-600">Connection persists across network changes (Wi-Fi → 5G). Uses connection ID, not IP+port tuple. Ideal for mobile.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operational Issues -->
+    <div class="nc-warn">
+      <p class="nh-warn">Common Operational Issues</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">TIME_WAIT Explosion</p>
+          <p class="text-xs text-gray-600 mt-0.5">Many short-lived TCP connections leave sockets in TIME_WAIT (~60s). Can exhaust ephemeral ports, increase memory, and hurt performance. <strong>Fix:</strong> use connection pooling + Keep-Alive.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Ephemeral Port Exhaustion</p>
+          <p class="text-xs text-gray-600 mt-0.5">Clients have ~28,000 available outbound ports. Opening many short-lived connections exhausts this range. <strong>Fix:</strong> reuse connections; tune <code>ip_local_port_range</code>.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Stale DNS After Deployment</p>
+          <p class="text-xs text-gray-600 mt-0.5">Clients continue using old IPs after a migration because TTL was too high. <strong>Fix:</strong> lower TTL 24h before deployment.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Missing Connection Pool Tuning</p>
+          <p class="text-xs text-gray-600 mt-0.5">Pool too small → queue builds up. Pool too large → DB connection limit hit. <strong>Fix:</strong> size pool to match downstream concurrency limits.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Design -->
+    <div class="nc">
+      <p class="nh">System Design Applications</p>
+      <table class="nt">
+        <thead><tr><th>Design Problem</th><th>Apply</th></tr></thead>
+        <tbody>
+          <tr><td>Global CDN</td><td>GeoDNS + Anycast + low TTL for failover</td></tr>
+          <tr><td>Multi-region APIs</td><td>DNS failover + weighted routing</td></tr>
+          <tr><td>Microservices</td><td>Internal DNS + long-lived gRPC channels</td></tr>
+          <tr><td>Mobile Backend</td><td>QUIC + connection migration</td></tr>
+          <tr><td>API Gateway</td><td>Connection pooling + TLS session resumption</td></tr>
+          <tr><td>Database Proxy</td><td>Connection pool + replica discovery via DNS SRV</td></tr>
+          <tr><td>Blue/Green Deployment</td><td>Lower TTL before cutover → swap → restore TTL</td></tr>
+          <tr><td>High-QPS REST API</td><td>HTTP/2 Keep-Alive + TLS session reuse</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Tools -->
+    <div class="nc">
+      <p class="nh">Observability & Debugging</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">DNS Tools</p>
+          <table class="nt">
+            <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>dig api.example.com</code></td><td>Query DNS records + TTL</td></tr>
+              <tr><td><code>dig +trace</code></td><td>Trace full recursive resolution</td></tr>
+              <tr><td><code>nslookup</code></td><td>Quick DNS lookup</td></tr>
+              <tr><td><code>tcpdump port 53</code></td><td>Capture DNS UDP packets</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Connection Tools</p>
+          <table class="nt">
+            <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>ss -s</code></td><td>Socket state summary</td></tr>
+              <tr><td><code>ss -o state TIME-WAIT</code></td><td>Count TIME_WAIT sockets</td></tr>
+              <tr><td><code>netstat -tn</code></td><td>Active TCP connections</td></tr>
+              <tr><td><code>lsof -i</code></td><td>Open socket file descriptors</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">DNS converts names to IPs</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Use low TTL for fast failover</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>What is the TTL and how long will stale IPs persist during failover?</li>
+            <li>Are we pre-lowering TTL before planned deployments?</li>
+            <li>Is DNS resolution measured and traced in our APM?</li>
+            <li>How does GeoDNS route users across our regions?</li>
+            <li>Is connection pooling correctly sized to downstream limits?</li>
+            <li>Are TIME_WAIT counts growing (short-lived connection leak)?</li>
+            <li>Is TLS session resumption enabled end-to-end?</li>
+            <li>Does our mobile app benefit from QUIC connection migration?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">DNS Resolution (full): browser → OS → recursive → root → TLD → authoritative
+  Full resolution: ~50–200ms (3–4 UDP round trips)
+  Cached: ~0–5ms per cache layer
+
+TTL controls cache freshness:
+  Low TTL (30–60s): fast failover, more DNS load
+  High TTL (3600s+): better caching, slower propagation
+  Before migration: lower TTL 24h ahead → swap → restore
+
+DNS-based traffic steering:
+  Round Robin, GeoDNS, Weighted, Health-Aware, Anycast
+
+Connection Reuse eliminates repeated setup:
+  DNS lookup  → cached across reused connection
+  TCP handshake → once per pool connection
+  TLS handshake → session resumption / 0-RTT
+
+Patterns: HTTP Keep-Alive, HTTP/2 streams, gRPC channels,
+          connection pools, TLS resumption, QUIC migration
+
+Operational watch:
+  TIME_WAIT explosion → use connection pools / Keep-Alive
+  Port exhaustion → reuse connections; tune port range
+  Stale DNS after deploy → TTL planning is required
+  Pool too small → latency; too large → DB conn limit
+
+Debug: dig +trace, ss -s, ss -o state TIME-WAIT</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/525c9a9c-6819-4ae1-8421-5acacb03b678.png"
+        alt="DNS Resolution Caching TTL Connection Reuse visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

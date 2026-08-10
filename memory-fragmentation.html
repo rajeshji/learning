@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memory Fragmentation — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d95; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* warn card */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+
+    /* frag block */
+    .frag-block { display:flex; gap:.25rem; align-items:center; margin:.5rem 0; flex-wrap:wrap; }
+    .frag-used  { background:#7c3aed; color:#fff; font-size:.65rem; font-weight:700;
+                  padding:.3rem .6rem; border-radius:.4rem; }
+    .frag-free  { background:#e9d5ff; color:#5b21b6; font-size:.65rem; font-weight:700;
+                  padding:.3rem .6rem; border-radius:.4rem; border:1px dashed #8b5cf6; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Memory Fragmentation</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Memory Fragmentation</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Internal vs External — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="text-sm text-gray-600 mb-2">Staff Engineers don't just think about <em>how much</em> memory is free — they think about <strong>whether the free memory is usable</strong>.</p>
+      <p class="nq">A system can report <strong>Free Memory = 8 GB</strong> and still fail a large allocation — because the free memory is no longer contiguous.</p>
+      <p class="text-sm text-gray-600 mt-3">After millions of allocations and frees, memory becomes scattered into many small holes regardless of the total free space.</p>
+    </div>
+
+    <!-- Types -->
+    <div class="nc">
+      <p class="nh">Types of Memory Fragmentation</p>
+      <table class="nt">
+        <thead><tr><th>Type</th><th>Where</th><th>Main Problem</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Internal</strong></td><td>Inside allocated blocks</td><td>Wasted memory</td></tr>
+          <tr><td><strong>External</strong></td><td>Between allocated blocks</td><td>Large allocations fail</td></tr>
+          <tr><td><strong>Virtual</strong></td><td>Virtual Address Space</td><td>More page tables &amp; TLB pressure</td></tr>
+          <tr><td><strong>Physical</strong></td><td>Physical RAM</td><td>Huge Pages &amp; DMA failures</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Internal Fragmentation -->
+    <div class="nc">
+      <p class="nh">Internal Fragmentation</p>
+      <p class="text-sm text-gray-600 mb-2">Occurs when the allocator reserves <strong>more memory than requested</strong> — the excess is wasted inside the block.</p>
+      <div class="ncode">Application requests:  5 KB
+Allocator provides:    8 KB
+Unused (wasted):       3 KB</div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Why it happens</p>
+      <div class="nkw">
+        <span>Power-of-two allocation</span>
+        <span>4 KB pages</span>
+        <span>Slab caches</span>
+        <span>Alignment requirements</span>
+      </div>
+      <p class="ntip">Across millions of allocations this wasted space becomes significant.</p>
+    </div>
+
+    <!-- External Fragmentation -->
+    <div class="nc">
+      <p class="nh">External Fragmentation</p>
+      <p class="text-sm text-gray-600 mb-2">Occurs when free memory exists but is scattered into many small pieces — large allocations fail even though total free memory is sufficient.</p>
+      <div class="frag-block">
+        <span class="frag-used">USED 2GB</span>
+        <span class="frag-free">free 256MB</span>
+        <span class="frag-used">USED 1GB</span>
+        <span class="frag-free">free 512MB</span>
+        <span class="frag-used">USED 3GB</span>
+        <span class="frag-free">free 256MB</span>
+      </div>
+      <div class="ncode">Total free memory:        10 GB
+Largest contiguous block: 256 MB
+Request for 1 GB:         FAILS</div>
+      <p class="ntip">Caused by continuous <code>malloc()</code> / <code>free()</code> / <code>mmap()</code> / <code>munmap()</code> with different object lifetimes.</p>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="nc">
+      <p class="nh">Internal vs External — Side by Side</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Internal</th><th>External</th></tr></thead>
+        <tbody>
+          <tr><td>Wasted space</td><td>Inside allocated block</td><td>Between allocated blocks</td></tr>
+          <tr><td>Root cause</td><td>Alignment &amp; fixed sizes</td><td>Allocation/free patterns</td></tr>
+          <tr><td>Large allocation</td><td>Usually succeeds</td><td class="text-orange-600 font-medium">May fail</td></tr>
+          <tr><td>Recovery</td><td>Difficult</td><td>Page compaction</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Buddy Allocator -->
+    <div class="nc">
+      <p class="nh">Buddy Allocator (Physical RAM)</p>
+      <p class="text-sm text-gray-600 mb-2">Linux allocates physical memory in power-of-two blocks. After months of allocations, large contiguous regions disappear.</p>
+      <div class="ncode">Order 0  → 4 KB
+Order 1  → 8 KB
+Order 2  → 16 KB
+  ...
+Order 9  → 2 MB  ← Huge Page requires this</div>
+      <p class="text-sm text-gray-600 mt-2">After fragmentation:</p>
+      <div class="ncode">4 KB | 8 KB | 4 KB | 16 KB | 4 KB | 8 KB | Free 4 KB
+                                     ↑
+                         No large contiguous block</div>
+    </div>
+
+    <!-- Linux Allocation Pipeline -->
+    <div class="nc">
+      <p class="nh">Linux Memory Allocation Pipeline</p>
+      <div class="ncode">Application
+↓
+malloc()
+↓
+glibc / jemalloc / tcmalloc
+↓
+Virtual Memory
+↓
+Page Allocator
+↓
+Buddy Allocator
+↓
+Physical RAM</div>
+      <p class="ntip">Fragmentation can occur at every layer of this pipeline.</p>
+    </div>
+
+    <!-- Page Compaction -->
+    <div class="nc">
+      <p class="nh">Page Compaction</p>
+      <p class="text-sm text-gray-600 mb-2">Linux periodically migrates pages to restore contiguous free regions. The kernel daemon <code>kcompactd</code> runs this process.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <p class="text-xs font-bold text-red-400 uppercase tracking-wide mb-1">Before</p>
+          <div class="frag-block" style="flex-direction:column;gap:.15rem;">
+            <div class="frag-used" style="width:80%">USED</div>
+            <div class="frag-free" style="width:30%">free</div>
+            <div class="frag-used" style="width:70%">USED</div>
+            <div class="frag-free" style="width:20%">free</div>
+            <div class="frag-used" style="width:60%">USED</div>
+            <div class="frag-free" style="width:25%">free</div>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-1">After Compaction</p>
+          <div class="frag-block" style="flex-direction:column;gap:.15rem;">
+            <div class="frag-used" style="width:80%">USED</div>
+            <div class="frag-used" style="width:70%">USED</div>
+            <div class="frag-used" style="width:60%">USED</div>
+            <div class="frag-free" style="width:75%">free (contiguous)</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-green-700 mb-1">Benefits</p>
+          <ul class="dot-ul">
+            <li>Huge Page allocations succeed</li>
+            <li>DMA allocations succeed</li>
+          </ul>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-orange-700 mb-1">Costs</p>
+          <ul class="dot-ul">
+            <li>CPU overhead</li>
+            <li>Temporary latency spikes</li>
+            <li>Page table + TLB updates</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Huge Pages -->
+    <div class="nc">
+      <p class="nh">Huge Pages &amp; Fragmentation</p>
+      <p class="text-sm text-gray-600 mb-2">Huge Pages require <strong>contiguous</strong> physical memory. Fragmented memory causes Huge Page allocation failures.</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Page Type</th><th>Size</th><th>Contiguous RAM Required</th></tr></thead>
+        <tbody>
+          <tr><td>Normal Page</td><td>4 KB</td><td>4 KB</td></tr>
+          <tr><td>Huge Page</td><td>2 MB</td><td>2 MB contiguous</td></tr>
+          <tr><td>Gigantic Page</td><td>1 GB</td><td>1 GB contiguous</td></tr>
+        </tbody>
+      </table>
+      <p class="text-sm text-gray-600">Failure → more page table entries → more TLB misses → higher memory latency.</p>
+    </div>
+
+    <!-- Real World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Fragmentation Path</th><th>Impact</th></tr></thead>
+        <tbody>
+          <tr><td><strong>JVM</strong></td><td>GC compacts heap; native malloc fragments system memory</td><td>Huge Page failures, NUMA imbalance, higher latency</td></tr>
+          <tr><td><strong>PostgreSQL</strong></td><td>Months of allocs fragment buddy allocator</td><td>Huge Page allocation fails → lower query perf</td></tr>
+          <tr><td><strong>Kubernetes</strong></td><td>Container start/stop repeatedly allocates and frees memory</td><td><code>kcompactd</code> active → latency spikes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Detection Tools -->
+    <div class="nc">
+      <p class="nh">Detecting Fragmentation</p>
+      <table class="nt">
+        <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>/proc/buddyinfo</code></td><td>Free blocks by allocation order</td></tr>
+          <tr><td><code>/proc/pagetypeinfo</code></td><td>Fragmentation index</td></tr>
+          <tr><td><code>slabtop</code></td><td>Slab allocator usage</td></tr>
+          <tr><td><code>numastat</code></td><td>NUMA fragmentation</td></tr>
+          <tr><td><code>vmstat</code></td><td>Page compaction &amp; paging</td></tr>
+          <tr><td><code>perf</code></td><td>Page migration overhead</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">How much free memory do we have?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Why did the allocation fail?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is memory fragmented?</li>
+            <li>Can Huge Pages still be allocated?</li>
+            <li>Is <code>kcompactd</code> consuming CPU?</li>
+            <li>Are allocators causing unnecessary churn?</li>
+            <li>Should memory be preallocated?</li>
+            <li>Is NUMA making fragmentation worse?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Huge Page Allocation Failure</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Physical memory fragmented &nbsp;·&nbsp; <strong>Fix:</strong> Preallocate Huge Pages or trigger compaction</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">OOM Despite Free Memory</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Large contiguous allocation unavailable &nbsp;·&nbsp; <strong>Fix:</strong> Check <code>/proc/buddyinfo</code> for external fragmentation</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Latency Spikes</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Kernel page compaction running &nbsp;·&nbsp; <strong>Fix:</strong> Reduce allocation churn or preallocate buffers</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Kubernetes Node Performance Drop</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Container lifecycle fragments memory &nbsp;·&nbsp; <strong>Fix:</strong> Enable Huge Pages, tune compaction, monitor buddy allocator</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Approach</th></tr></thead>
+        <tbody>
+          <tr><td>Long-running JVM</td><td>Huge Pages + NUMA-aware settings</td></tr>
+          <tr><td>Database server</td><td>Preallocate shared buffers</td></tr>
+          <tr><td>High-performance cache</td><td>jemalloc / tcmalloc</td></tr>
+          <tr><td>Kubernetes</td><td>Monitor buddy allocator &amp; compaction</td></tr>
+          <tr><td>Network drivers</td><td>Reserve contiguous DMA memory</td></tr>
+          <tr><td>Large memory workloads</td><td>Reduce allocation churn</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Fragmentation Lifecycle -->
+    <div class="nc">
+      <p class="nh">Fragmentation Lifecycle</p>
+      <div class="ncode">Application Starts
+↓
+Memory Allocations
+↓
+Memory Frees
+↓
+Small Holes Appear
+↓
+Memory Fragmentation
+↓
+Large Allocation Fails
+↓
+Kernel Page Compaction (kcompactd)
+↓
+Higher CPU + Latency
+↓
+Contiguous Memory Restored</div>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Check <code>/proc/buddyinfo</code> for large free blocks</li>
+        <li class="text-sm text-gray-700">✅ Measure page compaction activity (<code>vmstat</code>, <code>perf</code>)</li>
+        <li class="text-sm text-gray-700">✅ Look for Huge Page allocation failures</li>
+        <li class="text-sm text-gray-700">✅ Monitor NUMA locality (<code>numastat</code>)</li>
+        <li class="text-sm text-gray-700">✅ Identify allocator fragmentation (<code>jemalloc</code>, <code>malloc_info()</code>)</li>
+        <li class="text-sm text-gray-700">✅ Review container or application allocation patterns</li>
+        <li class="text-sm text-gray-700">✅ Consider preallocation or Huge Pages</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Internal Fragmentation
+• Wasted memory inside allocated blocks.
+• Caused by alignment & fixed-size allocators.
+• Cannot usually be recovered.
+
+External Fragmentation
+• Free memory scattered in non-contiguous holes.
+• Large allocations (Huge Pages, DMA) may fail.
+• Recovered via page compaction (costly).
+
+Staff focus
+• Monitor: fragmentation, page compaction, Huge Page
+  availability, NUMA locality, allocator behavior.
+• Tools: /proc/buddyinfo, slabtop, numastat, vmstat, perf.
+• Fragmentation is a hidden cause of latency, OOM,
+  and allocation failures in long-running systems.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/948ad313-fd58-4054-b10d-1a6d2f933923.png"
+        alt="Memory Fragmentation visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

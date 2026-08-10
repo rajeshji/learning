@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search Database Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#0f766e; border-bottom-color:#0f766e; }
+    .tab-btn:hover:not(.active) { color:#002520; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#ccfbf1; border:1px solid #5eead4; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#115e59; margin-bottom:.6rem; }
+    .ncode{ background:#002520; color:#5eead4; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #5eead4; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#115e59; color:#ccfbf1; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #d1fae5;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f0fdfa; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#0f766e; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#115e59; color:#ccfbf1; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #d1fae5; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-teal-800 hover:text-teal-900 font-semibold
+              bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-teal-900 font-semibold">Search Database Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-teal-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Search Database Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level (Elasticsearch / OpenSearch / Solr / Vespa) · 10 categories · 40 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Indexing Failures</td></tr>
+          <tr>
+            <td>Indexing Backlog<span class="badge-crit">Must Know</span></td>
+            <td>Write rate exceeds indexing throughput — index queue grows, documents not yet searchable</td>
+            <td>Index queue depth growing, search freshness lag increasing</td>
+            <td>Throttle ingestion, increase indexing shards</td>
+            <td>Right-size indexing throughput for peak write load, bulk indexing over single-doc</td>
+            <td class="casc">Search freshness lag — users search and miss recently written documents</td>
+            <td class="troff">Faster indexing needs more shards; more shards add heap and metadata pressure</td>
+          </tr>
+          <tr>
+            <td>Document Index Failure<span class="badge-crit">Must Know</span></td>
+            <td>Document violates mapping — wrong field type, too-long string, nested depth exceeded</td>
+            <td>Index error spike in ingestion pipeline, documents missing from search</td>
+            <td>Route to DLQ, fix mapping conflict, retry with corrected document</td>
+            <td>Strict schema validation at ingestion, mapping enforcement with reject policy</td>
+            <td class="casc">Missing search results — failed documents never appear in any query result</td>
+            <td class="troff">Strict mapping rejects valid edge-case documents that could be coerced</td>
+          </tr>
+          <tr>
+            <td>Partial Indexing</td>
+            <td>Crash or pipeline failure mid-batch — some documents in batch indexed, others not</td>
+            <td>Missing docs in search, batch offset not advancing</td>
+            <td>Replay from last committed offset in event stream</td>
+            <td>Idempotent indexing with document-level versioning</td>
+            <td class="casc">Search inconsistency — some documents visible, semantically related ones missing</td>
+            <td class="troff">Idempotent replay adds metadata overhead and reprocessing cost</td>
+          </tr>
+          <tr>
+            <td>Out-of-Order Index Updates<span class="badge-crit">Must Know</span></td>
+            <td>Async indexing delays — older version of document indexed after newer version</td>
+            <td>Stale document versions visible in search despite newer write succeeding</td>
+            <td>Apply versioned indexing — reject writes with lower version than stored</td>
+            <td>External versioning or sequence-based conflict detection</td>
+            <td class="casc">Stale search results — search returns old data long after update was applied</td>
+            <td class="troff">Version checking adds per-document metadata read on every index operation</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Query Execution and Search Failures</td></tr>
+          <tr>
+            <td>Query Fanout Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Query must scatter to every shard — more shards = more fanout per query</td>
+            <td>Query latency spike proportional to shard count, coordinator CPU spike</td>
+            <td>Reduce active shard count, use routing keys to target fewer shards</td>
+            <td>Routing keys, fewer larger shards, pre-filter by index alias</td>
+            <td class="casc">Cluster-wide latency — query fanout consumes all coordinator and data node threads</td>
+            <td class="troff">Fewer larger shards reduce fanout but increase shard recovery time</td>
+          </tr>
+          <tr>
+            <td>Expensive Aggregation Query<span class="badge-crit">Must Know</span></td>
+            <td>Large cardinality aggregation (terms on high-cardinality field) — heap consumed</td>
+            <td>CPU/memory spike on data nodes, node heap usage approaching limit</td>
+            <td>Limit bucket count, apply circuit breaker</td>
+            <td>Pre-aggregation at ingest time, use doc_values for aggregated fields</td>
+            <td class="casc">Node saturation — expensive aggregation starves concurrent read/write threads</td>
+            <td class="troff">Pre-aggregation trades query flexibility for ingest-time compute cost</td>
+          </tr>
+          <tr>
+            <td>Deep Pagination Failure<span class="badge-crit">Must Know</span></td>
+            <td>Query uses very large offset (from:10000) — coordinator must fetch and discard N documents</td>
+            <td>Heap spike on coordinator, latency growing with page depth</td>
+            <td>Switch to search_after / PIT cursor immediately</td>
+            <td>Enforce pagination depth limit, document search_after as required API pattern</td>
+            <td class="casc">Coordinator OOM if unbounded deep pagination allowed at scale</td>
+            <td class="troff">Cursor-based pagination requires stateful PIT context management</td>
+          </tr>
+          <tr>
+            <td>Wildcard / Regex Query Explosion</td>
+            <td>Leading wildcard or complex regex scans entire inverted index — CPU saturated</td>
+            <td>CPU spike for that query type, query node unresponsive to other queries</td>
+            <td>Reject or timeout wildcard queries, apply query complexity limits</td>
+            <td>Query validation at API layer, prohibit leading wildcards, suggest n-gram alternatives</td>
+            <td class="casc">Cluster overload — one query monopolises CPU, starving all other search traffic</td>
+            <td class="troff">N-gram indexing for typeahead trades index size for fast prefix search</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Shard and Partition Failures</td></tr>
+          <tr>
+            <td>Hot Shard<span class="badge-crit">Must Know</span></td>
+            <td>Uneven query or write distribution — one shard receives most traffic</td>
+            <td>One node at 100% CPU/IO, others idle; hot shard clearly visible in slow log</td>
+            <td>Rebalance or split the hot shard, add routing randomisation</td>
+            <td>Better routing key design, virtual shards with consistent hashing</td>
+            <td class="casc">Localised node collapse — hot shard host fails, all queries for that range timeout</td>
+            <td class="troff">Better routing distributes load but may hurt locality of related documents</td>
+          </tr>
+          <tr>
+            <td>Oversharding<span class="badge-crit">Must Know</span></td>
+            <td>Too many small shards — heap and metadata pressure grow beyond cluster capacity</td>
+            <td>Heap usage high despite small data volume, metadata update latency growing</td>
+            <td>Shrink/merge indices, reduce primary shard count</td>
+            <td>Shard sizing guidelines (10-50 GB per shard), ILM with rollover, max shard count alert</td>
+            <td class="casc">Cluster instability — metadata explosion causes master to stall on every update</td>
+            <td class="troff">Fewer shards reduce parallelism and may slow large index scans</td>
+          </tr>
+          <tr>
+            <td>Shard Relocation Storm</td>
+            <td>Node restart or failure triggers mass shard relocation across cluster</td>
+            <td>Network IO spike, query latency spike during rebalance</td>
+            <td>Throttle relocation rate (cluster.routing.allocation.node_concurrent_recoveries)</td>
+            <td>Controlled cluster rebalancing settings, decommission nodes gradually</td>
+            <td class="casc">Cluster saturation — relocation IO competes with live read/write traffic</td>
+            <td class="troff">Throttling extends time cluster operates in degraded state</td>
+          </tr>
+          <tr>
+            <td>Primary Shard Failure</td>
+            <td>Primary shard's host node crashes — shard must failover to replica</td>
+            <td>Shard unavailable briefly, yellow cluster state until replica promoted</td>
+            <td>Promote replica to primary, trigger new replica allocation</td>
+            <td>Replica redundancy (replica count ≥ 1), cross-zone replica placement</td>
+            <td class="casc">Partial index outage — all write operations to that shard rejected until promotion</td>
+            <td class="troff">Replicas double storage cost and add replication write overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Segment Merge and Compaction Failures</td></tr>
+          <tr>
+            <td>Merge Storm<span class="badge-crit">Must Know</span></td>
+            <td>Frequent refresh creates many small segments — merge scheduler triggers many concurrent merges</td>
+            <td>Disk IO 100%, merge thread pool saturated, query latency spike</td>
+            <td>Throttle merge rate (indices.store.throttle), pause non-critical indexing</td>
+            <td>Increase refresh interval (30s for batch pipelines), bulk indexing over real-time</td>
+            <td class="casc">Query latency explosion — merge IO starves query read IO completely</td>
+            <td class="troff">Longer refresh interval reduces search freshness for newly indexed documents</td>
+          </tr>
+          <tr>
+            <td>Too Many Segments<span class="badge-crit">Must Know</span></td>
+            <td>Merge cannot keep up with refresh rate — segment count grows unbounded</td>
+            <td>Segment count metric growing, read latency increasing per query</td>
+            <td>Force merge on affected index (forcemerge API)</td>
+            <td>Better refresh/flush tuning, avoid sub-second refresh interval</td>
+            <td class="casc">Read amplification — each query must scan more segments, latency grows</td>
+            <td class="troff">Force merge is expensive and blocks new segment creation during merge</td>
+          </tr>
+          <tr>
+            <td>Disk Exhaustion During Merge</td>
+            <td>Merge needs temporary scratch space — disk fills during merge, index goes read-only</td>
+            <td>Disk full alert, index switches to read-only mode automatically</td>
+            <td>Free disk space immediately (delete old indices), reduce merge size</td>
+            <td>Keep 30% disk headroom, disk usage watermark alerts</td>
+            <td class="casc">Cluster read-only — all writes rejected until disk freed, indexing fully stops</td>
+            <td class="troff">Reserved headroom reduces usable storage capacity</td>
+          </tr>
+          <tr>
+            <td>Segment Corruption</td>
+            <td>Disk failure or crash during merge — segment data partially written and corrupt</td>
+            <td>Checksum mismatch on segment read, corrupt results for affected index range</td>
+            <td>Restore shard from replica, run index recovery</td>
+            <td>Per-segment checksums, replica on separate disk/node</td>
+            <td class="casc">Missing or corrupt results for all queries touching that segment</td>
+            <td class="troff">Segment checksums add IO overhead on every segment read</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Cluster Coordination and Distributed Failures</td></tr>
+          <tr>
+            <td>Split Brain Cluster<span class="badge-crit">Must Know</span></td>
+            <td>Network partition — two sets of nodes each elect their own master</td>
+            <td>Multiple cluster states, index inconsistency, conflicting shard allocations</td>
+            <td>Fence the minority partition, restore network, let majority win</td>
+            <td>Quorum-based election (minimum_master_nodes = n/2+1), dedicated master nodes</td>
+            <td class="casc">Index inconsistency — both partitions may accept writes, creating diverged indices</td>
+            <td class="troff">Strict quorum reduces availability during partition (minority cannot serve)</td>
+          </tr>
+          <tr>
+            <td>Master Node Failure<span class="badge-crit">Must Know</span></td>
+            <td>Dedicated master node crashes — cluster cannot allocate shards or update metadata</td>
+            <td>Cluster instability, shard allocation stalled, metadata operations failing</td>
+            <td>Elect new master from dedicated master pool</td>
+            <td>3 dedicated master nodes (odd quorum), never use data nodes as masters</td>
+            <td class="casc">Allocation instability — no shard can be assigned until master elected</td>
+            <td class="troff">Dedicated master nodes consume resources without serving data</td>
+          </tr>
+          <tr>
+            <td>Cluster State Explosion</td>
+            <td>Too many indices and shards — cluster state object grows beyond fast-update threshold</td>
+            <td>Master CPU spike on every state update, state propagation latency growing</td>
+            <td>Reduce index/shard count via ILM rollover and delete old indices</td>
+            <td>ILM automation, max shard count guardrails, close/delete unused indices</td>
+            <td class="casc">Cluster instability — slow state updates block all allocation and routing decisions</td>
+            <td class="troff">Strict ILM deletes historical data that may be needed for long-term analytics</td>
+          </tr>
+          <tr>
+            <td>Election Storm</td>
+            <td>Frequent master re-elections due to GC pauses, network jitter, or misconfigured timeout</td>
+            <td>Master election events in log, leadership flapping</td>
+            <td>Stabilise quorum, tune election timeout, fix GC causing pause</td>
+            <td>Dedicated master nodes with lower heap (avoid GC), tune heartbeat timeout</td>
+            <td class="casc">Search interruptions — cluster briefly unavailable on every re-election</td>
+            <td class="troff">Shorter election timeout detects failures faster but triggers more false elections</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Memory and Heap Pressure Failures</td></tr>
+          <tr>
+            <td>Heap Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>Large aggregation queries or fielddata loading fills JVM heap — OOM or stop-the-world GC</td>
+            <td>Heap usage &gt;85%, long GC pauses, node eventually killed by OOM</td>
+            <td>Restart node, reject large queries via circuit breaker</td>
+            <td>Heap at 50% of RAM (leave OS cache), circuit breakers enabled, heap monitoring</td>
+            <td class="casc">Node crash → shard relocation storm → cascading cluster pressure</td>
+            <td class="troff">Smaller heap leaves more OS file cache, but limits in-memory sort/agg size</td>
+          </tr>
+          <tr>
+            <td>Fielddata Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Aggregation or sort on text field forces entire field into heap as fielddata</td>
+            <td>Fielddata heap usage spike, GC pressure increasing</td>
+            <td>Disable fielddata on text fields, evict fielddata cache</td>
+            <td>Use keyword type or doc_values for any field used in aggregation/sort</td>
+            <td class="casc">GC pause storm — fielddata heap growth triggers repeated long GC pauses</td>
+            <td class="troff">keyword type disallows full-text search on that field without separate mapping</td>
+          </tr>
+          <tr>
+            <td>GC Pause Storm<span class="badge-crit">Must Know</span></td>
+            <td>Large heap cleanup triggers stop-the-world GC — all node operations pause for seconds</td>
+            <td>GC pause metric spike, cluster thinks node is dead and starts re-election</td>
+            <td>Tune GC (G1GC), reduce heap fragmentation</td>
+            <td>G1GC with tuned region size, heap at ≤31 GB (compressed oops), off-heap for segments</td>
+            <td class="casc">Timeout cascades — clients time out during pause, trigger retries amplifying load</td>
+            <td class="troff">Off-heap segment storage (Lucene) adds OS-level memory management complexity</td>
+          </tr>
+          <tr>
+            <td>Circuit Breaker Trigger</td>
+            <td>Query would exceed configured memory threshold — breaker rejects before OOM</td>
+            <td>429 circuit breaker rejections in query response, users see errors</td>
+            <td>Reduce query complexity, return partial results</td>
+            <td>Proper circuit breaker limits, query governance, user-facing pagination limits</td>
+            <td class="casc">User-visible failures — rejected queries fail without clear error messaging</td>
+            <td class="troff">Circuit breakers protect cluster but may reject valid large analytics queries</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Mapping and Schema Failures</td></tr>
+          <tr>
+            <td>Mapping Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Dynamic mapping enabled with user-generated keys — field count explodes into thousands</td>
+            <td>Field count spike, heap usage growing, cluster state update slowing</td>
+            <td>Disable dynamic mapping immediately, reduce field count</td>
+            <td>Explicit mapping with dynamic:strict, flatten user-provided keys into a KV array</td>
+            <td class="casc">Heap exhaustion — thousands of fields consume heap in mapping cache</td>
+            <td class="troff">Strict mapping blocks indexing of genuinely new valid fields</td>
+          </tr>
+          <tr>
+            <td>Incorrect Analyzer Configuration</td>
+            <td>Wrong tokeniser, stemmer, or language analyser applied at index creation</td>
+            <td>Poor search relevance, expected search terms not matching documents</td>
+            <td>Reindex data with corrected analyser configuration</td>
+            <td>Search quality testing with sample queries before production, A/B test analyser changes</td>
+            <td class="casc">Business impact — wrong analyser silently degrades search quality for all users</td>
+            <td class="troff">Changing analyser requires full reindex (cannot update mapping in-place)</td>
+          </tr>
+          <tr>
+            <td>Field Type Conflict</td>
+            <td>Same field name mapped as different types in different documents or indices</td>
+            <td>Indexing rejection, type conflict errors in ingestion pipeline</td>
+            <td>Create new index with correct unified mapping, reindex affected data</td>
+            <td>Schema validation at ingestion, single source of truth for field types</td>
+            <td class="casc">Partial ingestion failure — documents with conflicting field type rejected</td>
+            <td class="troff">Strict unified mapping requires coordination across all data producers</td>
+          </tr>
+          <tr>
+            <td>Reindex Migration Failure</td>
+            <td>Large reindex interrupted — partial data in new index, partial in old</td>
+            <td>Document count mismatch between old and new index</td>
+            <td>Resume reindex from last checkpoint, use versioning to avoid duplicates</td>
+            <td>Incremental reindex with version tracking, blue-green index alias swap on completion</td>
+            <td class="casc">Search inconsistency — some documents only in old index, others in new</td>
+            <td class="troff">Blue-green reindex requires double the storage during migration window</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Ranking and Relevance Failures</td></tr>
+          <tr>
+            <td>Ranking Regression<span class="badge-crit">Must Know</span></td>
+            <td>Scoring change, new field weights, or analyser update silently degrades result quality</td>
+            <td>CTR drop, search quality metrics decline, user session length drops</td>
+            <td>Rollback ranking configuration to last known-good</td>
+            <td>A/B testing all ranking changes, offline evaluation with relevance test suite</td>
+            <td class="casc">Business impact — bad ranking reduces conversion, retention, and user trust</td>
+            <td class="troff">A/B ranking tests take time; real revenue impact occurs during test window</td>
+          </tr>
+          <tr>
+            <td>Stale Search Results<span class="badge-crit">Must Know</span></td>
+            <td>Indexing backlog or too-long refresh interval — search returns old documents</td>
+            <td>Version mismatch between source system and search results</td>
+            <td>Force refresh on affected index, reduce refresh interval temporarily</td>
+            <td>Bounded indexing lag SLO, freshness monitoring with source-of-truth comparison</td>
+            <td class="casc">Incorrect business decisions — stale inventory, pricing, or product data served</td>
+            <td class="troff">Shorter refresh interval increases merge and CPU pressure</td>
+          </tr>
+          <tr>
+            <td>Duplicate Search Results</td>
+            <td>Document indexed multiple times (retry without versioning) — same hit returned N times</td>
+            <td>Repeated document IDs in search results, relevance scores unexpectedly high</td>
+            <td>Deduplicate at query layer by ID, fix ingestion idempotency</td>
+            <td>Idempotent ingestion using deterministic document IDs, external versioning</td>
+            <td class="casc">Reduced relevance — duplicate documents push true top results down</td>
+            <td class="troff">Deterministic document IDs require stable ID generation across retry paths</td>
+          </tr>
+          <tr>
+            <td>Missing High-Relevance Documents</td>
+            <td>Index corruption, failed indexing, or analyser mismatch causes key documents to not appear</td>
+            <td>Known product/document absent from expected query results</td>
+            <td>Reindex affected documents, validate analyser configuration</td>
+            <td>Spot-check test queries in CI, document existence monitoring</td>
+            <td class="casc">User trust loss — high-value content invisible to users searching for it</td>
+            <td class="troff">Spot-check monitoring requires maintaining a golden query set over time</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Replication and Recovery Failures</td></tr>
+          <tr>
+            <td>Replica Lag<span class="badge-crit">Must Know</span></td>
+            <td>Heavy indexing or slow network — replica cannot keep up with primary write rate</td>
+            <td>Replica freshness lag metric growing, read-your-writes inconsistency</td>
+            <td>Route reads to primary for consistency-sensitive queries</td>
+            <td>Replica sizing matching primary, parallel replication apply, lag monitoring</td>
+            <td class="casc">Stale search results for users hitting lagging replica</td>
+            <td class="troff">Routing all reads to primary reduces read scale-out benefit of replicas</td>
+          </tr>
+          <tr>
+            <td>Replica Recovery Storm<span class="badge-crit">Must Know</span></td>
+            <td>Multiple shards rebuild simultaneously after node failure — network/disk saturated</td>
+            <td>Network IO spike, cluster recovery metrics, query latency spike during rebuild</td>
+            <td>Throttle recovery rate, limit concurrent shard recoveries</td>
+            <td>Incremental recovery (sync only delta), bounded concurrent recovery settings</td>
+            <td class="casc">Cluster saturation — recovery IO starves live query traffic</td>
+            <td class="troff">Throttling extends cluster degraded window</td>
+          </tr>
+          <tr>
+            <td>Snapshot Failure</td>
+            <td>Backup interrupted or storage backend unavailable — snapshot incomplete or corrupt</td>
+            <td>Snapshot status shows failed, partial snapshot in repository</td>
+            <td>Retry snapshot, clean up partial snapshot, restore from older clean snapshot</td>
+            <td>Automated snapshot validation, test restore regularly</td>
+            <td class="casc">Disaster recovery risk — no valid backup if cluster fully corrupted</td>
+            <td class="troff">Regular snapshot validation adds storage and compute cost</td>
+          </tr>
+          <tr>
+            <td>Corrupted Index Recovery Failure</td>
+            <td>Index corruption spreads to replica before detected — both copies corrupt</td>
+            <td>Recovery checksum mismatch on both primary and replica</td>
+            <td>Restore from last valid snapshot</td>
+            <td>Checksums, rapid corruption detection before replica sync, immutable snapshots</td>
+            <td class="casc">Permanent data loss — if snapshot is also old, recent documents unrecoverable</td>
+            <td class="troff">More frequent snapshots reduce data loss window but add storage overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">10 — Multi-Tenant and Operational Failures</td></tr>
+          <tr>
+            <td>Noisy Tenant Query<span class="badge-crit">Must Know</span></td>
+            <td>One tenant runs expensive aggregation or wildcard query — cluster-wide slowdown</td>
+            <td>Cluster-wide latency spike correlated with specific tenant ID in slow query log</td>
+            <td>Kill offending query, apply query isolation for tenant</td>
+            <td>Per-tenant query quotas, query complexity limits, tenant-aware circuit breakers</td>
+            <td class="casc">Shared cluster instability — all tenants experience degraded search during attack</td>
+            <td class="troff">Per-tenant isolation adds routing and quota management complexity</td>
+          </tr>
+          <tr>
+            <td>Index Lifecycle Failure</td>
+            <td>ILM policy misconfigured or paused — old indices never archived or deleted</td>
+            <td>Storage growth, cluster approaching high watermark</td>
+            <td>Manual index delete/archive, resume ILM</td>
+            <td>ILM automation with alerting on policy failures</td>
+            <td class="casc">Disk exhaustion → cluster read-only → all indexing stops</td>
+            <td class="troff">Aggressive ILM deletes historical data that analytics or compliance may need</td>
+          </tr>
+          <tr>
+            <td>Search Cluster Upgrade Failure</td>
+            <td>Rolling upgrade hits version incompatibility — nodes on new version cannot join old cluster</td>
+            <td>Node join failures, cluster in mixed incompatible version state</td>
+            <td>Rolling rollback to previous version</td>
+            <td>Rolling upgrade with compatibility matrix validation, test in staging first</td>
+            <td class="casc">Cluster instability — mixed versions may disagree on shard allocation protocol</td>
+            <td class="troff">Phased upgrades are slower but reduce incompatibility window</td>
+          </tr>
+          <tr>
+            <td>Observability Blindness</td>
+            <td>Search slow log, query profiling, or metrics pipeline disabled — hidden slow queries</td>
+            <td>No visibility into which queries are slow or which indices are hot</td>
+            <td>Enable slow log immediately, add Prometheus metrics exporter</td>
+            <td>Search observability as standard: slow log + metrics + query profiling in every env</td>
+            <td class="casc">Long MTTR — cannot identify root cause without query-level visibility</td>
+            <td class="troff">Slow query logging adds disk IO for every query exceeding threshold</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Search DB Failures for Interviews</p>
+      <div class="ncode"> 1. Query fanout explosion  → routing keys + fewer larger shards + alias pre-filter
+ 2. Hot shard             → routing key design + virtual shards + consistent hashing
+ 3. Merge storm           → increase refresh interval + throttle merges + bulk indexing
+ 4. Heap exhaustion       → 50% RAM cap + circuit breakers + doc_values + GC tuning
+ 5. Mapping explosion     → dynamic:strict + explicit mapping + flatten user keys to KV
+ 6. Split brain cluster   → quorum election + dedicated masters + minimum_master_nodes
+ 7. Replica lag           → parallel apply + lag monitoring + route critical reads to primary
+ 8. Expensive aggregation → pre-aggregate at ingest + doc_values + circuit breaker
+ 9. Oversharding          → 10-50 GB per shard + ILM rollover + max shard count alert
+10. Indexing backlog      → bulk over single-doc + right-size shards + throttle ingestion</div>
+    </div>
+
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Search DB Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Indexing lag affect correctness?  → freshness SLO + backpressure + idempotent writes
+2. Queries fan out too many shards? → routing keys + fewer larger shards + alias filter
+3. Merges overwhelm disk?          → refresh interval tuning + merge throttle + headroom
+4. Heap/metadata overwhelm cluster? → heap cap + doc_values + dynamic:strict + ILM
+5. Hot shards collapse cluster?     → routing key design + virtual shards + split
+6. Ranking regress silently?        → A/B test all changes + relevance test suite in CI
+7. Replica lag create stale search? → lag monitoring + route critical reads to primary
+8. Mapping explosion destabilize?   → dynamic:strict + field count alert + flatten keys
+9. Recovery overload healthy nodes? → throttle recovery + concurrent recovery limits</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Search DB Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Search Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Merge storm</td><td>Disk IO 100% → query reads starved → all search latency explodes</td></tr>
+          <tr><td>Oversharding</td><td>Heap/metadata explosion → master stalls → allocation instability</td></tr>
+          <tr><td>Hot shard</td><td>Node CPU/IO 100% → node crash → shard relocation storm on cluster</td></tr>
+          <tr><td>Query fanout</td><td>Too many shards → coordinator overwhelmed → cluster-wide slowdown</td></tr>
+          <tr><td>Heap exhaustion</td><td>GC pause → cluster thinks node dead → election storm</td></tr>
+          <tr><td>Disk exhaustion</td><td>Cluster read-only → all indexing stops → freshness lag</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Search DB Failures Reduce to 4 States</p>
+      <div class="ncode">1. Index not fresh    → indexing backlog / stale refresh / partial indexing
+2. Query too slow    → fanout / aggregation / deep pagination / too many segments
+3. Cluster unstable  → heap exhausted / oversharded / split brain / merge storm
+4. Data wrong        → ranking regression / mapping explosion / analyser mismatch
+
+Most dangerous: oversharding + query fanout
+  Both grow silently → heap → GC → election → disk → read amplification → collapse</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#002520;border:1px solid #115e59;">
+      <p class="text-xs font-bold text-teal-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-teal-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-200">Shard Size?</p>
+          <p class="text-xs text-teal-400 mt-0.5">10-50 GB + routing keys</p>
+        </div>
+        <div class="bg-teal-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-200">Heap?</p>
+          <p class="text-xs text-teal-400 mt-0.5">≤31 GB + circuit breakers</p>
+        </div>
+        <div class="bg-teal-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-200">Merge?</p>
+          <p class="text-xs text-teal-400 mt-0.5">Refresh interval + throttle</p>
+        </div>
+        <div class="bg-teal-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-teal-200">Quorum?</p>
+          <p class="text-xs text-teal-400 mt-0.5">3 dedicated masters + n/2+1</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

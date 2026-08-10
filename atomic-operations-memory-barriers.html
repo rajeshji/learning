@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Atomic Operations &amp; Memory Barriers — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+    /* Visual diagram styles */
+    .vbox { background:#1e1b4b; color:#c4b5fd; border-radius:10px; padding:20px; font-family:monospace; font-size:0.88rem; line-height:1.8; margin-bottom:16px; overflow-x:auto; }
+    .vbox .vhl { color:#f0abfc; font-weight:700; }
+    .vbox .vgr { color:#86efac; }
+    .vbox .vrd { color:#fca5a5; }
+    .vbox .vyw { color:#fde68a; }
+    .vbox .vbl { color:#93c5fd; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Atomic Operations &amp; Memory Barriers</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Atomic Operations &amp; Memory Barriers</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Hardware, OS &amp; Language-Level Concurrency Primitives</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- ═══════════════════ TEXT TAB ═══════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">THE BIG PICTURE</div>
+      <div class="nh">Why Staff Engineers Must Master This</div>
+      <p class="text-gray-700 mb-3">Every synchronization primitive — <strong>mutex, spinlock, semaphore, monitor, lock-free queue</strong> — is built on top of <strong>atomic operations and memory barriers</strong>. Without them, concurrent programs produce incorrect results even on single-core CPUs due to compiler reordering, and catastrophically wrong results on multi-core CPUs due to CPU reordering and cache incoherence.</p>
+      <div class="ncode">Concurrency Stack (bottom to top):
+
+  CPU Hardware      → Cache coherence (MESI), atomic instructions (CAS, LOCK prefix)
+  Memory Model      → Ordering guarantees (acquire/release/seq-cst/relaxed)
+  OS Kernel         → Futex, atomic kernel primitives, memory barriers
+  Language Runtime  → Java volatile, AtomicInteger, C++ std::atomic
+  Library           → Mutex, RWLock, Semaphore, ConcurrentHashMap
+  Application       → Thread-safe code</div>
+      <div class="ntip"><strong>Staff-level insight:</strong> You must know this stack from <em>bottom to top</em> — understanding why <code>volatile</code> isn't enough, why <code>CAS</code> can ABA-fail, why barriers exist, and when relaxed ordering is safe.</div>
+    </div>
+
+    <!-- Why Reordering Happens -->
+    <div class="nc">
+      <div class="section-badge">ROOT CAUSE</div>
+      <div class="nh">Why Reordering Happens — The Problem</div>
+      <p class="text-gray-700 mb-3">Modern CPUs and compilers reorder instructions for performance. This is invisible on a single thread (sequential consistency illusion) but breaks multi-threaded programs.</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+        <div class="nc">
+          <p class="font-semibold text-violet-700 mb-1">1. Compiler Reordering</p>
+          <p class="text-gray-600 text-sm">Compiler may reorder independent reads/writes for optimization. Breaks intended ordering.</p>
+        </div>
+        <div class="nc">
+          <p class="font-semibold text-violet-700 mb-1">2. CPU Out-of-Order Execution</p>
+          <p class="text-gray-600 text-sm">CPU executes instructions out of order (superscalar pipelines). Stores may be visible to other cores out of order.</p>
+        </div>
+        <div class="nc">
+          <p class="font-semibold text-violet-700 mb-1">3. Store Buffer / Write Buffer</p>
+          <p class="text-gray-600 text-sm">Stores go into a write buffer first; other CPUs may not see them immediately. ARM and x86 both have store buffers.</p>
+        </div>
+      </div>
+      <div class="ncode">Classic Example — Broken without barriers:
+
+Thread 1:           Thread 2:
+data = 42;          if (ready == 1) {
+ready = 1;            print(data);  // may print 0!
+                    }
+
+CPU or compiler may reorder ready=1 BEFORE data=42 from Thread 2's perspective.
+→ Thread 2 sees ready=1 but data=0 → DATA RACE → undefined behavior</div>
+    </div>
+
+    <!-- Atomic Operations -->
+    <div class="nc">
+      <div class="section-badge">ATOMIC OPERATIONS</div>
+      <div class="nh">Atomic Operations — The Foundation</div>
+      <p class="text-gray-700 mb-3">An <strong>atomic operation</strong> executes as an indivisible unit — no other thread can observe it in a partially-completed state. Implemented via hardware instructions.</p>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Operation</th><th>What It Does</th><th>Hardware Instruction</th><th>Use Case</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Load / Store</strong></td><td>Read or write a value atomically (word-sized)</td><td><code>MOV</code> (aligned, word-sized)</td><td>Flags, status variables</td></tr>
+          <tr><td><strong>Test-And-Set (TAS)</strong></td><td>Set bit to 1, return old value — atomically</td><td><code>XCHG</code>, <code>BTS</code></td><td>Spinlock acquire</td></tr>
+          <tr><td><strong>Fetch-And-Add (FAA)</strong></td><td>Add value atomically, return old value</td><td><code>LOCK XADD</code></td><td>Ticket locks, counters</td></tr>
+          <tr><td><strong>Compare-And-Swap (CAS)</strong></td><td>If mem == expected, set to new; return success</td><td><code>LOCK CMPXCHG</code></td><td>Lock-free algorithms, all modern primitives</td></tr>
+          <tr><td><strong>Load-Linked / Store-Conditional (LL/SC)</strong></td><td>Load tagged; store only if no intervening write</td><td>ARM: <code>LDREX/STREX</code></td><td>ABA-free alternative to CAS on ARM</td></tr>
+          <tr><td><strong>Fetch-And-OR / AND / XOR</strong></td><td>Bitwise ops atomically</td><td><code>LOCK OR</code>, etc.</td><td>Bitmask flags</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">Compare-And-Swap (CAS) — Most Important</p>
+      <div class="ncode">// Pseudocode for CAS
+bool CAS(int* addr, int expected, int new_val) {
+    atomic {
+        if (*addr == expected) {
+            *addr = new_val;
+            return true;   // success
+        }
+        return false;      // failure — someone changed it
+    }
+}
+
+// x86 hardware: LOCK CMPXCHG
+// Java: Unsafe.compareAndSwapInt(), VarHandle.compareAndSet()
+// C++:  std::atomic<int>::compare_exchange_strong()</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">ABA Problem — Critical CAS Failure Mode</p>
+      <div class="ncode">Thread 1 reads A.
+Thread 2 changes A → B → A (back to same value).
+Thread 1's CAS succeeds (sees A), but state has changed invisibly.
+
+Fix: Stamp/Version counter — CAS on (value, version) pair.
+Java: AtomicStampedReference, AtomicMarkableReference
+C++:  ABA-safe with LL/SC on ARM, or versioned pointers</div>
+    </div>
+
+    <!-- Memory Barriers -->
+    <div class="nc">
+      <div class="section-badge">MEMORY BARRIERS</div>
+      <div class="nh">Memory Barriers / Fences — Controlling Visibility</div>
+      <p class="text-gray-700 mb-3">A <strong>memory barrier</strong> (fence) is an instruction that prevents the CPU/compiler from reordering memory operations across the barrier boundary. They enforce <strong>visibility ordering</strong> between threads.</p>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Barrier Type</th><th>What It Prevents</th><th>x86 Instruction</th><th>Java Equivalent</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Load Barrier (read fence)</strong></td><td>No load can move BEFORE this barrier from above</td><td><code>LFENCE</code></td><td>Acquire semantic</td></tr>
+          <tr><td><strong>Store Barrier (write fence)</strong></td><td>No store can move AFTER this barrier</td><td><code>SFENCE</code></td><td>Release semantic</td></tr>
+          <tr><td><strong>Full Barrier (mfence)</strong></td><td>No load or store can cross in either direction</td><td><code>MFENCE</code></td><td><code>volatile</code> write</td></tr>
+          <tr><td><strong>Compiler Barrier</strong></td><td>Prevents compiler reordering only (no CPU effect)</td><td><code>asm volatile("" ::: "memory")</code></td><td><code>Unsafe.loadFence()</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="ncode">// Correct version using barriers:
+
+// Thread 1 (writer):
+data = 42;          // store data
+STORE_BARRIER();    // ensure data is visible before ready
+ready = 1;          // store flag
+
+// Thread 2 (reader):
+while (ready != 1); // poll
+LOAD_BARRIER();     // ensure we see data written before ready
+print(data);        // safe: guaranteed to see 42
+
+// On x86: SFENCE after writes, LFENCE before reads
+// On ARM/POWER: explicit DMB (Data Memory Barrier) instructions required</div>
+    </div>
+
+    <!-- Memory Ordering -->
+    <div class="nc">
+      <div class="section-badge">MEMORY ORDERING</div>
+      <div class="nh">Memory Ordering Models — Acquire/Release/SeqCst</div>
+      <p class="text-gray-700 mb-3">C++ <code>std::atomic</code> and Java's memory model expose <strong>memory orderings</strong> that give you fine-grained control over barriers — letting you use cheaper orderings where full fences aren't needed.</p>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Ordering</th><th>Guarantee</th><th>Cost</th><th>Use Case</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Relaxed</strong></td><td>Atomicity only — no ordering relative to other ops</td><td>Cheapest</td><td>Counters, statistics (order doesn't matter)</td></tr>
+          <tr><td><strong>Acquire</strong></td><td>No load/store after this can be reordered BEFORE it</td><td>Low</td><td>Lock acquire, read side of flag</td></tr>
+          <tr><td><strong>Release</strong></td><td>No load/store before this can be reordered AFTER it</td><td>Low</td><td>Lock release, write side of flag</td></tr>
+          <tr><td><strong>Acq_Rel</strong></td><td>Both Acquire and Release (for RMW ops)</td><td>Medium</td><td>CAS for mutual exclusion</td></tr>
+          <tr><td><strong>Seq_Cst</strong></td><td>Global total order across all threads — full fence</td><td>Most expensive</td><td>Default Java volatile; safety first</td></tr>
+        </tbody>
+      </table>
+
+      <div class="ncode">// Acquire/Release pattern — the correct way to pass data between threads
+// C++ std::atomic example:
+
+std::atomic&lt;int&gt; data{0};
+std::atomic&lt;bool&gt; ready{false};
+
+// Thread 1 (producer):
+data.store(42, std::memory_order_relaxed);           // no ordering needed
+ready.store(true, std::memory_order_release);        // RELEASE: data visible before this
+
+// Thread 2 (consumer):
+while (!ready.load(std::memory_order_acquire));      // ACQUIRE: see all stores before release
+int val = data.load(std::memory_order_relaxed);      // safe: guaranteed to see 42
+assert(val == 42);  // ALWAYS passes</div>
+
+      <div class="ntip"><strong>Acquire/Release handshake:</strong> A <em>release store</em> on Thread 1 "synchronizes-with" an <em>acquire load</em> on Thread 2. Everything before the release is visible after the acquire. This is the foundation of mutexes.</div>
+    </div>
+
+    <!-- CPU Architecture Differences -->
+    <div class="nc">
+      <div class="section-badge">CPU ARCHITECTURES</div>
+      <div class="nh">x86 vs ARM — Memory Model Differences</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Aspect</th><th>x86/x64</th><th>ARM / POWER</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Memory Model</strong></td><td>Total Store Order (TSO) — relatively strong</td><td>Weak — more reordering allowed</td></tr>
+          <tr><td><strong>Load-Load reordering</strong></td><td>❌ Not allowed</td><td>✅ Allowed (needs barrier)</td></tr>
+          <tr><td><strong>Store-Store reordering</strong></td><td>❌ Not allowed</td><td>✅ Allowed (needs barrier)</td></tr>
+          <tr><td><strong>Load-Store reordering</strong></td><td>❌ Not allowed</td><td>✅ Allowed (needs barrier)</td></tr>
+          <tr><td><strong>Store-Load reordering</strong></td><td>✅ Allowed (store buffer)</td><td>✅ Allowed</td></tr>
+          <tr><td><strong>Atomic RMW</strong></td><td><code>LOCK CMPXCHG</code></td><td><code>LDREX/STREX</code> loop (LL/SC)</td></tr>
+          <tr><td><strong>Full Fence</strong></td><td><code>MFENCE</code></td><td><code>DMB ISH</code> or <code>DSB ISH</code></td></tr>
+          <tr><td><strong>Implication</strong></td><td>Less explicit barriers needed</td><td>More barriers needed for same guarantee</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip"><strong>Staff insight:</strong> x86 is "accidentally strong" — code that works on x86 may fail on ARM/POWER if you forgot barriers. Always use language-level abstractions (<code>std::atomic</code>, Java <code>AtomicInteger</code>) rather than raw assembly.</div>
+    </div>
+
+    <!-- MESI Cache Coherence -->
+    <div class="nc">
+      <div class="section-badge">CACHE COHERENCE</div>
+      <div class="nh">MESI Protocol — How Caches Stay Consistent</div>
+      <p class="text-gray-700 mb-3">Modern CPUs use the <strong>MESI protocol</strong> to keep L1/L2/L3 caches coherent across cores. Understanding MESI explains why atomics and barriers work.</p>
+      <table class="nt mb-4">
+        <thead><tr><th>State</th><th>Meaning</th><th>Shared?</th><th>Modified?</th></tr></thead>
+        <tbody>
+          <tr><td><strong>M</strong>odified</td><td>Dirty copy — only this cache has it, written back on eviction</td><td>No</td><td>Yes</td></tr>
+          <tr><td><strong>E</strong>xclusive</td><td>Clean exclusive copy — only this cache, not yet written</td><td>No</td><td>No</td></tr>
+          <tr><td><strong>S</strong>hared</td><td>Clean copy — multiple caches have it</td><td>Yes</td><td>No</td></tr>
+          <tr><td><strong>I</strong>nvalid</td><td>Stale — must fetch from another cache or memory before use</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode">// What happens when Core 1 writes to a cache line:
+Core 1: RFO (Request For Ownership) → broadcast to all cores
+Other cores: Invalidate their copies (state → I)
+Core 1: Gets Exclusive (E), writes → Modified (M)
+
+// When Core 2 reads the same line:
+Core 2: Cache miss → requests line from Core 1
+Core 1: Writes back → line goes Shared (S) in both caches
+
+// Atomic CAS on a cache line:
+LOCK prefix → acquires cache line ownership (E/M state)
+             → other cores see Invalid until LOCK released
+             → guarantees atomicity across all cores</div>
+    </div>
+
+    <!-- Java Memory Model -->
+    <div class="nc">
+      <div class="section-badge">JAVA MEMORY MODEL</div>
+      <div class="nh">Java — volatile, AtomicInteger, VarHandle</div>
+      <p class="text-gray-700 mb-3">Java's Memory Model (JMM) defines <strong>happens-before</strong> relationships that guarantee visibility across threads.</p>
+
+      <p class="font-semibold text-violet-700 mb-1">volatile — Sequential Consistency on a single variable</p>
+      <div class="ncode">// volatile guarantees:
+// 1. Visibility: write is immediately visible to all threads
+// 2. Ordering: no reordering across volatile read/write
+// 3. NOT atomicity for compound operations (i++ is NOT atomic)
+
+volatile boolean ready = false;
+volatile int data = 0;
+
+// Thread 1:
+data = 42;          // write data
+ready = true;       // volatile write = full barrier → data always visible after
+
+// Thread 2:
+while (!ready);     // volatile read = acquire barrier
+System.out.println(data);  // always 42
+
+// WARNING: volatile int counter; counter++ is NOT thread-safe (read-modify-write)</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">AtomicInteger — CAS-based thread-safe operations</p>
+      <div class="ncode">// All operations use LOCK CMPXCHG internally (x86)
+AtomicInteger counter = new AtomicInteger(0);
+
+counter.incrementAndGet();     // atomic i++
+counter.addAndGet(5);          // atomic add
+counter.compareAndSet(10, 20); // CAS: if 10, set to 20
+counter.getAndUpdate(x -> x * 2); // atomic lambda update
+
+// For high-contention counters, prefer LongAdder (less CAS contention)
+LongAdder sum = new LongAdder();
+sum.increment();    // updates per-thread cell → merge on sum()</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">VarHandle — Low-level fine-grained control (Java 9+)</p>
+      <div class="ncode">// VarHandle gives access to different memory orderings
+VarHandle VH = MethodHandles.lookup().findVarHandle(MyClass.class, "field", int.class);
+
+// Relaxed — no ordering guarantee (just atomicity)
+VH.setOpaque(obj, 42);
+int v = (int) VH.getOpaque(obj);
+
+// Acquire/Release — for producer-consumer patterns
+VH.setRelease(obj, 42);        // release store
+int v = (int) VH.getAcquire(obj); // acquire load
+
+// Sequential Consistency — full barrier (like volatile)
+VH.setVolatile(obj, 42);
+int v = (int) VH.getVolatile(obj);</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Happens-Before Rules in Java</p>
+      <table class="nt">
+        <thead><tr><th>Rule</th><th>Guarantee</th></tr></thead>
+        <tbody>
+          <tr><td>Thread start</td><td><code>Thread.start()</code> happens-before any action in the started thread</td></tr>
+          <tr><td>Thread join</td><td>All actions in thread A happen-before <code>Thread.join()</code> returns in thread B</td></tr>
+          <tr><td>volatile write/read</td><td>Write to volatile happens-before subsequent read of same variable</td></tr>
+          <tr><td>Monitor lock/unlock</td><td>Unlock of monitor happens-before subsequent lock of same monitor</td></tr>
+          <tr><td>Program order</td><td>Within a thread, actions happen in program order</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Lock-Free Patterns -->
+    <div class="nc">
+      <div class="section-badge">LOCK-FREE PATTERNS</div>
+      <div class="nh">Building Lock-Free Algorithms with Atomics</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Spinlock using CAS</p>
+      <div class="ncode">// Lock-free spinlock (C++)
+std::atomic&lt;bool&gt; locked{false};
+
+void lock() {
+    bool expected = false;
+    while (!locked.compare_exchange_weak(
+        expected, true,
+        std::memory_order_acquire,    // acquire on success
+        std::memory_order_relaxed))   // relaxed on failure
+    {
+        expected = false;
+        while (locked.load(std::memory_order_relaxed));  // spin in cache
+    }
+}
+
+void unlock() {
+    locked.store(false, std::memory_order_release);      // release
+}</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Lock-Free Stack (Treiber Stack)</p>
+      <div class="ncode">// Each push/pop uses CAS — no mutex needed
+struct Node { int data; Node* next; };
+std::atomic&lt;Node*&gt; head{nullptr};
+
+void push(int val) {
+    Node* n = new Node{val, nullptr};
+    do {
+        n->next = head.load(std::memory_order_relaxed);
+    } while (!head.compare_exchange_weak(
+        n->next, n,
+        std::memory_order_release,
+        std::memory_order_relaxed));
+}
+
+// Problem: ABA — use hazard pointers or epoch-based reclamation for safe memory reclaim</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Sequence Lock (Seqlock) — Linux Timekeeping</p>
+      <div class="ncode">// Writers increment sequence (odd = writing), readers retry if odd
+atomic&lt;unsigned&gt; seq{0};
+
+void write(int* data, int val) {
+    seq.fetch_add(1, release);   // start write (make seq odd)
+    *data = val;
+    seq.fetch_add(1, release);   // end write (make seq even)
+}
+
+int read(int* data) {
+    unsigned s1, s2;
+    int val;
+    do {
+        s1 = seq.load(acquire);        // read sequence
+        if (s1 & 1) continue;          // writer active — retry
+        val = *data;
+        s2 = seq.load(acquire);
+    } while (s1 != s2);                // retry if sequence changed during read
+    return val;
+}
+// Readers NEVER block — writers use seq barrier, not mutex</div>
+    </div>
+
+    <!-- Failure Modes -->
+    <div class="nc">
+      <div class="section-badge">FAILURE MODES</div>
+      <div class="nh">Common Failure Modes &amp; Bugs</div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">ABA Problem</div>
+        <p class="text-gray-700 text-sm">CAS sees same value after A→B→A transition. Pointer has changed but CAS succeeds incorrectly. Fix: <strong>AtomicStampedReference</strong>, hazard pointers, epoch-based reclamation.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Volatile Compound Operations (Java)</div>
+        <p class="text-gray-700 text-sm"><code>volatile int i; i++</code> is NOT atomic — it's three operations (load, add, store). Use <strong>AtomicInteger</strong> for compound ops.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Missing Barrier on ARM/POWER</div>
+        <p class="text-gray-700 text-sm">Code working on x86 (strong TSO model) silently fails on ARM (weak model) without explicit barriers. Always use <code>std::atomic</code> or language memory model — never raw assembly for cross-platform code.</p>
+      </div>
+      <div class="nc-warn">
+        <div class="nh-warn">Spurious CAS Failure (compare_exchange_weak)</div>
+        <p class="text-gray-700 text-sm"><code>compare_exchange_weak</code> may fail spuriously on LL/SC architectures (ARM). Always wrap in a loop. Use <code>compare_exchange_strong</code> when spurious failures are unacceptable.</p>
+      </div>
+    </div>
+
+    <!-- Performance -->
+    <div class="nc">
+      <div class="section-badge">PERFORMANCE</div>
+      <div class="nh">Performance Characteristics</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Operation</th><th>Approx Cost</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Regular load/store (L1 hit)</td><td>~1 ns</td><td>No coherence traffic</td></tr>
+          <tr><td>Atomic load (relaxed)</td><td>~1–2 ns</td><td>Just a regular load + compiler barrier</td></tr>
+          <tr><td>Atomic store (relaxed)</td><td>~1–2 ns</td><td>Just a regular store + compiler barrier</td></tr>
+          <tr><td>Atomic CAS (uncontended)</td><td>~5–10 ns</td><td>LOCK CMPXCHG, single cache line</td></tr>
+          <tr><td>Atomic CAS (contended)</td><td>~50–200 ns</td><td>Cache line bouncing between cores</td></tr>
+          <tr><td>Full fence (MFENCE)</td><td>~20–100 ns</td><td>Drains store buffer, serializes pipeline</td></tr>
+          <tr><td>mutex lock (uncontended)</td><td>~20–30 ns</td><td>CAS + memory order (no syscall)</td></tr>
+          <tr><td>mutex lock (contended)</td><td>~1–10 µs</td><td>futex_wait syscall + context switch</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip"><strong>Key insight:</strong> Uncontended atomics are fast (~few ns). Contended atomics with cache-line bouncing are slow (~100s of ns). The bottleneck is never the instruction — it's cache coherence traffic.</div>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Observability &amp; Tools</div>
+      <table class="nt">
+        <thead><tr><th>Tool</th><th>What It Shows</th></tr></thead>
+        <tbody>
+          <tr><td><span class="nkw"><span>perf stat -e cache-misses</span></span></td><td>Cache miss rate — high = possible false sharing / cache-line bouncing</td></tr>
+          <tr><td><span class="nkw"><span>perf c2c</span></span></td><td>Cache-to-cache transfer analysis — finds false sharing hotspots</td></tr>
+          <tr><td><span class="nkw"><span>eBPF / BCC</span></span></td><td>Trace atomic contention, lock hold times</td></tr>
+          <tr><td><span class="nkw"><span>async-profiler</span></span></td><td>Off-CPU flamegraph — shows time blocked in CAS loops</td></tr>
+          <tr><td><span class="nkw"><span>Java Flight Recorder</span></span></td><td>Lock contention, blocked threads</td></tr>
+          <tr><td><span class="nkw"><span>Intel VTune</span></span></td><td>Memory access patterns, cache coherence traffic, false sharing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Level</th><th>Thinking Pattern</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Junior</strong></td>
+            <td>"I'll use <code>synchronized</code> to make it thread-safe."</td>
+          </tr>
+          <tr>
+            <td><strong>Senior</strong></td>
+            <td>"I use <code>AtomicInteger</code> for counters instead of <code>synchronized</code> to avoid lock overhead. I know that <code>volatile</code> doesn't make compound operations atomic."</td>
+          </tr>
+          <tr>
+            <td><strong>Staff</strong></td>
+            <td>"I understand that every mutex and atomic is built on <code>CAS + memory barriers</code>. I choose memory orderings: <em>relaxed</em> for independent counters, <em>acquire/release</em> for producer-consumer, <em>seq_cst</em> only when I need global total order. I know that <code>volatile</code> in Java is a full fence (seq_cst) — expensive on ARM. I use <code>LongAdder</code> over <code>AtomicLong</code> under high contention because it eliminates CAS loop retries via per-thread cells. I detect false sharing with <code>perf c2c</code> and fix it with <code>@Contended</code> or cache-line padding. I know the ABA problem and how to avoid it with stamped references or hazard pointers. I can reason about whether an algorithm is linearizable."</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="nq">"Atomic operations and memory barriers are the hardware-level foundation of all concurrent programming. CAS provides atomicity; barriers provide ordering. Understanding memory models — relaxed, acquire, release, seq_cst — lets you write lock-free code that is correct and performant without over-synchronizing."</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════════════ ORIGINAL NOTES TAB ═══════════════════ -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — PART 1</div>
+      <div class="nh">Atomic Operations Deep Reference</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Why Atomicity Is Needed</p>
+      <div class="ncode">Non-atomic increment: i++
+
+  Step 1: LOAD  i into register
+  Step 2: ADD   1 to register
+  Step 3: STORE register to i
+
+Thread A: LOAD (i=0)
+Thread B: LOAD (i=0)  ← interleaved here
+Thread A: ADD, STORE (i=1)
+Thread B: ADD, STORE (i=1)  ← lost update!
+
+Expected: 2   Actual: 1   → DATA RACE</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Hardware Atomic Instructions Table</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Instruction</th><th>Architecture</th><th>Semantics</th></tr></thead>
+        <tbody>
+          <tr><td><code>LOCK CMPXCHG</code></td><td>x86</td><td>Atomic CAS — compare register with mem, swap if equal</td></tr>
+          <tr><td><code>LOCK XADD</code></td><td>x86</td><td>Atomic fetch-and-add</td></tr>
+          <tr><td><code>LOCK XCHG</code></td><td>x86</td><td>Atomic exchange (implies LOCK prefix implicitly)</td></tr>
+          <tr><td><code>LDREX / STREX</code></td><td>ARM32</td><td>Load-Linked / Store-Conditional</td></tr>
+          <tr><td><code>LDXR / STXR</code></td><td>ARM64</td><td>Exclusive load/store (LL/SC)</td></tr>
+          <tr><td><code>LL / SC</code></td><td>MIPS, POWER</td><td>Load-linked / Store-conditional pattern</td></tr>
+          <tr><td><code>CASP</code></td><td>ARM64 (v8.1+)</td><td>CAS pair — atomic 128-bit CAS</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">LL/SC vs CAS</p>
+      <div class="ncode">// CAS (x86):
+if (mem == expected) { mem = new; return true; }
+Weakness: ABA — cannot detect A → B → A transition
+
+// LL/SC (ARM):
+LDREX r0, [addr]     // Load-Linked — tags the address
+STREX r1, r2, [addr] // Store-Conditional — only succeeds if no other write since LDREX
+// LL/SC naturally avoids ABA — any write to addr (even back to A) fails the SC
+// LL/SC may fail spuriously → always in retry loop</div>
+
+      <hr class="border-violet-100 mb-4 mt-4"/>
+
+      <p class="font-semibold text-violet-700 mb-1">Memory Barriers — All 4 Types</p>
+      <div class="ncode">// 4 types of reordering to prevent:
+//    LoadLoad   — earlier load sees result of later load?
+//    StoreStore — later store visible before earlier store?
+//    LoadStore  — load reordered after a store?
+//    StoreLoad  — store delayed past a subsequent load?
+
+// x86 barrier instructions:
+LFENCE  → prevents LoadLoad reordering
+SFENCE  → prevents StoreStore reordering
+MFENCE  → prevents all 4 types (full barrier)
+PAUSE   → spin-loop hint for hyperthreading efficiency
+
+// ARM barrier instructions:
+DMB ISH    → Data Memory Barrier (Inner Shareable) — full barrier
+DSB ISH    → Data Synchronization Barrier — stronger, drains pipeline
+ISB        → Instruction Sync Barrier — flush pipeline (for self-modifying code)</div>
+
+      <hr class="border-violet-100 mb-4 mt-4"/>
+
+      <p class="font-semibold text-violet-700 mb-1">MESI State Machine Transitions</p>
+      <div class="ncode">State transitions for a cache line when Core 1 writes:
+
+  Modified (M) ←── Core 1 writes (sole owner)
+       │
+       │ Another core reads
+       ▼
+   Shared (S) ←── Multiple cores have clean copy
+       │
+       │ Core 1 writes (RFO)
+       ▼
+  Exclusive (E) ←── Core 1 has clean exclusive copy
+       │
+       │ Core 1 writes
+       ▼
+  Modified (M) ──► on eviction ──► write back to memory
+       │
+       │ Another core reads (bus snoop)
+       ▼
+   Shared (S)
+
+Invalid (I): stale — must fetch from another cache or RAM</div>
+
+      <hr class="border-violet-100 mb-4 mt-4"/>
+
+      <p class="font-semibold text-violet-700 mb-1">Java Memory Model — Happens-Before Detailed</p>
+      <div class="ncode">// JMM defines visibility via "happens-before" (HB) relation
+// If A HB B → all of A's writes are visible to B
+
+Key HB rules:
+1. Program Order:      Each action HB next action in same thread
+2. Monitor Lock:       unlock(m) HB lock(m) (next acquisition)
+3. Volatile Write/Read: volatile write HB volatile read (same variable)
+4. Thread Start:       start() HB first action of new thread
+5. Thread Join:        last action of thread HB join() return
+6. Transitivity:       if A HB B and B HB C → A HB C
+
+// The ONLY safe way to share data between threads:
+// 1. Use volatile (seq_cst)
+// 2. Use synchronized / locks
+// 3. Use AtomicXxx classes
+// 4. Thread.start() / Thread.join() boundaries
+// Anything else → data race → undefined behavior</div>
+    </div>
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — PART 2</div>
+      <div class="nh">C++ Memory Model &amp; Lock-Free Reference</div>
+
+      <p class="font-semibold text-violet-700 mb-1">C++ std::atomic Memory Orders — Full Reference</p>
+      <div class="ncode">// memory_order_relaxed
+//   → atomicity only; no ordering constraints
+//   → use for: counters, statistics, flags where order doesn't matter
+std::atomic&lt;int&gt; count{0};
+count.fetch_add(1, std::memory_order_relaxed);
+
+// memory_order_acquire (LOAD)
+//   → no subsequent read/write can be reordered before this load
+//   → establishes: "I will see everything before the paired release"
+bool ready = flag.load(std::memory_order_acquire);
+
+// memory_order_release (STORE)
+//   → no prior read/write can be reordered after this store
+//   → establishes: "all my prior work is visible to acquire loaders"
+flag.store(true, std::memory_order_release);
+
+// memory_order_acq_rel (RMW)
+//   → combines acquire + release for read-modify-write operations
+//   → used in: CAS for mutexes, exchange operations
+flag.compare_exchange_strong(expected, desired, std::memory_order_acq_rel);
+
+// memory_order_seq_cst
+//   → total sequential order across ALL threads for ALL seq_cst ops
+//   → most expensive → avoid in hot paths
+flag.store(true, std::memory_order_seq_cst); // default if not specified</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Lock-Free MPSC Queue Sketch</p>
+      <div class="ncode">// Multiple-Producer Single-Consumer queue (simplified)
+struct Node {
+    int data;
+    std::atomic&lt;Node*&gt; next{nullptr};
+};
+
+std::atomic&lt;Node*&gt; head{new Node{}};  // sentinel
+std::atomic&lt;Node*&gt; tail{head.load()};
+
+// Producer (multiple threads — CAS on tail):
+void push(int val) {
+    Node* n = new Node{val};
+    Node* old_tail;
+    do {
+        old_tail = tail.load(memory_order_acquire);
+    } while (!tail.compare_exchange_weak(old_tail, n,
+        memory_order_release, memory_order_relaxed));
+    old_tail->next.store(n, memory_order_release);
+}
+
+// Consumer (single thread — just reads head):
+int pop() {
+    Node* h = head.load(memory_order_acquire);
+    Node* next = h->next.load(memory_order_acquire);
+    head.store(next, memory_order_release);
+    return next->data;
+}</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Key Correctness Properties</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Property</th><th>Definition</th><th>Achieved By</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Linearizability</strong></td><td>Each operation appears to take effect at a single instant</td><td>Atomic CAS + correct memory ordering</td></tr>
+          <tr><td><strong>Lock-freedom</strong></td><td>System-wide progress guaranteed — some thread always progresses</td><td>CAS retry loops (at least one succeeds)</td></tr>
+          <tr><td><strong>Wait-freedom</strong></td><td>Every thread completes in bounded steps</td><td>Hard — requires more complex algorithms</td></tr>
+          <tr><td><strong>Obstruction-freedom</strong></td><td>Thread progresses when runs alone</td><td>Weakest useful guarantee</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nq">"Atomic operations provide the illusion of instantaneous indivisibility; memory barriers provide the ordering guarantees needed for threads to safely communicate. Together they are the hardware substrate for every mutex, semaphore, and lock-free data structure in existence."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- ═══════════════════ VISUAL GUIDE TAB ═══════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <img src="images/foundation/l1/OS/8711237c-b409-4eb6-963d-a28a8e9164d9.png" class="w-full rounded-lg shadow-md mb-6" alt="Atomic Operations and Memory Barriers Visual Guide"/>
+    <img src="images/foundation/l1/OS/73ac7993-7257-4646-99ed-624b4b61cfb2.png" class="w-full rounded-lg shadow-md" alt="Atomic Operations and Memory Barriers Visual Guide 2"/>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

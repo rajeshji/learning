@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Queueing Theory Basics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .formula{ background:#0f172a; color:#38bdf8; font-family:'Courier New',monospace;
+              font-size:1.15rem; font-weight:700; text-align:center;
+              border-radius:.65rem; padding:.85rem 1.25rem; letter-spacing:.04em; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+    /* metric cards */
+    .mc { border-radius:.85rem; padding:1rem 1.1rem; flex:1; min-width:0; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Queueing Theory Basics</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Queueing Theory Basics</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Arrival Rate (λ) &bull; Service Rate (μ) &bull; Waiting Time (Wq)</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TEXT TAB ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core concept -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">Queueing Theory helps predict how requests wait, how resources become saturated, and when latency suddenly explodes. <strong>Every distributed system is a queue.</strong></p>
+      <p class="ntip mt-3">Interviewers never say "Explain Queueing Theory." They ask: <em>Why is latency increasing? Why didn't autoscaling help? Why are requests timing out? How many consumers do we need?</em> — All queueing questions.</p>
+    </div>
+
+    <!-- Golden Rule -->
+    <div class="nc">
+      <p class="nh">Golden Rule</p>
+      <div class="formula">&lambda; &lt; &mu; &nbsp;&rarr;&nbsp; Healthy &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; &lambda; &ge; &mu; &nbsp;&rarr;&nbsp; Trouble</div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+        <div class="bg-green-50 rounded-lg p-3 text-center border border-green-100">
+          <p class="text-xs font-black text-green-600 font-mono">&lambda; &lt; &mu;</p>
+          <p class="text-xs text-green-700 mt-1">Queue stays small. System healthy.</p>
+        </div>
+        <div class="bg-yellow-50 rounded-lg p-3 text-center border border-yellow-100">
+          <p class="text-xs font-black text-yellow-600 font-mono">&lambda; = &mu;</p>
+          <p class="text-xs text-yellow-700 mt-1">At capacity. Queue grows slowly. High waiting time.</p>
+        </div>
+        <div class="bg-red-50 rounded-lg p-3 text-center border border-red-100">
+          <p class="text-xs font-black text-red-600 font-mono">&lambda; &gt; &mu;</p>
+          <p class="text-xs text-red-700 mt-1">Queue grows forever. Latency explodes. Timeouts.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 Metrics Overview -->
+    <div class="nc">
+      <p class="nh">The 3 Most Important Metrics</p>
+      <div class="flex flex-col sm:flex-row gap-3 mt-1">
+        <div class="mc bg-blue-50 border border-blue-100">
+          <p class="text-xs font-black text-blue-700 mb-1">Arrival Rate (λ)</p>
+          <p class="text-xs text-gray-600">Incoming requests per second.</p>
+          <p class="text-xs font-mono text-blue-600 mt-1">Goal: Stable</p>
+          <p class="text-xs text-gray-500 mt-1">1000 RPS → λ = 1000</p>
+        </div>
+        <div class="mc bg-green-50 border border-green-100">
+          <p class="text-xs font-black text-green-700 mb-1">Service Rate (μ)</p>
+          <p class="text-xs text-gray-600">Requests the system can complete per second.</p>
+          <p class="text-xs font-mono text-green-600 mt-1">Goal: Higher than λ</p>
+          <p class="text-xs text-gray-500 mt-1">1200 RPS → μ = 1200</p>
+        </div>
+        <div class="mc bg-orange-50 border border-orange-100">
+          <p class="text-xs font-black text-orange-700 mb-1">Waiting Time (Wq)</p>
+          <p class="text-xs text-gray-600">Time spent waiting in queue before processing starts.</p>
+          <p class="text-xs font-mono text-orange-600 mt-1">Goal: Minimize</p>
+          <p class="text-xs text-gray-500 mt-1">300ms waiting + 20ms work = 320ms total</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deep dive: 3 metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+
+      <!-- Arrival Rate -->
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh" style="color:#1d4ed8">Arrival Rate (λ)</p>
+        <p class="sub-h">Increases When</p>
+        <ul class="dot-ul"><li>Traffic spike</li><li>Flash sale</li><li>Viral post</li><li>Retry storm</li></ul>
+        <p class="sub-h">Detect</p>
+        <ul class="dot-ul"><li>Requests/sec</li><li>Queue length</li><li>Active connections</li></ul>
+        <p class="sub-h">Reduce</p>
+        <ul class="dot-ul"><li>Rate limiting</li><li>Load shedding</li><li>CDN / Caching</li></ul>
+      </div>
+
+      <!-- Service Rate -->
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh" style="color:#15803d">Service Rate (μ)</p>
+        <p class="sub-h">Depends On</p>
+        <ul class="dot-ul"><li>CPU speed</li><li>Database QPS</li><li>Cache hit ratio</li><li>Thread pool size</li><li>Algorithm efficiency</li></ul>
+        <p class="sub-h">Improve</p>
+        <ul class="dot-ul"><li>Scale out</li><li>Better algorithm</li><li>Caching</li><li>Async processing</li><li>More consumers</li></ul>
+      </div>
+
+      <!-- Waiting Time -->
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh" style="color:#b45309">Waiting Time (Wq)</p>
+        <p class="sub-h">Causes</p>
+        <ul class="dot-ul"><li>Queue buildup</li><li>Busy threads</li><li>Slow DB</li><li>Lock contention</li></ul>
+        <p class="sub-h">Detect</p>
+        <ul class="dot-ul"><li>Queue length</li><li>Consumer lag</li><li>Thread pool queue</li><li>Connection wait</li></ul>
+        <p class="sub-h">Reduce</p>
+        <ul class="dot-ul"><li>More workers</li><li>Better load balancing</li><li>Backpressure</li></ul>
+      </div>
+    </div>
+
+    <!-- Queue buildup example -->
+    <div class="nc">
+      <p class="nh">Queue Buildup Example</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <div class="ncode">Arrival:  1000 RPS
+Service:   800 RPS
+Backlog:   200 req/sec
+
+After 10 sec  &rarr;  2,000 waiting
+After 30 sec  &rarr;  6,000 waiting
+After 60 sec  &rarr; 12,000 waiting
+After 120 sec &rarr; 24,000 waiting
+                &darr; Timeouts</div>
+        </div>
+        <div>
+          <table class="nt">
+            <thead><tr><th>Time</th><th>Queued Requests</th></tr></thead>
+            <tbody>
+              <tr><td>10 sec</td><td class="text-orange-600 font-semibold">2,000</td></tr>
+              <tr><td>30 sec</td><td class="text-orange-600 font-semibold">6,000</td></tr>
+              <tr><td>60 sec</td><td class="text-red-600 font-semibold">12,000</td></tr>
+              <tr><td>120 sec</td><td class="text-red-700 font-bold">24,000</td></tr>
+            </tbody>
+          </table>
+          <p class="ntip mt-2">Queue grows &rarr; Latency increases &rarr; Timeouts</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Queuing in real systems + problems -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Queues in Real Systems</p>
+        <table class="nt mt-1">
+          <thead><tr><th>System</th><th>Queue</th></tr></thead>
+          <tbody>
+            <tr><td>Kafka</td><td>Topic Partitions</td></tr>
+            <tr><td>RabbitMQ</td><td>Message Queue</td></tr>
+            <tr><td>Thread Pool</td><td>Task Queue</td></tr>
+            <tr><td>Database</td><td>Connection Wait Queue</td></tr>
+            <tr><td>Load Balancer</td><td>Pending Requests</td></tr>
+            <tr><td>CPU</td><td>Run Queue</td></tr>
+            <tr><td>Disk</td><td>IO Queue</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Common Production Problems</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Problem</th><th>Root Cause</th></tr></thead>
+          <tbody>
+            <tr><td>High Latency</td><td>Waiting Time (Wq) high</td></tr>
+            <tr><td>Consumer Lag</td><td>&lambda; &gt; &mu;</td></tr>
+            <tr><td>Thread Starvation</td><td>Queue growth</td></tr>
+            <tr><td>Timeouts</td><td>Long waiting time</td></tr>
+            <tr><td>Retry Storm</td><td>Arrival rate explosion</td></tr>
+            <tr><td>Cascading Failure</td><td>Queue saturation</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- How staff engineers fix it -->
+    <div class="nc">
+      <p class="nh">How Staff Engineers Fix It</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td>Arrival Rate &uarr;</td><td>Rate Limiter, CDN, Cache</td></tr>
+          <tr><td>Service Rate &darr;</td><td>Scale out, Async, Better algorithm</td></tr>
+          <tr><td>Waiting Time &uarr;</td><td>More workers, Backpressure, Queue optimisation</td></tr>
+          <tr><td>Queue Explosion</td><td>Load shedding, Circuit breaker</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Interview Q&As -->
+    <div class="nc">
+      <p class="nh">Interview Q&amp;A</p>
+      <div class="space-y-3 mt-1">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Q1: Traffic doubled — what happens?</p>
+          <div class="ncode">Arrival Rate &uarr; &rarr; Queue &uarr; &rarr; Waiting Time &uarr; &rarr; Latency &uarr;</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Q2: CPU is only 40% but latency is 3 seconds — why?</p>
+          <p class="text-xs text-green-700 font-medium">Possible causes: Queue buildup, slow DB, lock contention, thread pool saturation, network wait. CPU is not always the bottleneck — check waiting time (Wq) first.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Q3: How many Kafka consumers do we need?</p>
+          <p class="text-xs text-green-700 font-medium">Ensure consumer capacity (μ) &gt; arrival rate (λ), with headroom for spikes. Consumer count = partitions, so also ensure enough partitions.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relationship with Little's Law -->
+    <div class="nc">
+      <p class="nh">Relationship with Little's Law</p>
+      <div class="ncode">Traffic Spike
+  &darr; Arrival Rate (&lambda;) &uarr;
+  &darr; Queue Grows
+  &darr; Waiting Time (Wq) &uarr;
+  &darr; Latency &uarr;
+  &darr; Concurrency &uarr;  (Little's Law: L = &lambda; &times; W)
+  &darr; Memory &uarr; &bull; CPU &uarr;</div>
+      <p class="ntip mt-2">Queueing Theory explains <strong>why latency increases</strong>. Little's Law explains <strong>how that latency increase drives concurrency explosion</strong>.</p>
+    </div>
+
+    <!-- Staff checklist -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Checklist — Before Scaling</p>
+      <div class="space-y-1 mt-1">
+        <p class="text-sm text-green-700 font-medium">&#10003; What is the current arrival rate (&lambda;)?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; What is the service rate (&mu;)?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Is &lambda; approaching or exceeding &mu;?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Where is the queue in the system?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; What resource limits &mu;?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Is waiting time or processing time dominating latency?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Will adding more servers actually increase &mu;?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Do we have backpressure or load shedding in place?</p>
+      </div>
+    </div>
+
+    <!-- Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">Arrival Rate (&lambda;)
+  &bull; Incoming requests/sec
+  &bull; Higher traffic increases &lambda;
+  &bull; Control: Rate limiting, CDN, Caching
+
+Service Rate (&mu;)
+  &bull; Requests processed/sec
+  &bull; Improve: Scale out, caching, async, better algorithm
+
+Waiting Time (Wq)
+  &bull; Time spent in queue before processing
+  &bull; Major contributor to P99 latency
+  &bull; Earliest warning signal: queue length growing
+
+Golden Rules
+  &lambda; &lt; &mu;  &rarr; System stable
+  &lambda; = &mu;  &rarr; At saturation
+  &lambda; &gt; &mu;  &rarr; Queue grows indefinitely
+
+Staff Question: Is waiting time larger than processing time?</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2"><p class="text-xs text-white">Arrival rate tells you how <strong>demand</strong> is changing</p></div>
+        <div class="bg-violet-800 rounded-lg p-2"><p class="text-xs text-white">Service rate tells you <strong>processing capacity</strong></p></div>
+        <div class="bg-violet-800 rounded-lg p-2"><p class="text-xs text-white">Waiting time reveals <strong>approaching saturation</strong></p></div>
+        <div class="bg-violet-800 rounded-lg p-2"><p class="text-xs text-white">Queue length is the <strong>earliest warning signal</strong></p></div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">If arrival rate exceeds service rate, queues grow, waiting time increases, tail latency explodes, and the system eventually becomes unstable.</strong>
+        Watch your queue length — it tells you the truth before CPU or memory do.
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== IMAGE TAB ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/QueuingTheory/queueing-theory.png"
+           alt="Queueing Theory Basics visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

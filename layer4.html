@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Layer 4 — Caching &amp; Performance Engineering</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .dot-list { list-style:disc; padding-left:1.25rem; }
+    .dot-list li { line-height:1.85; break-inside:avoid; }
+    .dot-list li::marker { color:var(--dot,#ea580c); }
+    @media(min-width:640px){ .two-col{ columns:2; column-gap:1.75rem; } }
+    .section-block { scroll-margin-top:5rem; }
+    .toc-link { display:block; padding:.26rem .65rem; border-radius:.4rem; font-size:.72rem;
+                color:#64748b; transition:all .15s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .toc-link:hover { background:#fff7ed; color:#c2410c; }
+    .sub-h { font-size:.7rem; font-weight:700; letter-spacing:.06em;
+             text-transform:uppercase; margin-top:1rem; margin-bottom:.45rem; }
+    .badge-tag { font-size:.6rem; font-weight:600; background:#f1f5f9;
+                 color:#64748b; padding:.1em .5em; border-radius:999px; vertical-align:middle; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="foundation.html"
+       class="flex items-center gap-1.5 text-orange-600 hover:text-orange-800 font-semibold
+              bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-orange-700 font-semibold">Layer 4 — Caching &amp; Performance Engineering</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 py-8 flex gap-7 items-start">
+
+  <!-- SIDEBAR TOC -->
+  <nav class="hidden xl:block w-52 shrink-0 sticky top-20 self-start">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p class="text-[0.68rem] font-bold text-gray-400 uppercase tracking-widest mb-3">14 Topics</p>
+      <a href="#s01" class="toc-link">01 &middot; Caching Fundamentals</a>
+      <a href="#s02" class="toc-link">02 &middot; Architecture Models</a>
+      <a href="#s03" class="toc-link">03 &middot; Read/Write Patterns</a>
+      <a href="#s04" class="toc-link">04 &middot; Consistency &amp; Invalidation</a>
+      <a href="#s05" class="toc-link">05 &middot; Eviction Policies</a>
+      <a href="#s06" class="toc-link">06 &middot; Implementations</a>
+      <a href="#s07" class="toc-link">07 &middot; Failure Modes</a>
+      <a href="#s08" class="toc-link">08 &middot; Metrics &amp; Monitoring</a>
+      <a href="#s09" class="toc-link">09 &middot; Advanced Patterns</a>
+      <a href="#s10" class="toc-link">10 &middot; Perf Engineering</a>
+      <a href="#s11" class="toc-link">11 &middot; Latency &amp; Throughput</a>
+      <a href="#s12" class="toc-link">12 &middot; Tuning &amp; Capacity</a>
+      <a href="#s13" class="toc-link">13 &middot; Tracing &amp; Diagnosis</a>
+      <a href="#s14" class="toc-link">14 &middot; Advanced Perf Topics</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 min-w-0 space-y-5 pb-16">
+
+    <!-- S01 CACHING FUNDAMENTALS -->
+    <div id="s01" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-orange-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-700 font-black text-xs shrink-0">01</span>
+        <h2 class="font-bold text-gray-800 text-lg">Caching Fundamentals</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ea580c">
+        <li>Purpose of caching — latency, throughput, cost optimization</li>
+        <li>Temporal vs spatial locality</li>
+        <li>Cache hierarchies: CPU L1/L2/L3 &rarr; app &rarr; service &rarr; edge</li>
+        <li>Hotset identification and access distribution (Zipf law)</li>
+        <li>Trade-offs between freshness, consistency &amp; latency</li>
+        <li>Cache miss types — compulsory, capacity, conflict, coherency</li>
+      </ul>
+    </div>
+
+    <!-- S02 CACHE ARCHITECTURE MODELS -->
+    <div id="s02" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-amber-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-black text-xs shrink-0">02</span>
+        <h2 class="font-bold text-gray-800 text-lg">Cache Architecture Models</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>Local (in-process) cache vs distributed cache</li>
+        <li>Tiered caching (L1/L2/L3) architectures</li>
+        <li>Edge caching &amp; CDNs — global replication, cache busting</li>
+        <li>Reverse proxy caches (Varnish, NGINX)</li>
+        <li>Hybrid content caching — static + dynamic</li>
+        <li>Cache placement strategies — client-side, service-side, edge</li>
+      </ul>
+    </div>
+
+    <!-- S03 READ/WRITE PATTERNS -->
+    <div id="s03" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-yellow-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 font-black text-xs shrink-0">03</span>
+        <h2 class="font-bold text-gray-800 text-lg">Cache Read / Write Patterns</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ca8a04">
+        <li>Read-through cache</li>
+        <li>Lazy-load / on-demand cache</li>
+        <li>Write-through, write-around, write-back (write-behind)</li>
+        <li>Pre-warming / pre-population</li>
+        <li>Cache-aside pattern</li>
+        <li>Two-tier (L1 local + L2 distributed) cache flows</li>
+      </ul>
+    </div>
+
+    <!-- S04 CONSISTENCY & INVALIDATION -->
+    <div id="s04" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-orange-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-700 font-black text-xs shrink-0">04</span>
+        <h2 class="font-bold text-gray-800 text-lg">Cache Consistency &amp; Invalidation</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ea580c">
+        <li>Time-to-live (TTL) and sliding expiration</li>
+        <li>Write-invalidate vs write-update</li>
+        <li>Event-based invalidation — DB triggers, CDC, Kafka events</li>
+        <li>Versioned keys &amp; namespace invalidation</li>
+        <li>Distributed invalidation — pub/sub propagation</li>
+        <li>Coherency models — strong vs eventual</li>
+        <li>Cache poisoning and defense techniques</li>
+      </ul>
+    </div>
+
+    <!-- S05 EVICTION POLICIES -->
+    <div id="s05" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-amber-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-black text-xs shrink-0">05</span>
+        <h2 class="font-bold text-gray-800 text-lg">Cache Eviction &amp; Replacement Policies</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>LRU, LFU, FIFO, Random</li>
+        <li>ARC (Adaptive Replacement Cache) / 2Q</li>
+        <li>Hybrid LRFU strategies</li>
+        <li>Segmented LRU — used in InnoDB, OS page cache</li>
+        <li>Admission policies — sampled LFU, TinyLFU</li>
+        <li>Ghost cache / shadow queue for feedback-based adaptation</li>
+      </ul>
+    </div>
+
+    <!-- S06 IMPLEMENTATIONS -->
+    <div id="s06" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-indigo-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">06</span>
+        <h2 class="font-bold text-gray-800 text-lg">Cache Implementations &amp; Systems</h2>
+      </div>
+
+      <p class="sub-h text-indigo-600">Redis</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Data structures — String, Hash, Set, Sorted Set, Bitmap, HyperLogLog</li>
+        <li>Persistence modes (RDB, AOF) &amp; <code>fsync</code> frequency</li>
+        <li>Cluster sharding &amp; hash slot distribution</li>
+        <li>Pub/Sub channels vs Streams</li>
+        <li>Eviction policies (<code>allkeys-lru</code>, <code>volatile-ttl</code> etc.)</li>
+        <li>Replication vs persistence trade-off</li>
+        <li>Pipeline / batch commands / Lua scripting</li>
+      </ul>
+
+      <p class="sub-h text-indigo-600">Memcached</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Slab allocator design</li>
+        <li>Client-side consistent hashing</li>
+        <li>Binary protocol vs text protocol</li>
+        <li>Eviction &amp; expiry policies</li>
+        <li>Multithreaded architecture &amp; CAS mechanism</li>
+      </ul>
+
+      <p class="sub-h text-indigo-600">Other Systems</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Hazelcast, Ehcache, Caffeine (JVM)</li>
+        <li>CDN edge caches — Akamai, Cloudflare, Fastly</li>
+        <li>Application-specific caches — GraphQL query cache, Apollo client cache</li>
+      </ul>
+    </div>
+
+    <!-- S07 FAILURE MODES -->
+    <div id="s07" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-red-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-700 font-black text-xs shrink-0">07</span>
+        <h2 class="font-bold text-gray-800 text-lg">Failure Modes &amp; Resilience</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>Cache stampede / dogpile effect &rarr; request coalescing locks</li>
+        <li>Thundering herd on restarts &rarr; jittered TTLs</li>
+        <li>Memory pressure &rarr; eviction storms</li>
+        <li>Cache cluster partitioning and split-brain</li>
+        <li>Write-behind data loss on crash</li>
+        <li>Stale data propagation &amp; reconciliation</li>
+        <li>Graceful degradation — serve-stale-on-error mode</li>
+      </ul>
+    </div>
+
+    <!-- S08 METRICS & MONITORING -->
+    <div id="s08" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-700 font-black text-xs shrink-0">08</span>
+        <h2 class="font-bold text-gray-800 text-lg">Cache Performance Metrics &amp; Monitoring</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Cache hit / miss ratio</li>
+        <li>Eviction rate and TTL expiry rate</li>
+        <li>Latency distribution (P50 / P95 / P99)</li>
+        <li>Memory fragmentation &amp; utilization</li>
+        <li>Replication lag (Redis replicas)</li>
+        <li>Commands per second throughput</li>
+        <li>Connection pool metrics &amp; timeouts</li>
+        <li>Staleness error rate</li>
+        <li>Tools — Prometheus, Redis Exporter, Grafana, Datadog</li>
+        <li>OpenTelemetry spans covering cache hit/miss paths</li>
+      </ul>
+    </div>
+
+    <!-- S09 ADVANCED CACHING PATTERNS -->
+    <div id="s09" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-violet-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 text-violet-700 font-black text-xs shrink-0">09</span>
+        <h2 class="font-bold text-gray-800 text-lg">Advanced Caching Patterns</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li><strong>Request coalescing</strong> — single-flight pattern</li>
+        <li><strong>Bloom filter pre-check</strong> to avoid cache misses</li>
+        <li><strong>Write amplification control</strong> in write-through caches</li>
+        <li><strong>Near-cache patterns</strong> — client local + cluster sync</li>
+        <li><strong>Tiered cache hierarchies</strong> — L1 RAM + L2 SSD</li>
+        <li><strong>Read repair</strong> on stale detections</li>
+        <li><strong>Shadow reads/writes</strong> for migration testing</li>
+        <li><strong>Cache warming</strong> post deployments</li>
+      </ul>
+    </div>
+
+    <!-- S10 PERFORMANCE ENGINEERING FUNDAMENTALS -->
+    <div id="s10" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-blue-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black text-xs shrink-0">10</span>
+        <h2 class="font-bold text-gray-800 text-lg">Performance Engineering Fundamentals</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>Definitions — latency, throughput, concurrency, capacity, tail latency</li>
+        <li>Queuing theory — Little's Law, Amdahl's Law</li>
+        <li>Vertical vs horizontal scaling</li>
+        <li>Load shedding &amp; graceful degradation</li>
+        <li>Thread pool tuning &amp; blocking analysis</li>
+        <li>CPU cache line alignment &amp; NUMA effects</li>
+        <li>Asynchronous vs synchronous models — event loop, I/O multiplexing</li>
+      </ul>
+    </div>
+
+    <!-- S11 LATENCY & THROUGHPUT OPTIMIZATION -->
+    <div id="s11" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-green-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 font-black text-xs shrink-0">11</span>
+        <h2 class="font-bold text-gray-800 text-lg">Latency &amp; Throughput Optimization</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Profiling — latency breakdown by component</li>
+        <li>Reducing serialization overhead (Protobuf, FlatBuffers)</li>
+        <li>N+1 query elimination and batching</li>
+        <li>Connection pooling and reuse</li>
+        <li>TCP keep-alive &amp; pipelining</li>
+        <li>Thread context switch optimization</li>
+        <li>Vectorization &amp; SIMD usage in compute paths</li>
+        <li>Caching computation results vs raw data</li>
+      </ul>
+    </div>
+
+    <!-- S12 RESOURCE TUNING & CAPACITY PLANNING -->
+    <div id="s12" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-cyan-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 font-black text-xs shrink-0">12</span>
+        <h2 class="font-bold text-gray-800 text-lg">Resource Tuning &amp; Capacity Planning</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0891b2">
+        <li>Memory allocation and object pooling</li>
+        <li>CPU affinity and core binding</li>
+        <li>Disk I/O tuning (<code>fsync</code>, IOPS targets)</li>
+        <li>Network latency vs bandwidth trade-offs</li>
+        <li>Benchmarking tools: <code>wrk</code>, <code>k6</code>, <code>fio</code>, <code>redis-benchmark</code></li>
+        <li>Performance budgeting and SLO definition</li>
+        <li>Autoscaling based on QPS and latency thresholds</li>
+      </ul>
+    </div>
+
+    <!-- S13 MONITORING, TRACING & DIAGNOSIS -->
+    <div id="s13" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-slate-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-black text-xs shrink-0">13</span>
+        <h2 class="font-bold text-gray-800 text-lg">Monitoring, Tracing &amp; Diagnosis</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>Distributed tracing — OpenTelemetry, Jaeger</li>
+        <li>Log correlation — request ID across layers</li>
+        <li>Metrics aggregation — Prometheus, Micrometer</li>
+        <li>Flame graphs &amp; <code>async-profiler</code></li>
+        <li>Alerting on tail latency anomalies</li>
+        <li>Synthetic monitoring — load test + observability tie-in</li>
+      </ul>
+    </div>
+
+    <!-- S14 ADVANCED PERFORMANCE TOPICS -->
+    <div id="s14" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-pink-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100 text-pink-700 font-black text-xs shrink-0">14</span>
+        <h2 class="font-bold text-gray-800 text-lg">Advanced Performance Topics</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ec4899">
+        <li><strong>Tail latency reduction</strong> — retries, hedging requests</li>
+        <li><strong>Backpressure control</strong> and adaptive throttling</li>
+        <li><strong>Dynamic rate limiting</strong> — token bucket, leaky bucket</li>
+        <li><strong>Priority queues &amp; QoS</strong> for multi-tenant traffic</li>
+        <li><strong>Lock-free and wait-free algorithms</strong></li>
+        <li><strong>Zero-copy I/O</strong> and memory-mapped files</li>
+        <li><strong>Vectorized execution and SIMD</strong> in databases</li>
+        <li><strong>Performance budgeting</strong> per SLO</li>
+        <li><strong>Latency heatmap</strong> visualization and alerting</li>
+      </ul>
+    </div>
+
+  </main>
+</div>
+  <script src="layer-utils.js"></script>
+</body>
+</html>

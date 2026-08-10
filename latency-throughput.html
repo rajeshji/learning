@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Latency, Throughput, Concurrency &amp; Utilization</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    /* shared card styles */
+    .nc   { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq   { font-size:.85rem; color:#1e293b; line-height:1.7;
+            border-left:3px solid #8b5cf6; background:#ede9fe;
+            border-radius:.4rem; padding:.65rem .95rem; }
+    .ntip { font-size:.78rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+            padding:.5rem .85rem; border-left:3px solid #7c3aed; line-height:1.6; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.8rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.65rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.4rem .75rem; text-align:left; }
+    .nt td{ padding:.4rem .75rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .nkw  { display:flex; flex-wrap:wrap; gap:.4rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .sub-h{ font-size:.65rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.85rem 0 .35rem; }
+    .check-ul{ list-style:none; padding:0; }
+    .check-ul li{ font-size:.82rem; color:#166534; line-height:1.85;
+                  padding-left:1.4rem; position:relative; }
+    .check-ul li::before{ content:''; position:absolute; left:0; color:#16a34a; font-weight:700; }
+    .dot-ul { list-style:disc; padding-left:1.2rem; }
+    .dot-ul li{ font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker{ color:#7c3aed; }
+    /* metric colour accents */
+    .m-lat  { border-left-color:#2563eb !important; }
+    .m-thr  { border-left-color:#16a34a !important; }
+    .m-con  { border-left-color:#7c3aed !important; }
+    .m-util { border-left-color:#ea580c !important; }
+    .badge  { font-size:.6rem; font-weight:700; padding:.15em .5em;
+              border-radius:999px; vertical-align:middle; margin-right:.3rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Latency, Throughput, Concurrency &amp; Utilization</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Latency, Throughput, Concurrency &amp; Utilization</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Interview notes &mdash; Senior / Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ═══════════ TAB 1 — TEXT ═══════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">Performance is not about optimizing one metric. Great systems <strong>balance Latency, Throughput, Concurrency, and Utilization</strong> based on business requirements.</p>
+    </div>
+
+    <!-- Why -->
+    <div class="nc">
+      <p class="nh">Why Learn This? — Every Interview Asks These</p>
+      <div class="nkw mt-1">
+        <span>Why is the system slow?</span>
+        <span>Why can't it handle more users?</span>
+        <span>Latency vs Throughput?</span>
+        <span>When should we scale?</span>
+        <span>CPU 60% but latency high?</span>
+      </div>
+    </div>
+
+    <!-- 4 Metrics Overview -->
+    <div class="nc">
+      <p class="nh">The Four Performance Metrics</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Metric</th><th>Definition</th><th>Goal</th><th>Unit</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge bg-blue-100 text-blue-700">Latency</span></td><td>Time to complete one request</td><td>Lower</td><td>ms, sec</td></tr>
+          <tr><td><span class="badge bg-green-100 text-green-700">Throughput</span></td><td>Work completed per unit time</td><td>Higher</td><td>RPS, TPS, MB/s</td></tr>
+          <tr><td><span class="badge bg-violet-100 text-violet-700">Concurrency</span></td><td>Operations executing simultaneously</td><td>Higher (within limits)</td><td>Threads, Connections</td></tr>
+          <tr><td><span class="badge bg-orange-100 text-orange-700">Utilization</span></td><td>Percentage of resource in use</td><td>High, not saturated</td><td>%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Latency -->
+    <div class="nc" style="border-left:4px solid #2563eb">
+      <p class="nh" style="color:#1d4ed8">⏱ Latency — Time for ONE request</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="sub-h text-blue-600">Types</p>
+          <table class="nt">
+            <thead><tr><th>Type</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td>Network</td><td>Client → API</td></tr>
+              <tr><td>Database</td><td>SQL Query</td></tr>
+              <tr><td>Cache</td><td>Redis GET</td></tr>
+              <tr><td>Disk</td><td>SSD Read</td></tr>
+              <tr><td>Processing</td><td>Business Logic</td></tr>
+              <tr><td>Queue</td><td>Kafka Consumer Lag</td></tr>
+              <tr><td>Tail (P95/P99)</td><td>Worst-case response</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="sub-h text-red-500">Common Causes</p>
+          <ul class="dot-ul"><li>Slow database</li><li>Network delays</li><li>Lock contention</li><li>Cache misses</li><li>Long-running queries</li></ul>
+          <p class="sub-h text-green-600 mt-3">How to Reduce</p>
+          <ul class="dot-ul"><li>Caching</li><li>Query optimization</li><li>Async processing</li><li>Reduce network hops</li><li>Read replicas</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Throughput -->
+    <div class="nc" style="border-left:4px solid #16a34a">
+      <p class="nh" style="color:#15803d"> Throughput — Work per unit time</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="sub-h text-green-600">Types</p>
+          <table class="nt">
+            <thead><tr><th>Type</th><th>Unit</th></tr></thead>
+            <tbody>
+              <tr><td>Request</td><td>Requests/sec</td></tr>
+              <tr><td>Transaction</td><td>TPS</td></tr>
+              <tr><td>Message</td><td>Messages/sec</td></tr>
+              <tr><td>Network</td><td>Mbps / Gbps</td></tr>
+              <tr><td>Disk</td><td>MB/sec</td></tr>
+              <tr><td>Batch</td><td>Jobs/hour</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="sub-h text-red-500">Bottlenecks</p>
+          <ul class="dot-ul"><li>CPU saturation</li><li>Database bottleneck</li><li>Network bandwidth</li><li>Disk I/O</li></ul>
+          <p class="sub-h text-green-600 mt-3">How to Improve</p>
+          <ul class="dot-ul"><li>Horizontal scaling</li><li>Batch processing</li><li>Parallel execution</li><li>Load balancing</li><li>Partitioning</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Concurrency -->
+    <div class="nc" style="border-left:4px solid #7c3aed">
+      <p class="nh"> Concurrency — Simultaneous operations</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="sub-h text-violet-600">Types</p>
+          <table class="nt">
+            <thead><tr><th>Type</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td>User</td><td>Active Users</td></tr>
+              <tr><td>Request</td><td>Parallel Requests</td></tr>
+              <tr><td>Thread</td><td>Worker Threads</td></tr>
+              <tr><td>Connection</td><td>HTTP/TCP Connections</td></tr>
+              <tr><td>DB</td><td>Concurrent Transactions</td></tr>
+              <tr><td>Consumer</td><td>Kafka Consumers</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="sub-h text-red-500">Common Problems</p>
+          <ul class="dot-ul"><li>Thread contention</li><li>Lock contention</li><li>Connection pool exhaustion</li><li>Deadlocks</li></ul>
+          <p class="sub-h text-green-600 mt-3">How to Improve</p>
+          <ul class="dot-ul"><li>Async programming</li><li>Thread pools</li><li>Connection pooling</li><li>Event-driven architecture</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utilization -->
+    <div class="nc" style="border-left:4px solid #ea580c">
+      <p class="nh" style="color:#c2410c"> Utilization — Resource usage %</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="sub-h text-orange-600">Types</p>
+          <div class="nkw">
+            <span style="background:#fed7aa;color:#9a3412">CPU %</span>
+            <span style="background:#fed7aa;color:#9a3412">Memory %</span>
+            <span style="background:#fed7aa;color:#9a3412">Disk I/O %</span>
+            <span style="background:#fed7aa;color:#9a3412">Network %</span>
+            <span style="background:#fed7aa;color:#9a3412">DB Connections</span>
+            <span style="background:#fed7aa;color:#9a3412">Thread Pool %</span>
+            <span style="background:#fed7aa;color:#9a3412">Queue %</span>
+            <span style="background:#fed7aa;color:#9a3412">Cache Memory %</span>
+          </div>
+        </div>
+        <div>
+          <p class="sub-h text-red-500">Common Problems</p>
+          <ul class="dot-ul"><li>CPU at 100%</li><li>Memory pressure</li><li>Full connection pool</li><li>Queue saturation</li></ul>
+          <p class="sub-h text-green-600 mt-3">How to Improve</p>
+          <ul class="dot-ul"><li>Auto Scaling</li><li>Capacity planning</li><li>Load balancing</li><li>Resource optimization</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trade-offs -->
+    <div class="nc">
+      <p class="nh">Trade-offs</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Optimize</th><th>Benefit</th><th>Trade-off</th></tr></thead>
+        <tbody>
+          <tr><td>Low Latency</td><td>Better UX</td><td>Lower throughput, higher infra cost</td></tr>
+          <tr><td>High Throughput</td><td>More work/sec</td><td>Higher latency under load</td></tr>
+          <tr><td>High Concurrency</td><td>More simultaneous users</td><td>More contention + memory usage</td></tr>
+          <tr><td>High Utilization</td><td>Better cost efficiency</td><td>Risk of overload &amp; latency spikes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Relationship -->
+    <div class="nc">
+      <p class="nh">How They Relate — The Saturation Chain</p>
+      <div class="ncode">More Concurrency
+  &#8595; Higher Throughput
+  &#8595; Higher CPU Utilization
+  &#8595; System Saturation
+  &#8595; Latency Increases
+  &#8595; Timeouts &amp; Errors</div>
+      <p class="ntip mt-3">The key is finding the <strong>sweet spot before saturation</strong>.</p>
+    </div>
+
+    <!-- Real-World Example -->
+    <div class="nc">
+      <p class="nh">Real-World Example — Flash Sale</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="sub-h text-red-500">What Happens</p>
+          <div class="ncode">Traffic Spike
+  &#8595; Concurrency &#8593;
+  &#8595; Throughput &#8593;
+  &#8595; CPU Utilization 95%
+  &#8595; Latency Increases
+  &#8595; Checkout Slows</div>
+        </div>
+        <div>
+          <p class="sub-h text-green-600">Solutions</p>
+          <ul class="check-ul">
+            <li>Auto Scaling</li>
+            <li>Load Balancer</li>
+            <li>Queue Buffering</li>
+            <li>Rate Limiting</li>
+            <li>Read Replicas</li>
+            <li>Caching</li>
+            <li>Circuit Breakers</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Measure + Optimize tables side by side -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">How to Measure</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Metric</th><th>Measurement</th></tr></thead>
+          <tbody>
+            <tr><td>Latency</td><td>P50, P95, P99</td></tr>
+            <tr><td>Throughput</td><td>RPS, TPS, MB/sec</td></tr>
+            <tr><td>Concurrency</td><td>Active Users, Threads</td></tr>
+            <tr><td>Utilization</td><td>CPU %, Mem %, Disk %</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">How to Optimize</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+          <tbody>
+            <tr><td>High Latency</td><td>Cache, DB Optimize, Read Replicas</td></tr>
+            <tr><td>Low Throughput</td><td>Parallelism, Batch, Scale Out</td></tr>
+            <tr><td>High Concurrency</td><td>Async I/O, Connection Pool</td></tr>
+            <tr><td>High Utilization</td><td>Auto Scale, Load Balance</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Interview Mistakes -->
+    <div class="nc">
+      <p class="nh">Common Interview Mistakes</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1">
+        <p class="text-sm text-red-600">&#10005; Optimizing CPU to 100%</p>
+        <p class="text-sm text-red-600">&#10005; Increasing concurrency before removing bottlenecks</p>
+        <p class="text-sm text-red-600">&#10005; Focusing only on throughput</p>
+        <p class="text-sm text-red-600">&#10005; Ignoring P95/P99 latency</p>
+        <p class="text-sm text-red-600">&#10005; Scaling before identifying the bottleneck</p>
+      </div>
+    </div>
+
+    <!-- Staff Mindset -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Mindset</p>
+      <p class="text-sm text-red-400 line-through mb-2">"How do I reduce latency?"</p>
+      <div class="space-y-1">
+        <p class="text-sm text-green-700 font-medium">&#10003; Which metric is the actual bottleneck?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Can I improve throughput without hurting latency?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Is utilization approaching saturation?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Will increasing concurrency improve capacity or create contention?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; What is the business priority: fast response or high throughput?</p>
+      </div>
+    </div>
+
+    <!-- Golden Rules -->
+    <div class="nc">
+      <p class="nh">Golden Rules</p>
+      <ul class="check-ul mt-1">
+        <li>Lower latency improves user experience.</li>
+        <li>Higher throughput improves scalability.</li>
+        <li>Concurrency increases capacity, but too much causes contention.</li>
+        <li>Keep utilization high, but leave headroom for traffic spikes.</li>
+        <li>Always optimize the bottleneck, not the busiest component.</li>
+        <li>Measure P95/P99 latency, not just averages.</li>
+      </ul>
+    </div>
+
+    <!-- Cheat Sheet code block -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">Latency     &#9474; Network, Database, Cache, Processing, P95/P99
+Throughput  &#9474; Requests/sec, TPS, Messages/sec, MB/sec
+Concurrency &#9474; Users, Threads, Connections, DB Transactions
+Utilization &#9474; CPU %, Memory %, Disk %, Network %, Queue %
+
+Golden Rule: Don&#39;t optimize one metric in isolation.
+            Balance all four based on business requirements.
+Measure &#8594; Analyze &#8594; Optimize &#8594; Validate</div>
+    </div>
+
+    <!-- One-Liner -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Interview One-Liner</p>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        Latency is how fast one request completes, throughput is how much work is completed,
+        concurrency is how many requests run simultaneously, and utilization is how busy the system resources are.
+        <strong class="text-yellow-300">Great distributed systems balance all four metrics instead of optimizing only one.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════ TAB 2 — VISUAL GUIDE ═══════════ -->
+  <div id="tab-image" class="tab-pane pb-16 space-y-5">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Latency, Throughput, Concurrency &amp; Utilization</p>
+      <img src="images/foundation/l1/LatencyThroughput/latency-throughput.png"
+           alt="Latency Throughput Concurrency Utilization visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Bonus — Latency Reduction Techniques by Component</p>
+      <img src="images/foundation/l1/LatencyThroughput/latency-reduction.png"
+           alt="Latency reduction techniques visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

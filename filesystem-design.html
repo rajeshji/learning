@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Filesystem Design — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Filesystem Design</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Filesystem Design</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Inode tables, journaling — ext4, XFS, ZFS — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq"><strong>Applications never write directly to disks.</strong> Data flows through the filesystem, which determines data organization, crash recovery, metadata speed, allocation efficiency, fragmentation, and scalability.</p>
+      <div class="nkw mt-3">
+        <span>Inode</span>
+        <span>Journaling</span>
+        <span>ext4</span>
+        <span>XFS</span>
+        <span>ZFS</span>
+        <span>COW</span>
+        <span>Extents</span>
+        <span>Superblock</span>
+      </div>
+      <div class="ncode">Application → System Calls → Filesystem → Block Layer → SSD/HDD
+
+Disks only understand blocks.
+Filesystems map files → physical disk blocks.</div>
+    </div>
+
+    <!-- Filesystem Architecture -->
+    <div class="nc">
+      <p class="nh">Filesystem Architecture</p>
+      <div class="ncode">Superblock          ← master record (type, block size, free count)
+↓ Free Space Bitmap  ← tracks allocated/free blocks
+↓ Inode Table        ← per-file metadata + block pointers
+↓ Directories        ← filename → inode number mapping
+↓ Data Blocks        ← actual file contents
+↓ Journal / Log      ← crash consistency guarantee</div>
+    </div>
+
+    <!-- Inode -->
+    <div class="nc">
+      <p class="nh">Inode — File Metadata Container</p>
+      <p class="text-sm text-gray-600 mb-2">Every file has one inode. The inode stores metadata — <em>not</em> the filename.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Inode contains</p>
+          <ul class="dot-ul">
+            <li>Owner &amp; Group</li>
+            <li>Permissions</li>
+            <li>File size</li>
+            <li>Timestamps (atime, mtime, ctime)</li>
+            <li>Link count</li>
+            <li>Extents / block pointers</li>
+            <li>Extended attributes</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Lookup chain</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Filename
+↓ Directory Entry
+↓ Inode Number
+↓ Inode (metadata)
+↓ Data Blocks</div>
+          <p class="text-xs text-gray-500 mt-1">Multiple filenames (hard links) can point to the same inode.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Blocks & Extents -->
+    <div class="nc">
+      <p class="nh">Data Blocks &amp; Extents</p>
+      <p class="text-sm text-gray-600 mb-2">File contents live in data blocks. Modern filesystems use <strong>extents</strong> instead of individual block pointers.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Block pointers (old)</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Inode → Block 128
+       → Block 129
+       → Block 130
+       → Block 131
+(1 pointer per block)</div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Extents (modern)</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Inode → Start: 128
+         Length: 4
+(covers blocks 128–131)
+Less metadata overhead,
+better sequential perf.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Crash Consistency -->
+    <div class="nc">
+      <p class="nh">Crash Consistency Problem</p>
+      <div class="ncode">Write Data → Update Metadata → Power Failure
+
+Metadata may now point to incomplete data.
+Without protection → filesystem inconsistent.</div>
+      <p class="text-sm text-gray-600 mt-3 mb-1">Two solutions:</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Journaling (ext4, XFS)</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Write Journal Entry
+↓ Commit Journal
+↓ Update Metadata
+↓ Mark Complete
+
+On crash → replay journal
+→ fast recovery</div>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Copy-on-Write (ZFS)</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Write new block
+↓ Update pointer atomically
+↓ Old block freed later
+
+On crash → old blocks
+still valid → consistent</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journaling Modes -->
+    <div class="nc">
+      <p class="nh">ext4 Journaling Modes</p>
+      <table class="nt">
+        <thead><tr><th>Mode</th><th>Journals</th><th>Performance</th><th>Safety</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Writeback</strong></td><td>Metadata only</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐</td></tr>
+          <tr><td><strong>Ordered</strong> (default)</td><td>Data written before metadata</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+          <tr><td><strong>Journal</strong></td><td>Metadata + Data</td><td>⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Ordered mode is the default — best balance of safety and performance.</p>
+    </div>
+
+    <!-- ext4, XFS, ZFS -->
+    <div class="nc">
+      <p class="nh">Three Filesystem Architectures</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-violet-700">ext4 — Block Groups</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Block Group
+├── Superblock Copy
+├── Block Bitmap
+├── Inode Bitmap
+├── Inode Table
+└── Data Blocks</div>
+          <p class="text-xs text-gray-600 mt-1">Journaling via JBD2, extents, delayed allocation. Mature, low overhead, general-purpose.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">XFS — Allocation Groups</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Filesystem
+├── Allocation Group 1 (own free space + inodes)
+├── Allocation Group 2
+├── Allocation Group 3
+└── Allocation Group 4</div>
+          <p class="text-xs text-gray-600 mt-1">B+Trees for extents, directories, free space. Parallel allocations, minimal contention — scales to petabytes.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">ZFS — Storage Pool + COW</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Application → Dataset → Storage Pool → VDEVs → Disks
+
+Combines: Filesystem + Volume Manager + RAID
+         + Cache + Snapshots + Checksums</div>
+          <p class="text-xs text-gray-600 mt-1">Every block has a checksum. Detects bit rot, silent corruption. Snapshots are native and instant.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Comparison -->
+    <div class="nc">
+      <p class="nh">Performance Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>ext4</th><th>XFS</th><th>ZFS</th></tr></thead>
+        <tbody>
+          <tr><td>Storage Model</td><td>Block Groups</td><td>Allocation Groups</td><td>Storage Pool</td></tr>
+          <tr><td>Consistency</td><td>Journaling (JBD2)</td><td>Metadata Logging</td><td>Copy-on-Write</td></tr>
+          <tr><td>Metadata</td><td>Inode Tables</td><td>B+Trees</td><td>Object-based (Dnodes)</td></tr>
+          <tr><td>Snapshots</td><td>External (LVM)</td><td>External (LVM)</td><td>Native ⭐</td></tr>
+          <tr><td>Checksums</td><td>Limited</td><td>Limited</td><td>End-to-End ⭐</td></tr>
+          <tr><td>Parallel Writes</td><td>Good</td><td>Excellent ⭐</td><td>High</td></tr>
+          <tr><td>Memory Usage</td><td>Low ⭐</td><td>Medium</td><td>High</td></tr>
+          <tr><td>Write Amplification</td><td>Low</td><td>Low</td><td>Higher (COW)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <table class="nt">
+        <thead><tr><th>Workload</th><th>Filesystem</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td><strong>MySQL / PostgreSQL</strong></td><td>ext4 or XFS</td><td>fsync, low latency, predictable journaling</td></tr>
+          <tr><td><strong>Hadoop (HPC)</strong></td><td>XFS</td><td>Parallel writes, B+Tree scalability</td></tr>
+          <tr><td><strong>NAS / Backup</strong></td><td>ZFS</td><td>Snapshots, checksums, self-healing</td></tr>
+          <tr><td><strong>Kubernetes worker node</strong></td><td>ext4</td><td>Simple, stable, low overhead</td></tr>
+          <tr><td><strong>Storage appliance</strong></td><td>ZFS</td><td>End-to-end integrity, compression</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Which filesystem is faster?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Should we use ext4 or XFS?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is the workload metadata-heavy or data-heavy?</li>
+            <li>Are snapshots required?</li>
+            <li>Is silent corruption unacceptable?</li>
+            <li>How many concurrent writers?</li>
+            <li>Is write amplification acceptable?</li>
+            <li>What is the RTO after a crash?</li>
+            <li>Is memory available for ZFS ARC?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Long fsck Time</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Large ext4 filesystem, dirty journal &nbsp;·&nbsp; <strong>Fix:</strong> Use journaling correctly, monitor filesystem health</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Metadata Bottleneck</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Millions of parallel file creates on ext4 &nbsp;·&nbsp; <strong>Fix:</strong> Switch to XFS with multiple Allocation Groups</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Silent Data Corruption</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Disk bit rot on ext4/XFS &nbsp;·&nbsp; <strong>Fix:</strong> Use ZFS with checksumming + periodic scrubs</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Snapshot Operations</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> LVM snapshots on ext4/XFS &nbsp;·&nbsp; <strong>Fix:</strong> Use native ZFS snapshots</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High Memory Usage</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> ZFS ARC consuming all RAM &nbsp;·&nbsp; <strong>Fix:</strong> Tune <code>zfs_arc_max</code> based on available memory</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Requirement</th><th>Recommended</th></tr></thead>
+        <tbody>
+          <tr><td>General Linux Server</td><td>ext4</td></tr>
+          <tr><td>High Parallel Writes</td><td>XFS</td></tr>
+          <tr><td>Enterprise NAS</td><td>ZFS</td></tr>
+          <tr><td>Database Server</td><td>ext4 / XFS</td></tr>
+          <tr><td>VM Images</td><td>XFS / ZFS</td></tr>
+          <tr><td>Data Integrity Critical</td><td>ZFS</td></tr>
+          <tr><td>Simple Administration</td><td>ext4</td></tr>
+          <tr><td>Snapshot-heavy Workloads</td><td>ZFS</td></tr>
+          <tr><td>HPC / Hadoop</td><td>XFS</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Measure disk latency: <code>iostat -x 1</code></li>
+        <li class="text-sm text-gray-700">✅ Check inode usage: <code>df -i</code></li>
+        <li class="text-sm text-gray-700">✅ Monitor free space fragmentation</li>
+        <li class="text-sm text-gray-700">✅ Review journal/log activity</li>
+        <li class="text-sm text-gray-700">✅ Check filesystem health: <code>fsck</code> / <code>xfs_repair</code> / <code>zpool status</code></li>
+        <li class="text-sm text-gray-700">✅ Monitor snapshot growth</li>
+        <li class="text-sm text-gray-700">✅ Schedule periodic ZFS scrubs</li>
+        <li class="text-sm text-gray-700">✅ Benchmark before changing filesystem type</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Inodes
+• Store file metadata + block mappings
+• Directories just map filenames → inode numbers
+• Hard links: multiple names, one inode
+
+Journaling (ext4, XFS)
+• Log metadata intent before applying changes
+• Fast crash recovery via journal replay
+• ext4 default: ordered mode (data before metadata)
+
+Copy-on-Write (ZFS)
+• New blocks written, pointer atomically switched
+• Crash consistency built in — no journal needed
+• Enables free, instant snapshots
+
+ext4  → General-purpose, low overhead, stable
+XFS   → Parallel allocations, B+Tree, large-scale
+ZFS   → End-to-end checksums, native snapshots,
+        self-healing, built-in RAID + volume mgmt
+
+Staff picks filesystem based on:
+• Latency, concurrency, integrity, snapshots,
+  memory budget, operational simplicity</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/33326470-210b-4920-af11-e71cb9850f3e.png"
+        alt="Filesystem Design visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

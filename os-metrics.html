@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OS Metrics: Load Average, Run Queue &amp; Context Switches</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">OS Metrics: Load Average, Run Queue &amp; Context Switches</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">OS Metrics: Load Average, Run Queue &amp; Context Switches</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Scheduler Pressure &bull; CPU Saturation Detection &bull; Latency Correlation &bull; Production Diagnosis</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea — Three Metrics, One Story</p>
+      <p class="nq">CPU utilization at 75% tells you almost nothing on its own. Load average 12, run queue 10, and context switches at 80K/sec on an 8-core server tell you the system is saturated. These three metrics form a chain — read them together.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-green-700 mb-1">Load Average</p>
+          <p class="text-xs text-gray-600">Overall system demand — runnable + uninterruptible I/O tasks over 1m / 5m / 15m. <strong>How much work exists?</strong></p>
+          <p class="text-xs font-mono text-green-600 mt-1"><code>uptime</code></p>
+        </div>
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-blue-700 mb-1">Run Queue Length</p>
+          <p class="text-xs text-gray-600">Runnable threads waiting for CPU right now. Best real-time CPU pressure signal. <strong>How many tasks waiting?</strong></p>
+          <p class="text-xs font-mono text-blue-600 mt-1"><code>vmstat 1</code> → r col</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-violet-700 mb-1">Context Switches/sec</p>
+          <p class="text-xs text-gray-600">Voluntary + involuntary CPU switches per second. Measures scheduler overhead. <strong>How much CPU wasted switching?</strong></p>
+          <p class="text-xs font-mono text-violet-600 mt-1"><code>vmstat 1</code> → cs col</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deep dive: Load Average -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">1. Load Average — Deep Dive</p>
+        <p class="text-xs text-gray-600 mb-2">Load average is the <strong>exponential moving average</strong> of runnable (R) and uninterruptible sleeping (D) tasks over 1, 5, and 15 minute windows.</p>
+        <div class="ncode" style="font-size:.72rem"># uptime output
+ 14:35:22 up 7 days,  load average: 3.42, 5.10, 6.78
+                                     1m    5m    15m
+
+# What each window tells you
+1m  → current pressure (right now)
+5m  → recent trend (last 5 min)
+15m → baseline (stable background)
+
+# Key: compare against CPU core count
+nproc  # or: lscpu | grep "CPU(s)"</div>
+        <p class="sub-h">Interpretation (8-core server)</p>
+        <table class="nt">
+          <thead><tr><th>Load Avg</th><th>Meaning</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td class="text-green-600">&le; 4</td><td>Plenty of headroom</td><td>Monitor normally</td></tr>
+            <tr><td class="text-green-600">4 – 8</td><td>Healthy, fully utilized</td><td>Watch for growth</td></tr>
+            <tr><td class="text-amber-600">8 – 12</td><td>At capacity, some wait</td><td>Investigate run queue</td></tr>
+            <tr><td class="text-red-500">&gt; 12</td><td>Saturated — tasks waiting</td><td>Act now</td></tr>
+            <tr><td class="text-red-700">&gt; 25</td><td>Severe overload</td><td>Immediate action</td></tr>
+          </tbody>
+        </table>
+        <p class="ntip mt-2"><strong>Trap:</strong> High load average with low CPU % usually means processes are blocked on I/O (D state) — not a CPU problem. Always check run queue AND iowait together.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">2. Run Queue Length — Deep Dive</p>
+        <p class="text-xs text-gray-600 mb-2">Run queue shows tasks <strong>ready to run but waiting</strong> for a CPU core right now. Unlike load average it is instantaneous — ideal for real-time diagnosis.</p>
+        <div class="ncode" style="font-size:.72rem"># vmstat 1 output
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 12  2      0 142344 182916 2.4g    0    0     0   142  832 45023  68  8  23  1  0
+
+r = 12  → 12 tasks in run queue
+b = 2   → 2 tasks blocked (D state, I/O)
+cs      → context switches/sec
+
+On 8 cores: r=12 means 4 tasks waiting → SATURATED</div>
+        <p class="sub-h">Healthy Values</p>
+        <table class="nt">
+          <thead><tr><th>Run Queue (r)</th><th>vs Core Count</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td class="text-green-600">&lt; cores</td><td>Under-utilized</td><td class="text-green-600">Idle / headroom</td></tr>
+            <tr><td class="text-green-600">= cores</td><td>Fully utilized</td><td class="text-green-600">Healthy</td></tr>
+            <tr><td class="text-amber-600">&gt; cores</td><td>Over-utilized</td><td class="text-amber-600">Saturation begins</td></tr>
+            <tr><td class="text-red-500">&gt;&gt; cores</td><td>Much higher</td><td class="text-red-500">Scheduler bottleneck</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h mt-2">Commands</p>
+        <div class="ncode" style="font-size:.7rem">vmstat 1       # r column — run queue
+top            # load average header
+sar -q 1       # run queue + load over time
+cat /proc/loadavg</div>
+      </div>
+    </div>
+
+    <!-- Context Switches Deep Dive -->
+    <div class="nc">
+      <p class="nh">3. Context Switches/sec — Deep Dive</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs text-gray-600 mb-2">Every context switch: saves registers, loads another task's state, disrupts cache and TLB. Millions of switches per second = significant CPU overhead with no useful work done.</p>
+          <p class="sub-h">Voluntary vs Involuntary</p>
+          <table class="nt">
+            <thead><tr><th>Type</th><th>Cause</th><th>Signal</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Voluntary</strong></td><td>Thread blocks on I/O, lock, sleep</td><td>I/O or lock contention</td></tr>
+              <tr><td><strong>Involuntary</strong></td><td>Time slice expires — OS preempts</td><td>Thread oversubscription</td></tr>
+            </tbody>
+          </table>
+          <p class="sub-h">What High Context Switches Indicate</p>
+          <ul class="dot-ul">
+            <li>Too many runnable threads (oversubscription)</li>
+            <li>Frequent blocking I/O (network / disk wait)</li>
+            <li>Lock contention — threads blocking on mutexes</li>
+            <li>Excessive syscall frequency</li>
+            <li>Poorly tuned thread pools</li>
+          </ul>
+        </div>
+        <div>
+          <p class="sub-h">Reference Ranges</p>
+          <table class="nt">
+            <thead><tr><th>Context Switches/sec</th><th>Typical Meaning</th></tr></thead>
+            <tbody>
+              <tr><td class="text-green-600">&lt; 10K</td><td>Low — idle / lightly loaded</td></tr>
+              <tr><td class="text-green-600">10K – 40K</td><td>Moderate — healthy, fully utilized</td></tr>
+              <tr><td class="text-amber-600">40K – 100K</td><td>High — approaching saturation</td></tr>
+              <tr><td class="text-red-500">&gt; 100K</td><td>Very high — CPU saturated / overloaded</td></tr>
+            </tbody>
+          </table>
+          <p class="sub-h">Commands</p>
+          <div class="ncode" style="font-size:.7rem">vmstat 1          # cs column (system-wide)
+pidstat -w 1      # per-process voluntary + involuntary
+perf sched record # full scheduler trace
+perf sched timehist # latency per task
+cat /proc/PID/status | grep ctxt</div>
+          <p class="ntip mt-2">On a single server, context switches &gt; 40–100K/sec is usually a red flag. Context switches are the <em>cost of scheduling inefficiency</em>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- How they work together + Quick Guide -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">How They Work Together — The Chain</p>
+        <div class="ncode">More requests / work arrives
+  ↓ More runnable threads created
+  ↓ Run Queue Length increases
+  ↓ Load Average rises (1m first, then 5m/15m)
+  ↓ Context Switches increase (scheduler busier)
+  ↓ CPU Saturation begins
+  ↓ Cache / TLB pollution per switch
+  ↓ Higher P95 / P99 latency (scheduler delay)
+  ↓ Throughput plateaus — then drops</div>
+        <p class="sub-h mt-2">Metric Layer Summary</p>
+        <table class="nt">
+          <thead><tr><th>Metric</th><th>Layer</th><th>What It Reveals</th></tr></thead>
+          <tbody>
+            <tr><td>Load Average</td><td>System</td><td>Overall workload pressure (incl. I/O)</td></tr>
+            <tr><td>Run Queue</td><td>Scheduler</td><td>CPU-specific waiting tasks (instant)</td></tr>
+            <tr><td>Context Switches</td><td>CPU</td><td>Scheduler overhead cost</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Quick Interpretation Guide (8-core example)</p>
+        <table class="nt mt-1">
+          <thead><tr><th>CPU Cores</th><th>Load Avg</th><th>Run Queue</th><th>Ctx Sw/s</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td>8</td><td class="text-green-600">&le; 2</td><td class="text-green-600">&lt; cores</td><td class="text-green-600">&lt; 10K</td><td class="text-green-600">Idle</td></tr>
+            <tr><td>8</td><td class="text-green-600">4 – 8</td><td class="text-green-600">= cores</td><td class="text-green-600">10–40K</td><td class="text-green-600">Healthy</td></tr>
+            <tr><td>8</td><td class="text-amber-600">8 – 12</td><td class="text-amber-600">&gt; cores</td><td class="text-amber-600">40–100K</td><td class="text-amber-600">High / At Risk</td></tr>
+            <tr><td>8</td><td class="text-red-500">&gt; 12</td><td class="text-red-500">&gt;&gt; cores</td><td class="text-red-500">&gt; 100K</td><td class="text-red-500">Saturated</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h mt-2">Rules of Thumb</p>
+        <ul class="dot-ul">
+          <li>Load avg &gt; CPU cores → CPU is likely saturated</li>
+          <li>Run queue &gt; CPU cores → tasks waiting for CPU</li>
+          <li>Context switches &gt; 40K/sec → usually a red flag</li>
+          <li>High load + low CPU% → check I/O wait (D state tasks)</li>
+          <li>Keep CPU utilization at 60–80% for best latency/throughput balance</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Real World + Common Patterns -->
+    <div class="nc">
+      <p class="nh">Real-World Examples &amp; Common Patterns</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1 mb-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-2">Web Server (Nginx) — Saturated</p>
+          <div class="ncode" style="font-size:.68rem; padding:.5rem .7rem">Cores: 8
+Load avg: 15 (1m)
+Run queue: 12
+Ctx switches: 90K/s</div>
+          <p class="text-xs text-gray-600 mt-2">CPU saturated. Requests waiting. P99 rising. Fix: reduce blocking, tune workers, scale out.</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3">
+          <p class="text-xs font-black text-green-700 mb-2">DB Server (PostgreSQL) — Healthy</p>
+          <div class="ncode" style="font-size:.68rem; padding:.5rem .7rem">Cores: 16
+Load avg: 6 (1m)
+Run queue: 2
+Ctx switches: 8K/s</div>
+          <p class="text-xs text-gray-600 mt-2">Healthy. No CPU bottleneck. Latency likely caused by I/O or query plans — investigate differently.</p>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-black text-red-700 mb-2">Kubernetes Node — Overloaded</p>
+          <div class="ncode" style="font-size:.68rem; padding:.5rem .7rem">Cores: 8
+Load avg: 22 (1m)
+Run queue: 18
+Ctx switches: 120K/s</div>
+          <p class="text-xs text-gray-600 mt-2">Too many pods competing. Fix: CPU quotas, reduce oversubscription, scale cluster.</p>
+        </div>
+      </div>
+      <p class="nh">Common Pattern Diagnosis</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Pattern</th><th>Load Avg</th><th>Run Queue</th><th>Ctx Sw</th><th>Likely Cause</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td class="text-green-600">Healthy</td><td>= cores</td><td>= cores or less</td><td>Stable</td><td>Good balance</td><td>Keep monitoring</td></tr>
+          <tr><td class="text-red-500">CPU Saturated</td><td>&gt; cores</td><td>&gt; cores</td><td>High</td><td>Too many tasks competing</td><td>Scale out / reduce concurrency</td></tr>
+          <tr><td class="text-amber-600">I/O Bound</td><td>&gt; cores</td><td>Low</td><td>Low–Moderate</td><td>Tasks waiting on I/O (D state)</td><td>Optimize I/O, check disks/network</td></tr>
+          <tr><td class="text-orange-600">Over-Threaded</td><td>&gt; cores</td><td>&gt;&gt; cores</td><td>Very High</td><td>Too many runnable threads</td><td>Reduce thread pool, use async I/O</td></tr>
+          <tr><td class="text-purple-600">VM Contention</td><td>High</td><td>High</td><td>High</td><td>CPU stolen by hypervisor (%steal)</td><td>Move to dedicated host / resize</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tools + What to do when saturated -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Observability Tools — Complete Reference</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Tool</th><th>Shows</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td><code>uptime</code></td><td>Load avg 1/5/15m</td><td><code>uptime</code></td></tr>
+            <tr><td><code>top</code> / <code>htop</code></td><td>Load, CPU%, run queue (r)</td><td><code>top</code></td></tr>
+            <tr><td><code>vmstat 1</code></td><td>r (run queue), b (blocked), cs (ctx sw)</td><td><code>vmstat 1</code></td></tr>
+            <tr><td><code>pidstat -w 1</code></td><td>Per-process ctx switches</td><td><code>pidstat -w 1</code></td></tr>
+            <tr><td><code>sar -q 1</code></td><td>Run queue + load stats</td><td><code>sar -q 1</code></td></tr>
+            <tr><td><code>mpstat -P ALL 1</code></td><td>Per-core CPU breakdown</td><td><code>mpstat -P ALL 1</code></td></tr>
+            <tr><td><code>perf sched</code></td><td>Scheduler latency analysis</td><td><code>perf sched timehist</code></td></tr>
+            <tr><td><code>dstat -cd 1</code></td><td>Combined real-time view</td><td><code>dstat -cd 1</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">What To Do When Saturated</p>
+        <div class="space-y-1.5">
+          <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 flex gap-2 items-start">
+            <p class="text-xs font-bold text-blue-700 w-36 shrink-0">Scale Out (Add CPUs)</p>
+            <p class="text-xs text-gray-600">More CPU capacity → shorter run queues</p>
+          </div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 flex gap-2 items-start">
+            <p class="text-xs font-bold text-green-700 w-36 shrink-0">Reduce Concurrency</p>
+            <p class="text-xs text-gray-600">Fewer threads → less contention, less switching</p>
+          </div>
+          <div class="bg-violet-50 border border-violet-100 rounded-lg p-2 flex gap-2 items-start">
+            <p class="text-xs font-bold text-violet-700 w-36 shrink-0">Optimize Code</p>
+            <p class="text-xs text-gray-600">Lower CPU time per request → less load per req</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-2 flex gap-2 items-start">
+            <p class="text-xs font-bold text-amber-700 w-36 shrink-0">Async / Non-blocking</p>
+            <p class="text-xs text-gray-600">Fewer threads → less scheduling pressure</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-2 flex gap-2 items-start">
+            <p class="text-xs font-bold text-orange-700 w-36 shrink-0">Improve I/O</p>
+            <p class="text-xs text-gray-600">Reduce I/O wait → lower load average</p>
+          </div>
+          <div class="bg-pink-50 border border-pink-100 rounded-lg p-2 flex gap-2 items-start">
+            <p class="text-xs font-bold text-pink-700 w-36 shrink-0">CPU Affinity</p>
+            <p class="text-xs text-gray-600">Better cache locality, fewer migrations</p>
+          </div>
+        </div>
+        <p class="sub-h mt-2">Engineer Progression</p>
+        <div class="space-y-1">
+          <div class="bg-gray-50 border border-gray-200 rounded p-2 text-xs"><span class="font-bold text-gray-500">Junior:</span> "CPU is high."</div>
+          <div class="bg-blue-50 border border-blue-100 rounded p-2 text-xs"><span class="font-bold text-blue-700">Senior:</span> "Load avg is 15 on 8 cores — that's bad."</div>
+          <div class="bg-violet-50 border border-violet-100 rounded p-2 text-xs"><span class="font-bold text-violet-700">Staff:</span> Run queue growing? Ctx switches vs load balanced? I/O or CPU bound? Optimize or scale?</div>
+          <div class="bg-purple-50 border border-purple-200 rounded p-2 text-xs"><span class="font-bold text-purple-700">Principal:</span> Correlate load/queue/ctx with P99 latency. Set SLOs on scheduler pressure, not just CPU%.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">Load Average
+  Exponential moving average of runnable (R) + uninterruptible (D) tasks
+  Windows: 1m (now), 5m (recent), 15m (baseline)
+  Rule: Load avg &gt; CPU cores → likely saturated
+  Command: uptime   or   cat /proc/loadavg
+
+Run Queue Length
+  Runnable tasks waiting for CPU RIGHT NOW
+  Instantaneous (unlike load avg which is smoothed)
+  Rule: r &gt; CPU cores → saturation starts
+  Command: vmstat 1  (r column)
+
+Context Switches / sec
+  Voluntary:   thread blocks (I/O, lock, sleep)
+  Involuntary: time slice expires (preemption)
+  High cs → too many threads / oversubscription / lock contention
+  Ranges: &lt;10K=low, 10–40K=healthy, 40–100K=high, &gt;100K=saturated
+  Commands: vmstat 1 (cs col), pidstat -w 1, perf sched timehist
+
+How they connect
+  More requests → run queue grows → load avg rises
+  → ctx switches increase → CPU saturated
+  → P95/P99 latency spikes → throughput plateaus
+
+Common patterns
+  High load + high run queue  → CPU saturated (scale / reduce concurrency)
+  High load + low run queue   → I/O bound (check %iowait, disk, network)
+  High ctx sw + low CPU%      → too many threads (reduce or go async)
+  High steal time             → noisy neighbour VM (move host)
+
+Tools: uptime | vmstat 1 | pidstat -w 1 | sar -q 1 | mpstat -P ALL 1 | perf sched
+
+Final: High CPU utilization is not always the problem.
+       High load average with a long run queue IS the real warning.</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Load Average</strong> — system demand including I/O. Smoothed over time. Compare against core count.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Run Queue</strong> — CPU-specific instant pressure. Best real-time saturation signal. Should stay near core count.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Context Switches</strong> — scheduler overhead. High = too many threads, lock contention, or I/O blocking.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Read together</strong> — never in isolation. Correlate with P99 latency to find the real bottleneck.</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Staff Engineers diagnose performance by correlating load average, run queue, context switches, CPU utilization, and P95/P99 latency before deciding whether to optimize code, tune thread pools, or scale infrastructure. The goal: CPUs busy but not saturated, queues short, latency predictable.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/OSMetrics/os-metrics.png"
+           alt="OS Metrics visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

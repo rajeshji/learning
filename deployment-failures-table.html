@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Deployment Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#9a3412; border-bottom-color:#9a3412; }
+    .tab-btn:hover:not(.active) { color:#431407; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fff7ed; border:1px solid #fed7aa; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#9a3412; margin-bottom:.6rem; }
+    .ncode{ background:#431407; color:#fed7aa; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fed7aa; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#7c2d12; color:#fed7aa; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #ffedd5;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fff7ed; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#9a3412; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#7c2d12; color:#fed7aa; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #ffedd5; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-orange-900 hover:text-orange-950 font-semibold
+              bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-orange-900 font-semibold">Deployment Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-orange-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Deployment Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 10 categories · 40 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why Deployment Failures Are the Most Common Real-World Outage Cause</p>
+      <div class="ncode">Deployments modify: code + infra + config + schema + routing + dependencies
+Even a healthy system can fail instantly after deployment
+
+10 root failure classes:
+  availability | performance regression | partial deployment | schema migration
+  traffic shifting | config/secrets | CI/CD pipeline | distributed deploy | observability | multi-region</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Deployment Availability Failures</td></tr>
+          <tr>
+            <td>Deployment Causes Service Crash<span class="badge-crit">Must Know</span></td>
+            <td>Bad binary, runtime error, or missing config causes new pods/instances to crash-loop</td>
+            <td>CrashLoopBackOff, restart spike, error rate goes to 100%</td>
+            <td>Rollback deployment immediately to last stable version</td>
+            <td>Canary deployments, smoke tests on first instance before fleet rollout</td>
+            <td class="casc">Full service outage if all instances updated before crash detected</td>
+            <td class="troff">Canary rollout slows deployment velocity significantly</td>
+          </tr>
+          <tr>
+            <td>Pods Fail To Start<span class="badge-crit">Must Know</span></td>
+            <td>Missing env var, unavailable dependency, or wrong image tag on startup</td>
+            <td>Startup failure logs, ImagePullBackOff, pod stuck in Pending/Init</td>
+            <td>Rollback, inject missing config, fix image reference</td>
+            <td>Pre-deployment validation (config linting, image existence check)</td>
+            <td class="casc">Capacity reduction — no new instances launch, old ones drain away</td>
+            <td class="troff">Pre-deploy validation adds CI pipeline steps and time</td>
+          </tr>
+          <tr>
+            <td>Health Check Failure After Deploy</td>
+            <td>New version starts but fails readiness/liveness probe — not ready to serve</td>
+            <td>Readiness probe failures, instance never joins load balancer</td>
+            <td>Remove unhealthy instances from LB, rollback</td>
+            <td>Progressive rollout with readiness gate before proceeding</td>
+            <td class="casc">Traffic routed to remaining old instances — overload if too few remain</td>
+            <td class="troff">Stricter readiness checks slow time-to-serve for each new instance</td>
+          </tr>
+          <tr>
+            <td>Rolling Deployment Capacity Drop</td>
+            <td>Too many instances replaced simultaneously — available capacity drops below load</td>
+            <td>Traffic saturation on remaining instances, error rate rising during rollout</td>
+            <td>Pause rollout, scale up old version to handle load</td>
+            <td>Controlled rollout concurrency (maxUnavailable ≤ 25%), pre-scale before rollout</td>
+            <td class="casc">System overload → cascading timeouts on all remaining healthy instances</td>
+            <td class="troff">Conservative concurrency (slow rollout) extends deployment windows</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Performance and Resource Regression Failures</td></tr>
+          <tr>
+            <td>CPU Regression<span class="badge-crit">Must Know</span></td>
+            <td>New code is computationally expensive — CPU spikes across the fleet after deploy</td>
+            <td>CPU metric spike correlated with deployment timestamp</td>
+            <td>Rollback, or horizontal scale-out as temporary relief</td>
+            <td>Performance benchmarking in CI, CPU regression detection on canary</td>
+            <td class="casc">Autoscaling storm → compute bill explosion + scaling lag causing timeouts</td>
+            <td class="troff">Performance benchmarking adds significant CI time per build</td>
+          </tr>
+          <tr>
+            <td>Memory Leak After Deployment<span class="badge-crit">Must Know</span></td>
+            <td>New code introduces memory leak — heap grows steadily until OOM kill</td>
+            <td>Heap growth trend post-deploy, OOM kills, pod restarts increasing over time</td>
+            <td>Restart pods to reset heap, rollback while investigating</td>
+            <td>Memory profiling in staging, heap growth canary detection</td>
+            <td class="casc">Crash loops across fleet — all instances OOM simultaneously after hours</td>
+            <td class="troff">Memory profiling adds staging overhead; leak may only appear under prod load</td>
+          </tr>
+          <tr>
+            <td>Latency Regression<span class="badge-crit">Must Know</span></td>
+            <td>New code introduces slow path — P99 latency spikes after deployment</td>
+            <td>P95/P99 latency spike correlated with deployment, user complaints</td>
+            <td>Rollback, apply circuit breaker to affected endpoints</td>
+            <td>Benchmark testing in CI, latency canary gate before fleet rollout</td>
+            <td class="casc">Retry storm — high latency causes clients to retry → amplifies load further</td>
+            <td class="troff">Latency gates slow release cadence and require stable staging load</td>
+          </tr>
+          <tr>
+            <td>Thread Pool Exhaustion</td>
+            <td>New code introduces blocking calls — threads park on IO, pool fills</td>
+            <td>Request queue growth, thread pool saturation metric spike</td>
+            <td>Scale out, restart instances, rollback</td>
+            <td>Load testing with concurrency, async IO review in code review</td>
+            <td class="casc">Timeout cascade — all APIs slow as threads are unavailable for new requests</td>
+            <td class="troff">Async IO review adds code review time; load testing requires realistic traffic shape</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Partial Deployment and Version Incompatibility Failures</td></tr>
+          <tr>
+            <td>Mixed-Version Incompatibility<span class="badge-crit">Must Know</span></td>
+            <td>Old and new version services with incompatible APIs running simultaneously</td>
+            <td>Serialization errors, 400/500 spikes from service-to-service calls</td>
+            <td>Rollback newer version to restore single version</td>
+            <td>Backward-compatible changes only during rollout, consumer-driven contract testing</td>
+            <td class="casc">Cross-service failures — every call between old→new or new→old fails</td>
+            <td class="troff">Backward compatibility slows API evolution and adds maintenance overhead</td>
+          </tr>
+          <tr>
+            <td>Partial Deployment State<span class="badge-crit">Must Know</span></td>
+            <td>Rollout interrupted — fleet split between old and new version indefinitely</td>
+            <td>Some nodes behaving differently, inconsistent responses for same request</td>
+            <td>Complete rollout or rollback to single version</td>
+            <td>Atomic deployment orchestration with all-or-nothing guarantee</td>
+            <td class="casc">Inconsistent user experience — same user hits different behaviour on each request</td>
+            <td class="troff">All-or-nothing deploys lose the safety of gradual rollout</td>
+          </tr>
+          <tr>
+            <td>API Contract Mismatch<span class="badge-crit">Must Know</span></td>
+            <td>Request/response schema changed without coordination — consumers break</td>
+            <td>Deserialization failures, unexpected null fields, 400 error spikes</td>
+            <td>Apply API version fallback, serve old schema from new version</td>
+            <td>Consumer-driven contract testing (Pact), API versioning, schema registry</td>
+            <td class="casc">All downstream services fail — every consumer of the changed API breaks</td>
+            <td class="troff">Contract testing requires both producer and consumer teams to participate</td>
+          </tr>
+          <tr>
+            <td>Client-Server Compatibility Failure</td>
+            <td>Old mobile/web clients hit new server API — existing clients see errors</td>
+            <td>Old client user agent error spike, increased 4xx for specific client versions</td>
+            <td>API version fallback, restore old endpoint alongside new</td>
+            <td>Backward-compatible APIs, deprecation warnings well ahead of removal</td>
+            <td class="casc">Mobile/web app breakage at scale — all users with old app version affected</td>
+            <td class="troff">Multi-version API support increases server-side complexity and maintenance cost</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Database and Schema Migration Failures</td></tr>
+          <tr>
+            <td>Breaking Schema Migration<span class="badge-crit">Must Know</span></td>
+            <td>New schema incompatible with old code — old code cannot read/write new schema</td>
+            <td>Query failures, column not found errors, DB error spike after migration</td>
+            <td>Rollback schema, apply emergency compatibility patch</td>
+            <td>Expand-contract pattern — add column/table first, migrate data, then remove old</td>
+            <td class="casc">Global service outage — all instances using DB fail immediately</td>
+            <td class="troff">Expand-contract migrations are multi-step and span multiple deployment cycles</td>
+          </tr>
+          <tr>
+            <td>Long-Running Migration Lock<span class="badge-crit">Must Know</span></td>
+            <td>Large ALTER TABLE blocks all concurrent reads/writes for duration of migration</td>
+            <td>DB lock wait spike, all queries timing out, connection pool exhaustion</td>
+            <td>Kill migration, use online schema change tool (pt-online-schema-change, gh-ost)</td>
+            <td>Online schema change tools, never ALTER TABLE on large tables in production</td>
+            <td class="casc">DB-wide slowdown — all services sharing the DB timeout simultaneously</td>
+            <td class="troff">Online schema change tools add operational complexity and take longer</td>
+          </tr>
+          <tr>
+            <td>Partial Data Migration</td>
+            <td>Migration interrupted mid-run — some rows migrated, some not</td>
+            <td>Missing or inconsistent data, business logic behaves differently per row</td>
+            <td>Resume or rollback migration, reconcile affected data</td>
+            <td>Idempotent migrations with row-level progress tracking</td>
+            <td class="casc">Corrupted business state — some records in old format, some in new</td>
+            <td class="troff">Idempotent migration design is significantly more complex to implement</td>
+          </tr>
+          <tr>
+            <td>Rollback Impossible After Schema Change</td>
+            <td>Destructive schema change (column drop) — rollback code would fail without that column</td>
+            <td>Rollback attempt fails with schema error</td>
+            <td>Emergency compatibility patch in code, restore from backup in worst case</td>
+            <td>Never drop columns/tables before all code references removed (expand-contract)</td>
+            <td class="casc">Prolonged outage — cannot roll back, must fix forward under pressure</td>
+            <td class="troff">Two-phase schema changes take multiple deployment cycles</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Traffic Shifting and Routing Failures</td></tr>
+          <tr>
+            <td>Canary Deployment Failure<span class="badge-crit">Must Know</span></td>
+            <td>Canary version unhealthy but analysis gates not catching it fast enough</td>
+            <td>Error rate spike on canary instances, user complaints from canary cohort</td>
+            <td>Abort canary, route all traffic back to stable version</td>
+            <td>Strict canary error/latency gates before promotion, small canary percentage (1-5%)</td>
+            <td class="casc">Partial user outage — canary traffic segment experiences degraded service</td>
+            <td class="troff">Small canary % means longer validation time before fleet-wide rollout</td>
+          </tr>
+          <tr>
+            <td>Blue-Green Switch Failure<span class="badge-crit">Must Know</span></td>
+            <td>Traffic cutover from blue to green fails or green is unhealthy at switch time</td>
+            <td>Sudden error spike immediately after traffic cut, green health checks failing</td>
+            <td>Revert traffic to blue immediately</td>
+            <td>Health check green thoroughly before cutover, staged switching by user segment</td>
+            <td class="casc">Global downtime — all traffic briefly to unhealthy green before revert</td>
+            <td class="troff">Blue-green requires double infrastructure during deployment window</td>
+          </tr>
+          <tr>
+            <td>Traffic Blackholing After Deploy<span class="badge-crit">Must Know</span></td>
+            <td>Wrong routing rule deployed — requests silently dropped or misrouted</td>
+            <td>Timeout spike on client side with no errors on server side (silent drop)</td>
+            <td>Restore correct routing rules, rollback route change</td>
+            <td>Route validation in CI, synthetic probes from client perspective after deploy</td>
+            <td class="casc">Retry storm — clients retry silently dropped requests → amplification</td>
+            <td class="troff">More routing validation adds deploy time; client-perspective probes need infra</td>
+          </tr>
+          <tr>
+            <td>Uneven Traffic Distribution</td>
+            <td>LB misconfiguration after deploy — traffic concentrated on subset of instances</td>
+            <td>Hot instances at 100% CPU, others idle, uneven request metrics</td>
+            <td>Rebalance traffic, fix LB weights</td>
+            <td>LB config testing in staging, gradual traffic shift with distribution monitoring</td>
+            <td class="casc">Partial overload — hot instances fail → traffic concentrates further</td>
+            <td class="troff">Complex LB config testing requires realistic traffic simulation</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Configuration and Secret Deployment Failures</td></tr>
+          <tr>
+            <td>Bad Configuration Deployment<span class="badge-crit">Must Know</span></td>
+            <td>Wrong timeout, retry count, endpoint URL, or feature flag pushed to production</td>
+            <td>Traffic anomalies, error rate change, unexpected behaviour immediately after config push</td>
+            <td>Rollback config immediately, restore known-good config</td>
+            <td>Config validation in CI, canary config rollout, config schema enforcement</td>
+            <td class="casc">System-wide instability — wrong timeouts cause retry storms or silent failures</td>
+            <td class="troff">Config validation adds complexity; too strict blocks legitimate emergency config changes</td>
+          </tr>
+          <tr>
+            <td>Secret / Key Rotation Failure<span class="badge-crit">Must Know</span></td>
+            <td>New key deployed without overlap period — old key still used by some services</td>
+            <td>Auth failures, decryption errors, services using old key rejected</td>
+            <td>Dual-key support — accept both old and new key during transition</td>
+            <td>Graceful key rotation with overlap window, automated rotation testing</td>
+            <td class="casc">Global auth failures — all services still using old key cannot authenticate</td>
+            <td class="troff">Dual-key overlap period means old (possibly compromised) key still valid temporarily</td>
+          </tr>
+          <tr>
+            <td>Missing Environment Variables</td>
+            <td>Config not injected into new deployment — service starts with missing required vars</td>
+            <td>Startup failures, service crashes on first config access, panic on nil pointer</td>
+            <td>Inject missing vars, restart pods</td>
+            <td>Config templates, startup validation that asserts all required vars present</td>
+            <td class="casc">Deployment blocked — no new instances start, old capacity drains</td>
+            <td class="troff">Startup config validation delays first request but catches misconfiguration early</td>
+          </tr>
+          <tr>
+            <td>Feature Flag Misconfiguration</td>
+            <td>Wrong feature flag state deployed — unintended feature enabled or disabled in prod</td>
+            <td>Unexpected user-visible behaviour, A/B experiment data looks wrong</td>
+            <td>Disable flag immediately, restore previous flag state</td>
+            <td>Flag change review process, canary flag rollout, kill switch for every flag</td>
+            <td class="casc">Partial service degradation — affected feature path broken for all users</td>
+            <td class="troff">More flag review process slows experimentation velocity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — CI/CD Pipeline and Automation Failures</td></tr>
+          <tr>
+            <td>CI Pipeline Failure Blocking Deploy<span class="badge-crit">Must Know</span></td>
+            <td>Build, test, or lint failure prevents artifact from being promoted to production</td>
+            <td>Pipeline status red, deployment queue blocked</td>
+            <td>Retry pipeline, investigate test failure, emergency bypass if critical hotfix</td>
+            <td>Reliable CI infra, flake detection for tests, separate slow tests from blocking gates</td>
+            <td class="casc">Deployment freeze — no new code can ship, including critical security patches</td>
+            <td class="troff">Strict CI gates block critical hotfixes; loose gates let bad code through</td>
+          </tr>
+          <tr>
+            <td>Broken Artifact Promotion</td>
+            <td>Wrong artifact version promoted to production — different build than tested</td>
+            <td>Version mismatch between expected and running binary in production</td>
+            <td>Rollback artifact, redeploy correct version</td>
+            <td>Immutable artifact verification (hash check at promotion), artifact provenance</td>
+            <td class="casc">Untested code in production — undefined behaviour, security issues possible</td>
+            <td class="troff">Artifact hash verification adds pipeline steps and slows promotion</td>
+          </tr>
+          <tr>
+            <td>Deployment Script Bug</td>
+            <td>Incorrect automation logic — script deletes wrong resources, misapplies config</td>
+            <td>Unexpected infra changes, services deleted or misconfigured at scale</td>
+            <td>Stop automation, apply manual corrective actions</td>
+            <td>Deployment script testing in staging, dry-run mode, human approval gate</td>
+            <td class="casc">Large-scale outage — automation bug can affect entire fleet simultaneously</td>
+            <td class="troff">Dry-run mode and approval gates slow automated deployment pipeline</td>
+          </tr>
+          <tr>
+            <td>Rollback Automation Failure<span class="badge-crit">Must Know</span></td>
+            <td>Rollback script broken, incompatible state, or wrong version targeted</td>
+            <td>Rollback stuck, partial rollback, or rollback deploys wrong version</td>
+            <td>Manual rollback via kubectl/CLI, escalate to SRE</td>
+            <td>Regular rollback drills, rollback tested in staging, immutable previous artifact</td>
+            <td class="casc">Extended outage — cannot automated-rollback, manual process under incident pressure</td>
+            <td class="troff">Rollback drills consume engineering time; staging rollback may not match prod</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Distributed System Deployment Failures</td></tr>
+          <tr>
+            <td>Distributed Cache Flush on Deploy<span class="badge-crit">Must Know</span></td>
+            <td>New deployment invalidates cache (key format change, cold start) — all requests miss</td>
+            <td>Cache hit rate drops to 0%, DB read spike, latency explosion</td>
+            <td>Gradual cache warm-up, limit request rate during warm-up</td>
+            <td>Versioned cache keys, cache warm-up before traffic shift</td>
+            <td class="casc">DB overload — every request hits DB simultaneously → DB saturation</td>
+            <td class="troff">Versioned cache keys increase cache storage (old and new keys coexist)</td>
+          </tr>
+          <tr>
+            <td>Connection Reconnect Storm<span class="badge-crit">Must Know</span></td>
+            <td>Large-scale service restart — all connections drop and reconnect simultaneously</td>
+            <td>Connection spike on gateway/LB/DB immediately after deploy</td>
+            <td>Jittered reconnect with exponential backoff</td>
+            <td>Gradual rolling restart, connection keep-alive to avoid reconnect on restart</td>
+            <td class="casc">Gateway/LB/DB connection exhaustion — all reconnects compete for slots</td>
+            <td class="troff">Gradual rollout extends deployment window; keep-alive adds complexity</td>
+          </tr>
+          <tr>
+            <td>Leader Election During Deploy</td>
+            <td>Coordinator/Kafka broker/etcd nodes restarted simultaneously — frequent elections</td>
+            <td>Rapid leadership changes in cluster event log, write instability</td>
+            <td>Wait for cluster stability before proceeding with rollout</td>
+            <td>Staggered deployment of coordination nodes, one-at-a-time restart</td>
+            <td class="casc">Cluster instability — writes unavailable during repeated leadership changes</td>
+            <td class="troff">One-at-a-time coordinator restart makes deployment take much longer</td>
+          </tr>
+          <tr>
+            <td>Partition Rebalance Storm</td>
+            <td>Kafka broker or cluster node restart triggers massive partition reassignment</td>
+            <td>Massive reassignment activity, consumer lag spike, IO saturation</td>
+            <td>Pause rebalance, allow cluster to stabilise</td>
+            <td>Controlled broker rollout (one at a time), sticky partition assignment</td>
+            <td class="casc">Cluster processing pause — consumer lag grows, downstream services starve</td>
+            <td class="troff">Sticky assignment reduces rebalancing but complicates partition ownership</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Observability and Detection Deployment Failures</td></tr>
+          <tr>
+            <td>Missing Monitoring for New Version<span class="badge-crit">Must Know</span></td>
+            <td>New service/feature deployed without updating dashboards, alerts, or metrics</td>
+            <td>Post-incident: no data available for the new code path</td>
+            <td>Add telemetry and dashboards immediately for new feature</td>
+            <td>Deployment observability checklist, instrumentation as a deploy gate</td>
+            <td class="casc">Slow detection — regression in new code path invisible until user reports</td>
+            <td class="troff">Observability checklist as a deploy gate slows deployment process</td>
+          </tr>
+          <tr>
+            <td>Alert Threshold Drift Post-Deploy</td>
+            <td>New version has different baseline — old alert thresholds fire or miss incorrectly</td>
+            <td>Alert storm immediately post-deploy, or silence when degradation actually occurs</td>
+            <td>Suppress/tune thresholds immediately, apply burn rate alerting</td>
+            <td>Adaptive alerts, SLO-based alerting that adjusts to new baseline automatically</td>
+            <td class="casc">Pager fatigue from false alarms, or real incidents missed due to stale threshold</td>
+            <td class="troff">Adaptive alerting is more complex; SLO-based alerting requires SLO definition</td>
+          </tr>
+          <tr>
+            <td>Rollback Decision Delay</td>
+            <td>Incident unclear — operators unsure if regression is from deployment or other cause</td>
+            <td>Long outage duration, time-to-rollback slow due to uncertainty</td>
+            <td>Manual rollback immediately on any error rate regression post-deploy</td>
+            <td>Clear rollback criteria defined pre-deploy, automated rollback on SLO breach</td>
+            <td class="casc">Cascading failure spreads — every minute of delay worsens downstream impact</td>
+            <td class="troff">Automated rollback may trigger on transient spikes unrelated to deployment</td>
+          </tr>
+          <tr>
+            <td>Log Schema Change Breaks Parsing</td>
+            <td>Log format changed in new version — log parser/dashboard queries fail</td>
+            <td>Dashboard shows no data, log search returns nothing for new version</td>
+            <td>Temporary parser fallback for old format while new queries are updated</td>
+            <td>Versioned log schema, log format changes announced and tested ahead of deploy</td>
+            <td class="casc">Reduced observability exactly when needed most — right after the deployment</td>
+            <td class="troff">Versioned log schema adds complexity; dual-format parsing adds parser overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">10 — Multi-Region Deployment Failures</td></tr>
+          <tr>
+            <td>Cross-Region Version Drift<span class="badge-crit">Must Know</span></td>
+            <td>Regions deploy at different times — API incompatibility between regional versions</td>
+            <td>Inconsistent behaviour for same user hitting different regions</td>
+            <td>Sync deployments, route user to consistent region during rollout</td>
+            <td>Global rollout orchestration, session affinity during multi-region rollout</td>
+            <td class="casc">Different regional behaviour at scale — some users get new, some get old APIs</td>
+            <td class="troff">Synchronised global deploys are slower and more complex to coordinate</td>
+          </tr>
+          <tr>
+            <td>Regional Rollout Overload</td>
+            <td>Failover region receives deployment simultaneously — capacity reduced and deployed</td>
+            <td>Saturation spike in secondary region during/after deployment</td>
+            <td>Pause rollout in failover region, restore full capacity first</td>
+            <td>Deployment-aware capacity planning, never deploy to failover during peak</td>
+            <td class="casc">Multi-region outage — primary fails and failover is mid-deploy with reduced capacity</td>
+            <td class="troff">Avoiding failover deployment windows reduces deployment flexibility</td>
+          </tr>
+          <tr>
+            <td>Geo Failover During Active Deployment</td>
+            <td>Region fails mid-rollout — failover region receives mixed-version state</td>
+            <td>Mixed deployment state, inconsistent behaviour after failover</td>
+            <td>Freeze failover, complete or rollback deployment before enabling failover</td>
+            <td>Deployment-aware DR policy — no failover during active deployment window</td>
+            <td class="casc">Recovery complexity — failover region has partial new version, partial old</td>
+            <td class="troff">Blocking failover during deployment creates a risk window of DR unavailability</td>
+          </tr>
+          <tr>
+            <td>Global Config Drift After Deploy</td>
+            <td>Config deployed to primary region, not propagated to all secondary regions</td>
+            <td>Behaviour mismatch between regions, different responses for same request</td>
+            <td>Centralised config sync, force propagation to all regions</td>
+            <td>Immutable config rollout pipeline with mandatory cross-region propagation check</td>
+            <td class="casc">Global inconsistency — users routed to different regions see different behaviour</td>
+            <td class="troff">Centralised config propagation adds cross-region latency to every config change</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Deployment Failures for Interviews</p>
+      <div class="ncode"> 1. Mixed-version incompatibility → backward-compat APIs + contract testing + canary
+ 2. Breaking schema migration   → expand-contract pattern + online schema change tools
+ 3. Cache flush on deploy        → versioned cache keys + warm-up before traffic shift
+ 4. Memory/CPU regression       → perf benchmarking in CI + canary latency/CPU gate
+ 5. Canary failure               → small % (1-5%) + strict error/latency gate + auto-abort
+ 6. Connection reconnect storm   → gradual rollout + jittered reconnect + keep-alive
+ 7. Bad config deployment       → config validation in CI + canary config + rollback
+ 8. Traffic blackholing          → route validation + synthetic probes + client-side monitoring
+ 9. Rollback automation failure  → rollback drills + immutable artifacts + tested scripts
+10. Rollback impossible (schema) → never drop columns before code removed + expand-contract</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="observability-failures-table.html" class="text-pink-700 font-semibold hover:underline">Observability Failures</a> &nbsp;|&nbsp;
+      <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failures</a> &nbsp;|&nbsp;
+      <a href="api-gateway-failures-table.html" class="text-cyan-600 font-semibold hover:underline">API Gateway Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Deployment Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Safe rollback possible?       → canary + rollback tested + no destructive schema
+2. Old/new coexist safely?      → backward-compat APIs + contract testing + versioned cache
+3. Deploy overloads infra?      → reconnect storm + cache flush + rebalance storm prevention
+4. Schema change breaks rollback? → expand-contract + never drop before code removed
+5. Traffic shifting fails?      → canary gate + blue-green revert + route validation
+6. Reconnect/cache storm?       → gradual rollout + jittered reconnect + warm-up
+7. Config drift possible?       → config validation + centralised propagation + canary config</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Deployment Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Deployment Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Bad deployment (crash)</td><td>CrashLoop → capacity drops → remaining instances overload</td></tr>
+          <tr><td>Breaking schema migration</td><td>All services using DB fail → global outage</td></tr>
+          <tr><td>Cache flush on deploy</td><td>Cache misses → DB read storm → DB saturation → timeouts</td></tr>
+          <tr><td>Traffic blackholing</td><td>Silent drops → client retries → amplification storm</td></tr>
+          <tr><td>Rollback failure</td><td>Cannot revert → must fix forward under incident pressure → extended outage</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Deployment Failures Reduce to 4 States</p>
+      <div class="ncode">1. New code broken       → crash / regression / performance / incompatibility
+2. Config broken        → wrong config / missing vars / bad secrets / flag misconfig
+3. Migration broken     → schema lock / partial data / rollback impossible
+4. Rollback impossible  → schema destructive / automation broken / partial state
+
+Most dangerous: successful deployment of broken software
+  rollout appears healthy initially → failure propagates gradually
+  → rollback may become impossible (schema) → cascading failures spread
+</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#431407;border:1px solid #7c2d12;">
+      <p class="text-xs font-bold text-orange-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-orange-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-200">Canary?</p>
+          <p class="text-xs text-orange-400 mt-0.5">1-5% + strict gate + auto-abort</p>
+        </div>
+        <div class="bg-orange-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-200">Rollback?</p>
+          <p class="text-xs text-orange-400 mt-0.5">Tested + drills + immutable artifacts</p>
+        </div>
+        <div class="bg-orange-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-200">Compat?</p>
+          <p class="text-xs text-orange-400 mt-0.5">Backward-compat + expand-contract</p>
+        </div>
+        <div class="bg-orange-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-200">Visible?</p>
+          <p class="text-xs text-orange-400 mt-0.5">Latency gate + SLO burn rate</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

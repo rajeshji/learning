@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Backpressure Handling — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .check-ul { list-style:none; padding-left:4px; }
+    .check-ul li { margin-bottom:6px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Backpressure Handling</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Backpressure Handling</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Flow Control, Queue Strategies, Cascading Failures &amp; Resilience</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- ═══════════════════ TEXT TAB ═══════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- What is Backpressure -->
+    <div class="nc">
+      <div class="section-badge">DEFINITION</div>
+      <div class="nh">🌍 What Is Backpressure?</div>
+      <p class="text-gray-700 mb-3">Backpressure is a <strong>feedback mechanism</strong> that slows producers when consumers cannot process data fast enough. It is not a failure — it is a <strong>stabilization signal</strong> that prevents overload from cascading through the system.</p>
+      <div class="ncode">Arrival Rate > Processing Rate
+        ↓
+Queue / Buffer fills
+        ↓
+Backpressure triggered
+        ↓
+Producer slows / blocks / sheds load
+        ↓
+System remains stable</div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;">🛡️</div>
+          <div class="font-semibold text-violet-700 text-sm mt-1">Prevent Overload</div>
+        </div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;">💾</div>
+          <div class="font-semibold text-violet-700 text-sm mt-1">Avoid OOM</div>
+        </div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;">⏱️</div>
+          <div class="font-semibold text-violet-700 text-sm mt-1">Predictable Latency</div>
+        </div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;">🔗</div>
+          <div class="font-semibold text-violet-700 text-sm mt-1">System Stability</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Causes -->
+    <div class="nc">
+      <div class="section-badge">CAUSES</div>
+      <div class="nh">⚠️ How Backpressure Is Created</div>
+      <p class="text-gray-700 mb-3">Backpressure occurs whenever <code>Arrival Rate &gt; Processing Rate</code>:</p>
+      <table class="nt">
+        <thead><tr><th>Cause</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Slow consumers</strong></td><td>Database queries, disk I/O latency</td></tr>
+          <tr><td><strong>Thread pool saturation</strong></td><td>All workers busy — new tasks queue or reject</td></tr>
+          <tr><td><strong>Network congestion</strong></td><td>Slow downstream service; TCP window fills</td></tr>
+          <tr><td><strong>Queue full</strong></td><td>Bounded queue reaches capacity</td></tr>
+          <tr><td><strong>Producer burst</strong></td><td>Traffic spike; Kafka producer surge</td></tr>
+          <tr><td><strong>Fan-in bottleneck</strong></td><td>Many producers → single consumer (database write)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Cascading Failure -->
+    <div class="nc">
+      <div class="section-badge">CASCADING FAILURE</div>
+      <div class="nh">🔄 How Backpressure Propagates — Cascading Risk</div>
+      <div class="ncode">Database slows down
+      ↓
+Worker queue fills
+      ↓
+API service blocks new requests
+      ↓
+Clients start retrying (more load!)
+      ↓
+More pressure → more timeouts
+      ↓
+Cascading failure across all services</div>
+      <div class="nc-warn mt-3">
+        <div class="nh-warn">⚠️ Without Proper Handling</div>
+        <p class="text-gray-700 text-sm">Uncontrolled backpressure becomes a cascading failure: unbounded queues exhaust heap memory, retry storms amplify load, and timeouts spread upstream service by service until the entire system is unavailable.</p>
+      </div>
+      <table class="nt mt-2">
+        <thead><tr><th>Layer</th><th>Impact When Ignored</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Memory</strong></td><td>OOM from unbounded queues</td></tr>
+          <tr><td><strong>Thread Pools</strong></td><td>Task starvation and rejections</td></tr>
+          <tr><td><strong>Network</strong></td><td>Timeouts and retransmissions</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>Consumer lag grows unbounded</td></tr>
+          <tr><td><strong>Microservices</strong></td><td>Cascading failures across the mesh</td></tr>
+          <tr><td><strong>Users</strong></td><td>Slow APIs, 429/500 errors</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Detection -->
+    <div class="nc">
+      <div class="section-badge">DETECTION</div>
+      <div class="nh">🔍 How to Detect Backpressure</div>
+      <p class="text-gray-700 mb-2">Monitor these signals — backpressure is often silent until it becomes a crisis:</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Primary Metrics</p>
+          <ul class="dot-ul">
+            <li>Queue depth (absolute and trend)</li>
+            <li>Queue utilization % (used / capacity)</li>
+            <li>Consumer lag (Kafka, stream processing)</li>
+            <li>Response latency P95 / P99</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Secondary Signals</p>
+          <ul class="dot-ul">
+            <li>Dropped requests / rejection rate</li>
+            <li>Retry count (rising = upstream pressure)</li>
+            <li>Thread pool saturation %</li>
+            <li>CPU low but latency high → blocked threads</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ntip mt-3"><strong>Staff-level insight:</strong> "CPU low but latency high" is the classic signature of a thread-blocked backpressure scenario — threads are waiting for I/O or locks, not burning CPU. Don't confuse this with a compute bottleneck.</div>
+    </div>
+
+    <!-- Handling Strategies -->
+    <div class="nc">
+      <div class="section-badge">HANDLING STRATEGIES</div>
+      <div class="nh">🛠 How to Handle Backpressure — 7 Strategies</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Strategy</th><th>Benefit</th><th>Trade-off</th><th>Best For</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Bounded Queue</strong></td><td>Prevents OOM</td><td>Requests may block or be rejected</td><td>Thread pools, all production queues</td></tr>
+          <tr><td><strong>Rate Limiting</strong></td><td>Protects consumers upstream</td><td>Lower peak throughput</td><td>API gateways, Kafka producers</td></tr>
+          <tr><td><strong>Load Shedding</strong></td><td>Keeps core system alive</td><td>Some requests dropped (return 429)</td><td>Traffic spikes, grace degradation</td></tr>
+          <tr><td><strong>Batching</strong></td><td>Higher throughput per consumer cycle</td><td>Slight latency increase</td><td>Database writes, Kafka, messaging</td></tr>
+          <tr><td><strong>Retry with Backoff</strong></td><td>Smooth recovery, no retry storms</td><td>Longer completion time</td><td>Transient failures, queue full</td></tr>
+          <tr><td><strong>Circuit Breaker</strong></td><td>Prevents cascading failures</td><td>Temporary request rejection</td><td>Slow downstream services</td></tr>
+          <tr><td><strong>Autoscaling</strong></td><td>Increases processing capacity</td><td>Scaling lag; higher infrastructure cost</td><td>Cloud workloads with bursty traffic</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Queue Strategies -->
+    <div class="nc">
+      <div class="section-badge">QUEUE STRATEGIES</div>
+      <div class="nh">📊 Queue Overflow Strategies</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px;">
+          <div class="font-bold text-green-700 mb-2">✅ Block Producer</div>
+          <p class="text-gray-600 text-sm mb-2">Queue full → producer waits until space available</p>
+          <p class="text-gray-600 text-sm"><span class="text-green-600 font-semibold">✔</span> Reliable, no data loss<br/><span class="text-orange-600 font-semibold">❌</span> Higher latency, upstream blocking</p>
+          <p class="text-gray-500 text-xs mt-2">Use for: thread pools, ordered processing</p>
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px;">
+          <div class="font-bold text-orange-700 mb-2">⚡ Reject Requests</div>
+          <p class="text-gray-600 text-sm mb-2">Queue full → return 429 / throw RejectedExecutionException</p>
+          <p class="text-gray-600 text-sm"><span class="text-green-600 font-semibold">✔</span> Protects system<br/><span class="text-orange-600 font-semibold">❌</span> Data loss, client must handle</p>
+          <p class="text-gray-500 text-xs mt-2">Use for: APIs under traffic spikes</p>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div class="font-bold text-violet-700 mb-2">🔄 Drop Oldest</div>
+          <p class="text-gray-600 text-sm mb-2">Queue full → remove head, insert new item</p>
+          <p class="text-gray-600 text-sm"><span class="text-green-600 font-semibold">✔</span> Keeps latest data<br/><span class="text-orange-600 font-semibold">❌</span> Older data lost</p>
+          <p class="text-gray-500 text-xs mt-2">Use for: video frames, telemetry, sensors</p>
+        </div>
+        <div style="background:#f0f9ff;border:1px solid #93c5fd;border-radius:10px;padding:16px;">
+          <div class="font-bold text-blue-700 mb-2">📦 Buffer Bursts</div>
+          <p class="text-gray-600 text-sm mb-2">Temporary queue expansion to absorb spikes</p>
+          <p class="text-gray-600 text-sm"><span class="text-green-600 font-semibold">✔</span> Absorbs traffic spikes<br/><span class="text-orange-600 font-semibold">❌</span> Higher memory, hides overload</p>
+          <p class="text-gray-500 text-xs mt-2">Use for: short bursts only</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-World -->
+    <div class="nc">
+      <div class="section-badge">REAL-WORLD EXAMPLES</div>
+      <div class="nh">🌐 Backpressure in Production Systems</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Backpressure Mechanism</th><th>How</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Java ThreadPoolExecutor</strong></td><td>Bounded queue + RejectedExecutionHandler</td><td>When queue full: block / reject / caller-runs depending on policy</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>Consumer lag → producer throttling</td><td>Broker quota enforcement; consumer lag metric drives autoscaling</td></tr>
+          <tr><td><strong>TCP / Network</strong></td><td>Receive window size</td><td>Receiver advertises window; sender slows when window = 0</td></tr>
+          <tr><td><strong>Reactive Streams (Project Reactor)</strong></td><td>Demand-driven subscription (<code>request(N)</code>)</td><td>Subscriber requests N items; publisher sends at most N — pull model</td></tr>
+          <tr><td><strong>Go Channels</strong></td><td>Buffered channel capacity</td><td>Sender blocks when channel full — language-native backpressure</td></tr>
+          <tr><td><strong>gRPC</strong></td><td>HTTP/2 flow control</td><td>Per-stream and per-connection window limits slow fast senders</td></tr>
+          <tr><td><strong>Nginx / API Gateway</strong></td><td>Connection queue + rate limiter</td><td>Return 429 when upstream too slow; limit reqs/sec per client</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Prevention -->
+    <div class="nc">
+      <div class="section-badge">PREVENTION</div>
+      <div class="nh">🛡 Design Principles — How to Prevent Backpressure Problems</div>
+      <ul class="check-ul mt-1">
+        <li>✅ <strong>Always use bounded queues</strong> — never unbounded in production</li>
+        <li>✅ <strong>Apply rate limiting</strong> at ingress (API gateway, Kafka producer config)</li>
+        <li>✅ <strong>Use asynchronous processing</strong> — decouple producers from consumers</li>
+        <li>✅ <strong>Autoscale consumers</strong> — respond to queue depth or consumer lag metrics</li>
+        <li>✅ <strong>Monitor queue depth continuously</strong> — alert on sustained saturation</li>
+        <li>✅ <strong>Avoid fan-in bottlenecks</strong> — partition workloads across shards</li>
+        <li>✅ <strong>Use graceful degradation</strong> — shed non-critical load before the queue fills</li>
+        <li>✅ <strong>Implement exponential backoff</strong> — prevent retry storms on recovery</li>
+      </ul>
+    </div>
+
+    <!-- Performance Trade-offs -->
+    <div class="nc">
+      <div class="section-badge">PERFORMANCE</div>
+      <div class="nh">📈 Queue Sizing Trade-offs</div>
+      <table class="nt mb-3">
+        <thead><tr><th>Dimension</th><th>Small Queue</th><th>Large Queue</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Latency</strong></td><td>✅ Lower</td><td>❌ Higher wait time</td></tr>
+          <tr><td><strong>Burst Handling</strong></td><td>❌ Frequent rejection</td><td>✅ Absorbs spikes</td></tr>
+          <tr><td><strong>Overload Detection</strong></td><td>✅ Fast</td><td>❌ Slow (queue hides overload)</td></tr>
+          <tr><td><strong>Memory Usage</strong></td><td>✅ Low</td><td>❌ Higher</td></tr>
+          <tr><td><strong>Backpressure Signal</strong></td><td>✅ Strong and early</td><td>❌ Weak and delayed</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip"><strong>Rule of thumb:</strong> Queue depth = enough to absorb your P99 burst, but not so large that filling it takes more than 1–2 seconds to detect.</div>
+    </div>
+
+    <!-- Where to Mention -->
+    <div class="nc">
+      <div class="section-badge">SYSTEM DESIGN INTERVIEWS</div>
+      <div class="nh">🎯 Where to Mention Backpressure in System Design</div>
+      <p class="text-gray-700 mb-2">Backpressure is valuable whenever <strong>producers and consumers operate at different speeds</strong>. Raise it proactively in these contexts:</p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">🧵 Thread Pools</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">📨 Kafka / RabbitMQ</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">🔔 Notification Systems</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">🌊 Streaming Pipelines</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">🌐 API Gateways</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">🎬 Video Processing</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">📋 Log Aggregation</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">🔍 Search Indexing</div>
+        <div style="background:#ede9fe;border-radius:6px;padding:8px 12px;font-size:0.9rem;color:#4c1d94;font-weight:600;">🗄️ Distributed Databases</div>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">🧠 Junior → Senior → Staff Progression</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Level</th><th>Question Asked</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Junior</strong></td><td>"Why is the queue full?"</td></tr>
+          <tr><td><strong>Senior</strong></td><td>"Should I increase the queue size?"</td></tr>
+          <tr><td><strong>Staff</strong></td><td>"Is producer rate sustainable long-term? Is consumer capacity sufficient? Should we throttle producers or scale consumers? Is autoscaling fast enough to respond to the spike? Should requests be blocked, dropped, or delayed? Is the large queue hiding a deeper capacity problem? What happens during traffic spikes — and how does backpressure propagate across downstream services?"</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Production Readiness Checklist</div>
+      <ul class="dot-ul mt-2">
+        <li>Define queue capacity <strong>intentionally</strong> — never leave it unbounded</li>
+        <li>Monitor queue depth and consumer lag as <strong>primary SLIs</strong></li>
+        <li>Apply bounded queues with explicit overflow policy</li>
+        <li>Configure rate limiting at the ingress layer</li>
+        <li>Implement exponential backoff on retry (never linear)</li>
+        <li>Add circuit breakers to isolate slow downstream services</li>
+        <li>Autoscale consumers when queue depth exceeds threshold</li>
+        <li>Alert on sustained queue saturation (&gt;30s at &gt;80% capacity)</li>
+        <li>Load test burst traffic at 2–3× expected peak</li>
+        <li>Document overload behavior in runbook</li>
+      </ul>
+
+      <div class="nq mt-4">"Backpressure is a feedback mechanism that prevents fast producers from overwhelming slower consumers. In production systems, I always use bounded queues, rate limiting, and flow control so overload is propagated upstream instead of causing unbounded memory growth or cascading failures. The key trade-off is balancing throughput, latency, and reliability while keeping the system stable under peak load."</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">📌 What to Remember</div>
+      <ul class="dot-ul">
+        <li><strong>Backpressure is feedback, not failure</strong> — it helps stabilize overloaded systems by signaling producers to slow down before the system breaks.</li>
+        <li>It occurs when <strong>producers generate work faster than consumers can process it</strong> — caused by slow consumers, thread pool saturation, network congestion, or traffic bursts.</li>
+        <li><strong>Bounded queues are the foundation</strong> of effective backpressure — without capacity limits, queues grow unbounded and exhaust memory.</li>
+        <li>Monitor <strong>queue depth, consumer lag, latency, and thread pool saturation</strong> to detect backpressure early before it becomes a cascading failure.</li>
+        <li>Staff Engineers treat backpressure as a <strong>system-wide resilience mechanism</strong>, combining <strong>flow control, autoscaling, rate limiting, and graceful degradation</strong> to prevent overload from becoming a cascading failure.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════════════ ORIGINAL NOTES TAB ═══════════════════ -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — IMPLEMENTATION REFERENCE</div>
+      <div class="nh">Backpressure Implementation Patterns</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Java ThreadPoolExecutor — Complete Backpressure Config</p>
+      <div class="ncode">// ThreadPoolExecutor is the canonical backpressure example in Java
+ThreadPoolExecutor executor = new ThreadPoolExecutor(
+    corePoolSize,         // always-alive threads
+    maxPoolSize,          // max threads under load
+    keepAliveTime,        // idle thread TTL
+    TimeUnit.SECONDS,
+    new ArrayBlockingQueue&lt;&gt;(queueCapacity),  // BOUNDED — key!
+    rejectedHandler       // what happens when queue is full
+);
+
+// 4 built-in rejection policies (RejectedExecutionHandler):
+// 1. AbortPolicy (default)       → throw RejectedExecutionException
+// 2. CallerRunsPolicy            → caller thread runs the task (natural backpressure)
+// 3. DiscardPolicy               → silently drop the task
+// 4. DiscardOldestPolicy         → drop oldest task, retry new one
+
+// CallerRunsPolicy is often the best backpressure mechanism:
+// → Slows down the thread submitting tasks → self-regulating
+// → No data loss, no exception → graceful degradation
+
+// Monitor with JMX:
+executor.getQueue().size();         // current queue depth
+executor.getActiveCount();          // active worker threads
+executor.getCompletedTaskCount();   // throughput
+executor.getRejectedExecutionCount(); // rejection rate (via custom handler)</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Kafka Producer Backpressure</p>
+      <div class="ncode">// Kafka producer has internal send buffer — backpressure via blocking
+Properties props = new Properties();
+props.put("buffer.memory", 33554432);    // 32MB send buffer
+props.put("max.block.ms", 60000);        // block up to 60s when buffer full
+props.put("linger.ms", 5);              // batch messages for 5ms
+props.put("batch.size", 16384);          // 16KB batches
+
+KafkaProducer&lt;String, String&gt; producer = new KafkaProducer&lt;&gt;(props);
+
+// When broker is slow or unavailable:
+// 1. Send buffer fills → producer.send() blocks for max.block.ms
+// 2. After max.block.ms → throws TimeoutException (backpressure signal)
+// 3. Application should catch and apply exponential backoff
+
+// Consumer lag = primary backpressure metric for Kafka:
+// kafka.consumer:type=consumer-fetch-manager-metrics,
+//   attribute=records-lag-max → growing lag = consumer too slow</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">TCP Flow Control — Hardware-Level Backpressure</p>
+      <div class="ncode">// TCP uses receive window to implement backpressure:
+// Receiver advertises available buffer space in every ACK
+// Sender may not send more bytes than receiver's window allows
+
+Sender                              Receiver
+  │                                    │
+  │  SEQ=1, DATA[1-1000]              │
+  │ ──────────────────────────────► │
+  │                                    │  Buffer: [1-1000]
+  │  ◄──────────────── ACK=1001, WIN=4096  │  (4096 bytes free)
+  │                                    │
+  │  SEQ=1001, DATA[1001-5000]        │  (sends up to window)
+  │ ──────────────────────────────► │
+  │                                    │  Buffer almost full
+  │  ◄──────────────── ACK=5001, WIN=0     │  WIN=0 → STOP sending!
+  │                                    │
+  │  (sender pauses)                   │  Application reads buffer
+  │  ◄──────────────── ACK=5001, WIN=4096  │  Space freed → resume</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Reactive Streams — Demand-Driven Backpressure</p>
+      <div class="ncode">// Reactive Streams spec: subscriber controls demand
+// Publisher sends AT MOST N items per request(N) call
+// Never more than subscriber can handle
+
+// Project Reactor example:
+Flux.range(1, 1_000_000)
+    .onBackpressureBuffer(1000)  // buffer up to 1000 items
+    // or:
+    .onBackpressureDrop()        // drop items subscriber can't handle
+    // or:
+    .onBackpressureLatest()      // keep only most recent item
+    .subscribe(new BaseSubscriber&lt;Integer&gt;() {
+        @Override
+        protected void hookOnSubscribe(Subscription subscription) {
+            request(10);  // request only 10 items initially
+        }
+        @Override
+        protected void hookOnNext(Integer value) {
+            process(value);
+            request(1);   // request 1 more after each processed
+        }
+    });
+
+// RxJava 2+ also requires explicit backpressure handling:
+// Observable   → no backpressure (will OOM on fast sources)
+// Flowable     → explicit backpressure strategies required</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Circuit Breaker — Backpressure + Failure Isolation</p>
+      <div class="ncode">// Resilience4j circuit breaker pattern
+CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+    .failureRateThreshold(50)        // open if 50% of calls fail
+    .waitDurationInOpenState(Duration.ofSeconds(60))
+    .permittedNumberOfCallsInHalfOpenState(5)
+    .build();
+
+CircuitBreaker cb = CircuitBreaker.of("db", config);
+
+// States:
+// CLOSED   → normal operation
+// OPEN     → reject all calls immediately (fast fail, no backpressure)
+// HALF-OPEN → let limited calls through to test recovery
+
+// Exponential backoff with jitter:
+RetryConfig retryConfig = RetryConfig.custom()
+    .maxAttempts(3)
+    .intervalFunction(IntervalFunction.ofExponentialRandomBackoff(
+        1000,   // initial interval ms
+        2.0,    // multiplier
+        0.5     // jitter factor
+    ))
+    .build();
+// 1st retry: ~1s, 2nd retry: ~2s±jitter, 3rd: ~4s±jitter
+// Jitter prevents retry storms (thundering herd)</div>
+
+      <div class="nq mt-3">"Every production queue must have three things: a bounded capacity, a defined overflow policy, and continuous depth monitoring. A large queue without backpressure is not a buffer — it is a latency bomb and an OOM risk masquerading as reliability."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- ═══════════════════ VISUAL GUIDE TAB ═══════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <img src="images/foundation/l1/OS/d32c8b27-61ab-4cb5-b9c8-f2c853d01991.png" class="w-full rounded-lg shadow-md" alt="Backpressure Handling Visual Guide"/>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

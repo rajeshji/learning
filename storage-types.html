@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Block vs Object vs File Storage — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* warn card */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Block vs Object vs File Storage</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Block vs Object vs File Storage</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Choosing the right storage abstraction — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq"><strong>Not every workload has the same storage requirements.</strong> Choosing the wrong storage type causes high latency, poor scalability, increased cost, and consistency issues.</p>
+      <div class="nkw mt-3">
+        <span>Block</span>
+        <span>File</span>
+        <span>Object</span>
+        <span>POSIX</span>
+        <span>IOPS</span>
+        <span>Latency</span>
+        <span>Scalability</span>
+        <span>Consistency</span>
+      </div>
+      <div class="ncode">All storage ultimately resides on disks, but the abstraction
+determines performance and usability.
+
+Application → Storage API → Block | File | Object → SSD/HDD</div>
+    </div>
+
+    <!-- Three Storage Types -->
+    <div class="nc">
+      <p class="nh">Three Storage Abstractions</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">Block Storage</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">App
+↓ File System
+↓ Raw Blocks
+↓ SSD/HDD</div>
+          <p class="text-xs text-gray-600 mt-2">OS builds filesystem on top. Storage knows nothing about files.</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-2">File Storage</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">App
+↓ POSIX Calls
+↓ File System
+↓ Shared Storage</div>
+          <p class="text-xs text-gray-600 mt-2">Files, directories, permissions. Shared across clients.</p>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-purple-700 uppercase tracking-wide mb-2">Object Storage</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">App
+↓ REST API
+↓ Metadata Svc
+↓ Dist. Nodes</div>
+          <p class="text-xs text-gray-600 mt-2">PUT / GET / DELETE. Flat key-value namespace.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Characteristics Comparison -->
+    <div class="nc">
+      <p class="nh">Characteristics at a Glance</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Block</th><th>File</th><th>Object</th></tr></thead>
+        <tbody>
+          <tr><td>Access Method</td><td>Raw blocks (LBA)</td><td>File path (POSIX)</td><td>REST API (key)</td></tr>
+          <tr><td>Latency</td><td>0.1–1 ms ⭐⭐⭐⭐⭐</td><td>5–15 ms ⭐⭐⭐</td><td>20–200 ms ⭐⭐</td></tr>
+          <tr><td>Random IOPS</td><td>Highest ⭐⭐⭐⭐⭐</td><td>Medium ⭐⭐⭐</td><td>Lowest ⭐</td></tr>
+          <tr><td>Scalability</td><td>Medium</td><td>Medium</td><td>Massive</td></tr>
+          <tr><td>Metadata</td><td>Minimal</td><td>Standard</td><td>Very Rich</td></tr>
+          <tr><td>Consistency</td><td>Strong</td><td>Strong (POSIX)</td><td>Eventual / Configurable</td></tr>
+          <tr><td>Sharing</td><td>Single client</td><td>Multi-client</td><td>Any client (HTTP)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Data Organization -->
+    <div class="nc">
+      <p class="nh">Data Organization &amp; Access</p>
+      <div class="ncode">Block   → Fixed-size blocks
+          Logical Block Address (LBA)
+          e.g., sector 4096 on /dev/sdb
+
+File    → Hierarchical directories
+          /data/reports/q4.pdf
+
+Object  → Flat key-value namespace
+          bucket/photos/img001.jpg
+          (+ rich metadata + version)</div>
+    </div>
+
+    <!-- Block Storage Detail -->
+    <div class="nc">
+      <p class="nh">Block Storage — Deep Dive</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+          <ul class="dot-ul">
+            <li>Lowest latency</li>
+            <li>Highest IOPS</li>
+            <li>Strong consistency</li>
+            <li>Random read/write optimized</li>
+            <li>Mountable as a disk</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Trade-offs</p>
+          <ul class="dot-ul">
+            <li>Not easily shared</li>
+            <li>Limited horizontal scalability</li>
+            <li>Minimal metadata support</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Best for:</strong> MySQL, PostgreSQL, Kafka logs, VM disks, WAL, transaction logs.</p>
+    </div>
+
+    <!-- File Storage Detail -->
+    <div class="nc">
+      <p class="nh">File Storage — Deep Dive</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+          <ul class="dot-ul">
+            <li>Human-friendly paths</li>
+            <li>Shared across multiple clients</li>
+            <li>POSIX compliant</li>
+            <li>Built-in permissions &amp; ownership</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Trade-offs</p>
+          <ul class="dot-ul">
+            <li>Metadata bottlenecks at scale</li>
+            <li>Higher latency than block</li>
+            <li>Limited horizontal scalability</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Best for:</strong> Shared team files, AI/ML datasets, CI/CD workspaces, enterprise file shares.</p>
+    </div>
+
+    <!-- Object Storage Detail -->
+    <div class="nc">
+      <p class="nh">Object Storage — Deep Dive</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+          <ul class="dot-ul">
+            <li>Infinite scalability</li>
+            <li>Rich metadata + versioning</li>
+            <li>HTTP / REST access</li>
+            <li>Built-in replication</li>
+            <li>Lifecycle policies</li>
+            <li>Low cost at scale</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Trade-offs</p>
+          <ul class="dot-ul">
+            <li>Higher latency (20–200 ms)</li>
+            <li>No POSIX interface</li>
+            <li>Not suitable for databases</li>
+            <li>Eventual consistency (often)</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Best for:</strong> Images, videos, data lakes, backups, archival, analytics.</p>
+    </div>
+
+    <!-- Cloud Services -->
+    <div class="nc">
+      <p class="nh">Cloud Service Mappings</p>
+      <table class="nt">
+        <thead><tr><th>Cloud</th><th>Block</th><th>File</th><th>Object</th></tr></thead>
+        <tbody>
+          <tr><td><strong>AWS</strong></td><td>EBS</td><td>EFS</td><td>S3</td></tr>
+          <tr><td><strong>Azure</strong></td><td>Managed Disk</td><td>Azure Files</td><td>Blob Storage</td></tr>
+          <tr><td><strong>GCP</strong></td><td>Persistent Disk</td><td>Filestore</td><td>Cloud Storage</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Why</th><th>Storage</th></tr></thead>
+        <tbody>
+          <tr><td><strong>MySQL / PostgreSQL</strong></td><td>Random reads, fsync, WAL, transactions</td><td>Block (EBS, Persistent Disk)</td></tr>
+          <tr><td><strong>Kubernetes StatefulSets</strong></td><td>Persistent Volumes for DBs</td><td>Block PVs</td></tr>
+          <tr><td><strong>AI/ML Training</strong></td><td>Shared datasets, POSIX semantics</td><td>File (EFS, Lustre, GPFS)</td></tr>
+          <tr><td><strong>CI/CD Workspace</strong></td><td>Multiple agents share build cache</td><td>File</td></tr>
+          <tr><td><strong>Netflix Videos</strong></td><td>Cheap, durable, globally replicated</td><td>Object (S3)</td></tr>
+          <tr><td><strong>Hadoop Data Lake</strong></td><td>Petabytes of Parquet/ORC at low cost</td><td>Object (S3, GCS)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Hybrid Architecture -->
+    <div class="nc">
+      <p class="nh">Hybrid Architecture — Production Reality</p>
+      <p class="text-sm text-gray-600 mb-3">Most production systems combine all three storage types, each serving a different data lifecycle stage.</p>
+      <div class="ncode">Hot Database          → Block Storage   (NVMe SSD, EBS)
+Shared Models/Code    → File Storage    (EFS, NFS, Lustre)
+Backups / Data Lake   → Object Storage  (S3, GCS, Blob)
+
+└─ Each tier: different latency, cost, and durability tradeoff</div>
+      <p class="ntip">Hot data on NVMe Block → Warm data on File → Cold data on Object = best price/performance ratio.</p>
+    </div>
+
+    <!-- Selection Workflow -->
+    <div class="nc">
+      <p class="nh">Storage Selection Workflow</p>
+      <div class="ncode">Need Persistent Storage
+↓
+Low latency + high IOPS?
+  YES → Block Storage (databases, VMs, logs)
+↓
+Need shared POSIX access?
+  YES → File Storage (AI datasets, CI/CD, teams)
+↓
+Need massive scale + cloud-native?
+  YES → Object Storage (media, backups, data lake)</div>
+      <p class="ntip">Ask: latency SLA, access pattern (random vs sequential), sharing needs, consistency, growth over 5 years.</p>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Should we use S3?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Is object storage sufficient?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>What is the access pattern?</li>
+            <li>What latency SLA must be met?</li>
+            <li>Is strong consistency required?</li>
+            <li>Is the workload random or sequential?</li>
+            <li>How will data grow over 5 years?</li>
+            <li>Can hot/cold data be tiered?</li>
+            <li>Is hybrid storage more cost-effective?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Database Queries</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Database stored on file/object storage &nbsp;·&nbsp; <strong>Fix:</strong> Move to Block Storage</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Expensive Infrastructure</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Cold backups stored on SSD Block &nbsp;·&nbsp; <strong>Fix:</strong> Move to Object Storage</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">ML Training Jobs Waiting</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Multiple nodes downloading data repeatedly from object storage &nbsp;·&nbsp; <strong>Fix:</strong> Use shared File Storage (EFS/Lustre)</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Media Platform Scaling Issues</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Images stored on local disks &nbsp;·&nbsp; <strong>Fix:</strong> Move to Object Storage + CDN</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Workload</th><th>Best Storage</th></tr></thead>
+        <tbody>
+          <tr><td>MySQL / PostgreSQL</td><td>Block</td></tr>
+          <tr><td>Kafka Logs</td><td>Block</td></tr>
+          <tr><td>VM Disks</td><td>Block</td></tr>
+          <tr><td>Shared Team Files</td><td>File</td></tr>
+          <tr><td>CI/CD Workspace</td><td>File</td></tr>
+          <tr><td>AI/ML Training Dataset</td><td>File</td></tr>
+          <tr><td>Images &amp; Videos</td><td>Object</td></tr>
+          <tr><td>Data Lake</td><td>Object</td></tr>
+          <tr><td>Backups &amp; Archive</td><td>Object</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Checklist -->
+    <div class="nc">
+      <p class="nh">Production Design Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Measure latency requirements</li>
+        <li class="text-sm text-gray-700">✅ Understand access patterns (random vs sequential)</li>
+        <li class="text-sm text-gray-700">✅ Estimate data growth over 3–5 years</li>
+        <li class="text-sm text-gray-700">✅ Determine consistency needs</li>
+        <li class="text-sm text-gray-700">✅ Evaluate sharing requirements</li>
+        <li class="text-sm text-gray-700">✅ Plan hot/warm/cold data tiers</li>
+        <li class="text-sm text-gray-700">✅ Compare cost vs performance tradeoffs</li>
+        <li class="text-sm text-gray-700">✅ Benchmark under production load before deciding</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Block Storage
+• Raw, low-latency, high-IOPS access
+• Ideal for: databases, VMs, transaction logs
+• Strong consistency, single client mount
+
+File Storage
+• POSIX-compliant, shared multi-client access
+• Ideal for: AI/ML datasets, CI/CD, file shares
+• Medium latency, standard metadata
+
+Object Storage
+• Massive scalability, rich metadata, HTTP access
+• Ideal for: media, backups, data lakes, archives
+• Higher latency, eventual consistency
+
+Production Reality
+• Most large systems use all three (hybrid)
+• Block = hot transactional data
+• File = shared working datasets
+• Object = warm/cold data + archival
+• Selection driven by: latency, access pattern,
+  consistency, scalability, cost</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/145213cb-7f1d-4755-9041-8bf920f6a9ec.png"
+        alt="Block vs Object vs File Storage visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

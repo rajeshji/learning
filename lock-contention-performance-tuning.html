@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lock Contention &amp; Performance Tuning — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Lock Contention &amp; Performance Tuning</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Lock Contention &amp; Performance Tuning</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — OS, Performance Engineering &amp; Distributed Systems</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">THE BIG PICTURE</div>
+      <div class="nh">Why Lock Contention Limits Scalability</div>
+      <p class="text-gray-700 mb-3">Junior engineers know <strong>what a lock is</strong>. Senior engineers know <strong>how to use locks correctly</strong>. <strong>Staff engineers know how lock contention limits scalability, affects CPU utilization, increases tail latency, and how to redesign systems to eliminate contention</strong> rather than simply optimizing it.</p>
+      <div class="ncode">Application → Multiple Threads → Shared Lock → Waiting Queue → Critical Section → Shared Resource
+
+When many threads compete for the same lock → lock becomes a SCALABILITY BOTTLENECK</div>
+      <div class="ntip"><strong>The real cost:</strong> cache-line bouncing, scheduler overhead, lock convoys, and priority inversion — not just time inside the critical section.</div>
+    </div>
+
+    <!-- Why It Happens -->
+    <div class="nc">
+      <div class="section-badge">WHY IT HAPPENS</div>
+      <div class="nh">Why Lock Contention Hurts Performance</div>
+      <div class="ncode">100 Threads → One Counter → One Mutex
+→ Only 1 thread updates; 99 threads wait; CPU cores sit idle</div>
+      <p class="font-semibold text-violet-700 mt-3 mb-2">Cascade Effect of High Contention</p>
+      <div class="ncode">More Waiting → Context Switches → Cache Invalidations → Scheduler Overhead → CPU Stalls
+→ Latency ↑ → Throughput ↓</div>
+      <p class="text-gray-700 mt-3 mb-2">Contention grows <strong>non-linearly</strong> — adding more threads makes things worse, not better.</p>
+    </div>
+
+    <!-- Contention Types -->
+    <div class="nc">
+      <div class="section-badge">TYPES OF CONTENTION</div>
+      <div class="nh">Types of Lock Contention</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div style="background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:16px;">
+          <p class="font-semibold text-violet-700 mb-2">Low Contention</p>
+          <div class="ncode" style="font-size:0.8rem;">Thread A → Lock → Unlock → Thread B</div>
+          <p class="text-sm text-gray-600 mt-2">Almost no waiting. Excellent scalability.</p>
+        </div>
+        <div style="background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:16px;">
+          <p class="font-semibold text-violet-700 mb-2">Medium Contention</p>
+          <div class="ncode" style="font-size:0.8rem;">Thread A → Lock
+Thread B waits
+Thread C waits</div>
+          <p class="text-sm text-gray-600 mt-2">Some waiting. Still acceptable.</p>
+        </div>
+        <div style="background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:16px;">
+          <p class="font-semibold text-violet-700 mb-2">High Contention</p>
+          <div class="ncode" style="font-size:0.8rem;">100 Threads → One Lock → Long Queue</div>
+          <p class="text-sm text-gray-600 mt-2">CPU stalls. High latency. Poor throughput.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CPU Effects -->
+    <div class="nc">
+      <div class="section-badge">CPU EFFECTS</div>
+      <div class="nh">CPU Cache Coherency &amp; False Sharing</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Cache Line Bouncing</p>
+          <p class="text-gray-700 mb-2">Each increment changes <strong>cache ownership</strong>. Cache line constantly moves between CPUs.</p>
+          <ul class="dot-ul text-sm">
+            <li>Memory bus traffic increases</li>
+            <li>Lower IPC (Instructions Per Cycle)</li>
+            <li>Reduced scalability</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">False Sharing</p>
+          <p class="text-gray-700 mb-2">Unrelated variables share one cache line — different threads update different counters yet invalidate each other's cache.</p>
+          <div class="ncode" style="font-size:0.82rem;">Cache Line (64 bytes):
+[ Counter A | Counter B ]
+Thread 1 updates A → invalidates B's cache
+Thread 2 updates B → invalidates A's cache</div>
+          <p class="text-sm text-violet-700 mt-1"><strong>Fix:</strong> Padding or cache-line alignment (<code>@Contended</code> in Java).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Failure Modes -->
+    <div class="nc">
+      <div class="section-badge">FAILURE MODES</div>
+      <div class="nh">Lock Convoy &amp; Priority Inversion</div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Lock Convoy</div>
+        <p class="text-gray-700 text-sm mb-1">Thread A holds lock during a slow operation → 50 threads pile up. When A finishes, everyone wakes up simultaneously → <strong>scheduler thrashes</strong>.</p>
+        <p class="text-sm"><strong>Fix:</strong> Shorten critical section, partition locks, reduce waiting threads.</p>
+      </div>
+      <div class="nc-warn">
+        <div class="nh-warn">Priority Inversion</div>
+        <p class="text-gray-700 text-sm mb-1">Low-priority thread owns lock → High-priority thread waits → Medium-priority thread keeps running. Famous example: <strong>NASA Mars Pathfinder</strong>.</p>
+        <p class="text-sm"><strong>Fix:</strong> Priority inheritance (temporarily boost lock holder's priority).</p>
+      </div>
+    </div>
+
+    <!-- Spinlock vs Mutex -->
+    <div class="nc">
+      <div class="section-badge">LOCK TYPES</div>
+      <div class="nh">Spinlock vs Mutex vs Reader-Writer Lock</div>
+      <div style="overflow-x:auto;">
+        <table class="nt mb-3" style="min-width:600px;">
+          <thead><tr><th>Type</th><th>Mechanism</th><th>CPU under Contention</th><th>Best For</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Spinlock</strong></td><td>Busy-wait CAS loop</td><td>High</td><td>Very short critical sections, kernel, interrupts</td></tr>
+            <tr><td><strong>Mutex</strong></td><td>Block thread via futex, kernel sleep</td><td>Low</td><td>Long waits, user-space programs</td></tr>
+            <tr><td><strong>Reader-Writer Lock</strong></td><td>Concurrent readers; exclusive writer</td><td>Low for reads</td><td>Read-heavy: caches, configs</td></tr>
+            <tr><td><strong>Optimistic (CAS)</strong></td><td>Read → Modify → CAS → Retry if conflict</td><td>Low if rare contention</td><td>Databases, ConcurrentHashMap, MVCC</td></tr>
+            <tr><td><strong>Lock-Free</strong></td><td>Atomic instructions only (CAS, FAA, LL/SC)</td><td>None</td><td>High-throughput counters, queues</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ntip"><strong>Reader-Writer Lock rule:</strong> Multiple readers can proceed concurrently; writers get exclusive access. Avoid writer starvation with fairness policies.</div>
+    </div>
+
+    <!-- Scaling Strategies -->
+    <div class="nc">
+      <div class="section-badge">SCALING STRATEGIES</div>
+      <div class="nh">Strategies to Reduce Lock Contention</div>
+
+      <p class="font-semibold text-violet-700 mb-1">1. Reduce Critical Section Duration</p>
+      <div class="ncode">❌ Bad:    lock() → DB query → update variable → unlock()
+✅ Good:   DB query → lock() → update variable → unlock()
+
+Move expensive operations OUTSIDE the lock.</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">2. Lock Striping</p>
+      <div class="ncode">❌ One global lock
+✅ Lock1, Lock2, Lock3, Lock4 — each bucket has its own lock
+Example: ConcurrentHashMap uses 16 segment locks</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">3. Sharding</p>
+      <div class="ncode">❌ One shared counter (all threads contend)
+✅ Counter-A, Counter-B, Counter-C (per-thread/per-core)
+   Merge later for total
+Example: Java LongAdder, Prometheus counters</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">4. Read-Copy-Update (RCU)</p>
+      <div class="ncode">Readers: Never blocked — read current version
+Writers: Create new copy → update → swap pointer atomically
+         Old copy cleaned up after grace period
+Example: Linux kernel uses RCU extensively</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">5. Immutable Objects</p>
+      <div class="ncode">❌ lock() → modify object → unlock()
+✅ Create new object with changes → replace reference atomically
+   No synchronization needed for readers</div>
+
+      <table class="nt mt-4">
+        <thead><tr><th>Technique</th><th>Scalability</th><th>Complexity</th><th>Best For</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Global Mutex</strong></td><td>⭐</td><td>Low</td><td>Simple apps</td></tr>
+          <tr><td><strong>Fine-Grained Locks</strong></td><td>⭐⭐⭐</td><td>Medium</td><td>Services</td></tr>
+          <tr><td><strong>RW Lock</strong></td><td>⭐⭐⭐⭐</td><td>Medium</td><td>Read-heavy systems</td></tr>
+          <tr><td><strong>Lock Striping</strong></td><td>⭐⭐⭐⭐</td><td>Medium</td><td>Concurrent Maps</td></tr>
+          <tr><td><strong>CAS / Lock-Free</strong></td><td>⭐⭐⭐⭐⭐</td><td>High</td><td>High-performance systems</td></tr>
+          <tr><td><strong>RCU</strong></td><td>⭐⭐⭐⭐⭐</td><td>Very High</td><td>Linux Kernel</td></tr>
+          <tr><td><strong>Sharding</strong></td><td>⭐⭐⭐⭐⭐</td><td>Medium</td><td>Distributed Systems</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real World Examples -->
+    <div class="nc">
+      <div class="section-badge">REAL-WORLD EXAMPLES</div>
+      <div class="nh">Production System Examples</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Problem</th><th>Solution Used</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Java Counter (100 threads)</strong></td><td><code>synchronized(counter)</code> — one lock, all threads contend</td><td><code>LongAdder</code> — multiple internal counters, merged on read</td></tr>
+          <tr><td><strong>PostgreSQL</strong></td><td>Many transactions update same row → row lock queue</td><td>Partition table, reduce transaction size, optimistic concurrency</td></tr>
+          <tr><td><strong>Redis</strong></td><td>N/A — single-threaded execution</td><td>No lock contention; request queue; predictable latency</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>Would be bottleneck with one global lock</td><td>Partition-level independence — each partition has its own synchronization</td></tr>
+          <tr><td><strong>ConcurrentHashMap (Java)</strong></td><td>HashMap requires full lock on all operations</td><td>Lock striping — 16 segment locks; concurrent readers never block</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Measuring Lock Contention</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Linux Tools</p>
+          <table class="nt">
+            <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><span class="nkw"><span>perf lock</span></span></td><td>Lock statistics</td></tr>
+              <tr><td><span class="nkw"><span>perf top</span></span></td><td>Hot locks</td></tr>
+              <tr><td><span class="nkw"><span>perf sched</span></span></td><td>Scheduler delays</td></tr>
+              <tr><td><span class="nkw"><span>vmstat</span></span></td><td>Context switches</td></tr>
+              <tr><td><span class="nkw"><span>eBPF</span></span></td><td>Lock tracing</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Java Tools</p>
+          <table class="nt">
+            <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><span class="nkw"><span>jstack</span></span></td><td>Blocked threads</td></tr>
+              <tr><td><span class="nkw"><span>JFR</span></span></td><td>Lock profiling</td></tr>
+              <tr><td><span class="nkw"><span>async-profiler</span></span></td><td>Contention flame graphs</td></tr>
+              <tr><td><span class="nkw"><span>top -H</span></span></td><td>Per-thread CPU</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Key Metrics</p>
+      <table class="nt">
+        <thead><tr><th>Metric</th><th>Why It Matters</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Lock Wait Time</strong></td><td>Indicates contention level</td></tr>
+          <tr><td><strong>Queue Length</strong></td><td>Resource pressure</td></tr>
+          <tr><td><strong>Context Switches</strong></td><td>Scheduler overhead</td></tr>
+          <tr><td><strong>CPU Utilization</strong></td><td>Wasted cycles from spinning or waiting</td></tr>
+          <tr><td><strong>Blocked Threads</strong></td><td>Starvation risk</td></tr>
+          <tr><td><strong>P95/P99 Latency</strong></td><td>User experience — tail latency reveals lock convoys</td></tr>
+          <tr><td><strong>Throughput</strong></td><td>Scalability ceiling</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION SCENARIOS</div>
+      <div class="nh">Production Failure Scenarios</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Symptom</th><th>Cause</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td>CPU at 20%, requests slow</td><td>Threads blocked on a global mutex</td><td>Reduce contention, shard state, shorten critical sections</td></tr>
+          <tr><td>High context switches</td><td>Many threads waiting on locks</td><td>Reduce thread count or lock duration</td></tr>
+          <tr><td>High P99 latency</td><td>Lock convoy</td><td>Partition locks and reduce contention hotspots</td></tr>
+          <tr><td>Database throughput plateaus</td><td>Row lock contention</td><td>Partition tables, reduce transaction scope, optimistic locking</td></tr>
+          <tr><td>Cache scalability stops</td><td>Global synchronized cache</td><td>ConcurrentHashMap, lock striping, or RCU</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Staff Engineer Decision Framework</div>
+      <p class="text-gray-700 mb-3">A Staff Engineer asks the right questions — not just "which lock is slow?" but "can we eliminate shared mutable state entirely?"</p>
+      <ul class="dot-ul mb-4">
+        <li>Can this lock be <strong>removed entirely</strong>?</li>
+        <li>Can we <strong>partition the shared state</strong>?</li>
+        <li>Is <strong>optimistic concurrency</strong> better here?</li>
+        <li>Is <strong>cache-line bouncing</strong> the real bottleneck?</li>
+        <li>Is <strong>false sharing</strong> occurring?</li>
+        <li>Should we use <strong>lock striping</strong>?</li>
+        <li>Can <strong>immutable data</strong> eliminate synchronization?</li>
+        <li>Would an <strong>actor model or message passing</strong> remove shared state?</li>
+      </ul>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Workload</th><th>Best Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>Read-Heavy Cache</td><td><strong>Read-Write Lock / RCU</strong></td></tr>
+          <tr><td>High Write Counter</td><td><strong>LongAdder / Sharding</strong></td></tr>
+          <tr><td>Database</td><td><strong>Optimistic Locking + MVCC</strong></td></tr>
+          <tr><td>Kernel</td><td><strong>Spinlock / RCU</strong></td></tr>
+          <tr><td>Web Server</td><td><strong>Fine-Grained Locks</strong></td></tr>
+          <tr><td>Distributed System</td><td><strong>Partition Ownership + Message Passing</strong></td></tr>
+          <tr><td>Analytics</td><td><strong>Immutable Data Structures</strong></td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Production Readiness Checklist</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700 mb-4">
+        <li>Measure lock contention (<code>perf lock</code>, JFR, async-profiler).</li>
+        <li>Identify hottest locks.</li>
+        <li>Minimize critical section duration.</li>
+        <li>Replace global locks with fine-grained locks.</li>
+        <li>Avoid false sharing (padding, <code>@Contended</code>).</li>
+        <li>Consider lock striping or sharding.</li>
+        <li>Use optimistic locking where conflicts are rare.</li>
+        <li>Benchmark scalability with increasing thread counts.</li>
+        <li>Monitor P95/P99 latency, not just average latency.</li>
+        <li>Prefer designs that <strong>eliminate shared mutable state</strong> over simply optimizing locks.</li>
+      </ol>
+
+      <div class="nq">"Lock contention is an architecture problem, not just a synchronization problem. The best optimization is often redesigning ownership of shared state so that threads rarely need to compete for the same lock."</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">Summary</div>
+      <ul class="dot-ul">
+        <li><strong>Lock contention</strong> is one of the primary scalability bottlenecks — it increases waiting time, context switches, cache coherence traffic, and tail latency while reducing throughput.</li>
+        <li>The real cost of contention is often <strong>cache-line bouncing, scheduler overhead, lock convoys, and priority inversion</strong>, not just time inside the critical section.</li>
+        <li>Staff Engineers first try to <strong>eliminate shared mutable state</strong> through sharding, partitioning, immutable data structures, message passing, or lock-free algorithms.</li>
+        <li>Modern high-performance systems favor <strong>fine-grained locking, optimistic concurrency (CAS/MVCC), lock striping, RCU, and reader-writer locks</strong> over coarse global mutexes.</li>
+        <li>Most important production metrics: <strong>lock wait time, blocked threads, context switches, CPU utilization, queue length, throughput, and P95/P99 latency</strong>.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ORIGINAL NOTES TAB -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <!-- Intro -->
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — OVERVIEW</div>
+      <div class="nh">Lock Contention &amp; Performance Tuning — Staff Engineer Deep Dive</div>
+      <p class="text-gray-700 mb-3">One of the <strong>most important Operating System + Performance Engineering + Distributed Systems</strong> topics for a Staff Engineer.</p>
+      <ul class="dot-ul mb-3">
+        <li>Junior engineers know <strong>what a lock is</strong>.</li>
+        <li>Senior engineers know <strong>how to use locks correctly</strong>.</li>
+        <li><strong>Staff engineers know how lock contention limits scalability, affects CPU utilization, increases tail latency, and how to redesign systems to eliminate contention</strong> rather than simply optimizing it.</li>
+      </ul>
+
+      <p class="font-semibold text-violet-700 mb-2">Lock sources (whenever multiple threads need the same resource):</p>
+      <ul class="dot-ul mb-3">
+        <li>Java <strong>synchronized</strong> block / <strong>ReentrantLock</strong></li>
+        <li><strong>pthread_mutex</strong> / <strong>Spinlock</strong></li>
+        <li>Database <strong>row lock</strong></li>
+        <li>Redis <strong>distributed lock</strong></li>
+        <li>Kubernetes <strong>leader election lock</strong></li>
+      </ul>
+      <div class="ncode">Application → Multiple Threads → Shared Lock → Waiting Queue → Critical Section → Shared Resource
+→ Lock becomes a SCALABILITY BOTTLENECK</div>
+    </div>
+
+    <!-- Why It Happens -->
+    <div class="nc">
+      <div class="section-badge">SECTION 1</div>
+      <div class="nh">Why Lock Contention Happens</div>
+      <div class="ncode">100 Threads → One Counter → One Mutex
+→ Only 1 thread updates counter
+→ 99 threads wait
+→ CPU cores remain idle while waiting</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Lock Lifecycle</p>
+      <div class="ncode">Thread → Acquire Lock → Critical Section → Release Lock → Next Waiting Thread
+
+Performance depends on:
+• Acquisition speed
+• Waiting time
+• Critical section duration
+• Number of competing threads</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">What Happens Internally</p>
+      <div class="ncode">lock.lock();   counter++;   lock.unlock();
+
+Internally:
+CPU Core → Atomic CAS → Success? → YES → Enter Critical Section
+                                  → NO  → Spin → Sleep → Scheduler → Retry
+
+Every failed acquisition costs CPU cycles.</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Why Contention Hurts — Non-Linear Growth</p>
+      <div class="ncode">More Waiting → Context Switches → Cache Invalidations → Scheduler Overhead → CPU Stalls
+→ Latency ↑ → Throughput ↓
+
+Contention grows NON-LINEARLY — adding more threads makes things worse.</div>
+    </div>
+
+    <!-- CPU Cache -->
+    <div class="nc">
+      <div class="section-badge">SECTION 2</div>
+      <div class="nh">CPU Cache Coherency Problem</div>
+      <p class="font-semibold text-violet-700 mb-1">Cache Line Bouncing</p>
+      <div class="ncode">CPU 1 - Counter
+CPU 2 - Counter
+CPU 3 - Counter
+
+Each increment changes cache ownership.
+Cache line constantly moves between CPUs.
+→ Memory bus traffic → Lower IPC → Reduced scalability</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">False Sharing</p>
+      <div class="ncode">Cache Line: [ Counter A | Counter B ]
+
+Thread 1 updates Counter A → invalidates Counter B's cache
+Thread 2 updates Counter B → invalidates Counter A's cache
+
+Even though they update DIFFERENT variables → performance collapses.
+
+Solution: Padding or cache-line alignment (@Contended in Java)</div>
+    </div>
+
+    <!-- Failure Modes -->
+    <div class="nc">
+      <div class="section-badge">SECTION 3</div>
+      <div class="nh">Lock Convoy &amp; Priority Inversion</div>
+      <p class="font-semibold text-violet-700 mb-1">Lock Convoy</p>
+      <div class="ncode">Thread A holds Lock → Slow Operation → 50 Threads waiting
+→ When Thread A finishes, everyone wakes up simultaneously
+→ Scheduler thrashes
+→ Called: LOCK CONVOY</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Priority Inversion</p>
+      <div class="ncode">Low Priority Thread  → Owns Lock
+High Priority Thread → Waiting
+Medium Priority Thread → Keeps Running
+
+→ High-priority thread CANNOT proceed
+→ NASA's Mars Pathfinder experienced this famously
+→ Solution: Priority inheritance</div>
+    </div>
+
+    <!-- Lock Types -->
+    <div class="nc">
+      <div class="section-badge">SECTION 4</div>
+      <div class="nh">Spinlock vs Mutex vs Reader-Writer Locks</div>
+      <p class="font-semibold text-violet-700 mb-1">Spinlock</p>
+      <div class="ncode">Acquire? → Busy Wait → Retry
+Good for: Very short critical sections, Kernel, Interrupts
+Bad for: Long waits (wastes CPU)</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Mutex</p>
+      <div class="ncode">Acquire? → Blocked → Scheduler Sleeps Thread
+Good for: Long waits, User-space programs
+Lower CPU usage than spinlock under contention</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Reader-Writer Locks</p>
+      <div class="ncode">❌ One Reader / One Writer (exclusive both ways)
+✅ Reader, Reader, Reader → Parallel
+   Writer → Exclusive
+
+Great for: Read-heavy workloads, Caches, Configuration data</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Optimistic Locking</p>
+      <div class="ncode">Read → Modify → Compare-And-Swap → Retry if Conflict
+Used in: Databases, ConcurrentHashMap, MVCC, Lock-free algorithms
+Excellent under low contention</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Lock-Free Programming</p>
+      <div class="ncode">Modern CPUs support atomic instructions: CAS, FAA, LL/SC
+No mutex required.
+Advantages: No deadlocks, Better scalability
+Trade-offs: Complex algorithms, Retry loops</div>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">SECTION 5</div>
+      <div class="nh">Measuring Lock Contention</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><span class="nkw"><span>perf lock</span></span></td><td>Lock statistics</td></tr>
+          <tr><td><span class="nkw"><span>perf top</span></span></td><td>Hot locks</td></tr>
+          <tr><td><span class="nkw"><span>perf sched</span></span></td><td>Scheduler delays</td></tr>
+          <tr><td><span class="nkw"><span>vmstat</span></span></td><td>Context switches</td></tr>
+          <tr><td><span class="nkw"><span>pidstat</span></span></td><td>Waiting threads</td></tr>
+          <tr><td><span class="nkw"><span>top -H</span></span></td><td>Per-thread CPU</td></tr>
+          <tr><td><span class="nkw"><span>eBPF</span></span></td><td>Lock tracing</td></tr>
+          <tr><td><span class="nkw"><span>async-profiler</span></span></td><td>Java contention (off-CPU flamegraph)</td></tr>
+          <tr><td><span class="nkw"><span>jstack</span></span></td><td>Java blocked threads</td></tr>
+          <tr><td><span class="nkw"><span>Java Flight Recorder</span></span></td><td>Java lock profiling</td></tr>
+        </tbody>
+      </table>
+      <table class="nt">
+        <thead><tr><th>Metric</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Lock Wait Time</strong></td><td>Contention</td></tr>
+          <tr><td><strong>Queue Length</strong></td><td>Pressure</td></tr>
+          <tr><td><strong>Context Switches</strong></td><td>Scheduler overhead</td></tr>
+          <tr><td><strong>CPU Utilization</strong></td><td>Wasted cycles</td></tr>
+          <tr><td><strong>Blocked Threads</strong></td><td>Starvation</td></tr>
+          <tr><td><strong>Throughput</strong></td><td>Scalability</td></tr>
+          <tr><td><strong>P99 Latency</strong></td><td>User experience</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real World -->
+    <div class="nc">
+      <div class="section-badge">SECTION 6</div>
+      <div class="nh">Real-World Examples</div>
+      <p class="font-semibold text-violet-700 mb-1">Java Counter — Bad vs Good</p>
+      <div class="ncode">// Bad: 100 threads, one lock → Very poor throughput
+synchronized(counter) { count++; }
+
+// Better: LongAdder
+// Internally: multiple counters merged on read → Excellent scalability
+LongAdder counter = new LongAdder();
+counter.increment();</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">PostgreSQL</p>
+      <div class="ncode">Many transactions update → Same Account Table row → Row Lock
+→ Transaction queue
+Solutions: Partition table, Reduce transaction size, Optimistic concurrency</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Redis</p>
+      <div class="ncode">Single-threaded execution → No lock contention
+Trade-off: Request queue → Predictable latency</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Kafka</p>
+      <div class="ncode">Instead of: One Global Lock
+Kafka uses: Partition 1, Partition 2, Partition 3 → Independent synchronization
+→ Higher throughput</div>
+    </div>
+
+    <!-- Scaling Strategies -->
+    <div class="nc">
+      <div class="section-badge">SECTION 7</div>
+      <div class="nh">Scaling Strategies</div>
+
+      <p class="font-semibold text-violet-700 mb-1">1. Reduce Critical Section</p>
+      <div class="ncode">❌ Bad:  Acquire Lock → Database Query → Unlock
+✅ Good: Database Query → Acquire Lock → Update Variable → Unlock
+Keep locks for the SHORTEST possible duration.</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">2. Lock Striping</p>
+      <div class="ncode">❌ One Lock for everything
+✅ Lock 1 | Lock 2 | Lock 3 | Lock 4 (each bucket has its own lock)
+ConcurrentHashMap works this way.</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">3. Sharding</p>
+      <div class="ncode">❌ One Counter (all threads contend)
+✅ Counter A | Counter B | Counter C (merge later)
+Java LongAdder uses this pattern.</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">4. Read-Copy-Update (RCU)</p>
+      <div class="ncode">Readers: Never blocked (read current version)
+Writers: Create new copy → swap pointer → old copy cleaned up
+Linux kernel uses RCU extensively.</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">5. Immutable Objects</p>
+      <div class="ncode">❌ lock() → modify Object → unlock()
+✅ Create New Object with changes → Replace Reference
+No synchronization needed for readers.</div>
+
+      <table class="nt mt-4">
+        <thead><tr><th>Strategy</th><th>Pros</th><th>Cons</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Mutex</strong></td><td>Simple</td><td>Blocking</td></tr>
+          <tr><td><strong>Spinlock</strong></td><td>Fast</td><td>CPU waste</td></tr>
+          <tr><td><strong>RW Lock</strong></td><td>Excellent reads</td><td>Writer starvation</td></tr>
+          <tr><td><strong>CAS</strong></td><td>Lock-free</td><td>Retry cost</td></tr>
+          <tr><td><strong>RCU</strong></td><td>Reader scalability</td><td>Complex writes</td></tr>
+          <tr><td><strong>Sharding</strong></td><td>Excellent scaling</td><td>Aggregation complexity</td></tr>
+          <tr><td><strong>LongAdder</strong></td><td>Very scalable</td><td>Approximate intermediate state</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc">
+      <div class="section-badge">SECTION 8</div>
+      <div class="nh">Production Failure Scenarios</div>
+      <div class="ncode">CPU at 20%, Requests Slow
+  Cause: Threads blocked on a global mutex
+  Solution: Reduce contention, shard state, shorten critical sections
+
+High Context Switches
+  Cause: Many threads waiting on locks
+  Solution: Reduce thread count or lock duration
+
+High P99 Latency
+  Cause: Lock convoy
+  Solution: Partition locks and reduce contention hotspots
+
+Database Throughput Plateaus
+  Cause: Row lock contention
+  Solution: Partition tables, reduce transaction scope, optimistic locking
+
+Cache Scalability Stops
+  Cause: Global synchronized cache
+  Solution: Use ConcurrentHashMap, lock striping, or RCU</div>
+    </div>
+
+    <!-- Staff Decision Framework -->
+    <div class="nc">
+      <div class="section-badge">SECTION 9</div>
+      <div class="nh">Staff Engineer Decision Framework</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Workload</th><th>Best Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>Read-Heavy Cache</td><td><strong>Read-Write Lock / RCU</strong></td></tr>
+          <tr><td>High Write Counter</td><td><strong>LongAdder / Sharding</strong></td></tr>
+          <tr><td>Database</td><td><strong>Optimistic Locking + MVCC</strong></td></tr>
+          <tr><td>Kernel</td><td><strong>Spinlock / RCU</strong></td></tr>
+          <tr><td>Web Server</td><td><strong>Fine-Grained Locks</strong></td></tr>
+          <tr><td>Distributed System</td><td><strong>Partition Ownership + Message Passing</strong></td></tr>
+          <tr><td>Analytics</td><td><strong>Immutable Data Structures</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- End-to-End -->
+    <div class="nc">
+      <div class="section-badge">SECTION 10 — LIFECYCLE</div>
+      <div class="nh">End-to-End Lock Contention Lifecycle</div>
+      <div class="ncode">Multiple Threads → Shared Resource → Lock Acquisition
+
+───────────────────────────────────
+
+Low Contention → Fast Execution ✅
+
+───────────────────────────────────
+
+High Contention:
+→ Waiting Queue → Context Switches → Cache Line Bouncing
+→ P99 Latency Increases → Throughput Drops
+
+Apply:
+• Fine-Grained Locks
+• Lock Striping
+• Sharding
+• Optimistic Locking
+• RCU / Lock-Free Design
+
+→ High Scalability ✅</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">Staff Engineer Soundbite</div>
+      <ul class="dot-ul mb-4">
+        <li><strong>Lock contention</strong> is one of the primary scalability bottlenecks — it increases waiting time, context switches, cache coherence traffic, and tail latency.</li>
+        <li>Real cost is often <strong>cache-line bouncing, scheduler overhead, lock convoys, and priority inversion</strong> — not just time inside the critical section.</li>
+        <li>Staff Engineers first try to <strong>eliminate shared mutable state</strong> through sharding, partitioning, immutable data, message passing, or lock-free algorithms.</li>
+        <li>Modern high-performance systems favor <strong>fine-grained locking, CAS/MVCC, lock striping, RCU, and reader-writer locks</strong> over coarse global mutexes.</li>
+        <li>Most important production metrics: <strong>lock wait time, blocked threads, context switches, CPU utilization, queue length, throughput, P95/P99 latency</strong>.</li>
+        <li>A Staff Engineer views lock contention as an <strong>architecture problem</strong>. The best optimization is redesigning ownership of shared state so threads rarely compete for the same lock.</li>
+      </ul>
+      <div class="nq">"The best lock optimization is often removing the lock entirely — by partitioning state, using immutable data, or adopting message-passing architectures where threads own their state exclusively."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/d4c978b8-5d50-4f56-ae96-cb1e8982cc88.png"
+           alt="Lock Contention and Performance Tuning Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

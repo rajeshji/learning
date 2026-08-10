@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Server / Application Failures in System Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#ea580c; border-bottom-color:#ea580c; }
+    .tab-btn:hover:not(.active) { color:#9a3412; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* type card */
+    .tc { background:#fff; border:1px solid #fed7aa; border-radius:1rem; padding:1rem 1.25rem; }
+    .tc-num { display:inline-flex; align-items:center; justify-content:center;
+              width:1.5rem; height:1.5rem; border-radius:999px; background:#ea580c;
+              color:#fff; font-size:.65rem; font-weight:800; margin-bottom:.5rem; }
+    .tc-title { font-weight:700; font-size:.85rem; color:#1e293b; }
+    .tc-badge { font-size:.62rem; font-weight:700; border-radius:999px;
+                padding:.15em .6em; margin-left:.4rem;
+                background:#ffedd5; color:#9a3412; }
+    .tc-row { display:flex; gap:.5rem; margin-top:.45rem; align-items:flex-start; }
+    .tc-lbl { font-size:.6rem; font-weight:800; text-transform:uppercase;
+              letter-spacing:.07em; min-width:2.8rem; padding-top:.1rem; }
+    .lbl-what { color:#dc2626; }
+    .lbl-why { color:#d97706; }
+    .tc-val   { font-size:.77rem; color:#374151; line-height:1.55; }
+    .tc-think { background:#1c0a00; color:#fb923c; font-family:'Courier New',monospace;
+                font-size:.74rem; border-radius:.5rem; padding:.55rem .8rem;
+                white-space:pre; margin-top:.6rem; line-height:1.7; }
+
+    /* mitigation card */
+    .mc { background:#fff; border:1px solid #fed7aa; border-radius:1rem; padding:1rem 1.25rem; }
+    .mc-title { font-weight:700; font-size:.83rem; color:#1e293b; margin-bottom:.5rem; }
+    .mc-say { background:#1c0a00; color:#fdba74; font-family:'Courier New',monospace;
+              font-size:.74rem; border-radius:.55rem; padding:.65rem .9rem;
+              white-space:pre-wrap; line-height:1.8; }
+
+    /* shared */
+    .nc   { background:#fff7ed; border:1px solid #fed7aa; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#ea580c; margin-bottom:.6rem; }
+    .ncode{ background:#1c0a00; color:#fdba74; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .nt th{ background:#ffedd5; color:#9a3412; font-weight:700; font-size:.63rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .7rem; text-align:left; }
+    .nt td{ padding:.4rem .7rem; border-top:1px solid #ffedd5;
+            color:#374151; vertical-align:top; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-orange-600 hover:text-orange-800 font-semibold
+              bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-orange-700 font-semibold">Server / Application Failures</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Server / Application Failures</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Interview-focused · 11 failure types · instant mitigation lines · staff patterns</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-6xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('types',this)">Failure Types</button>
+    <button class="tab-btn"        onclick="switchTab('mit',this)">Mitigations</button>
+    <button class="tab-btn"        onclick="switchTab('cheat',this)">Cheat Sheet</button>
+  </div>
+
+  <!-- ═════════════════ TAB 1 — FAILURE TYPES ═════════════════ -->
+  <div id="tab-types" class="tab-pane active pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Think of a service as</p>
+      <div class="ncode">Code + Runtime + Resources + Dependencies</div>
+      <p class="text-sm text-gray-700 mt-3">
+        Failures come from exactly these four layers.
+        A <strong>small set with clear reasoning</strong> beats a 30-item list every time.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">1</span>
+          <span class="tc-title">Service Crash / Process Down</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Service stops running — exception, segfault, or OOM kill</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Immediate downtime for that service / instance</span></div>
+        <pre class="tc-think">Instance is dead → requests fail</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">2</span>
+          <span class="tc-title">Out Of Memory (OOM)</span>
+          <span class="tc-badge">Very Common</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Service consumes too much memory and gets killed by the OS</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">One of the most common production failures</span></div>
+        <pre class="tc-think">Memory leak → sudden crash</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">3</span>
+          <span class="tc-title">CPU Saturation</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">CPU usage hits 100% — no capacity to process requests</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Requests slow down → timeouts → cascading failure</span></div>
+        <pre class="tc-think">Service alive but extremely slow</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">4</span>
+          <span class="tc-title">Thread Pool / Connection Exhaustion</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">No threads or connections left to serve new requests</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Requests queue up, time out, or get rejected entirely</span></div>
+        <pre class="tc-think">System cannot handle new requests</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">5</span>
+          <span class="tc-title">Deadlock / Blocking</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Threads waiting on each other forever — no progress</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Service appears running but completely stuck</span></div>
+        <pre class="tc-think">No progress → requests hang indefinitely</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">6</span>
+          <span class="tc-title">Slow Service / Performance Degradation</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Service responds but very slowly</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Upstream callers time out → retry → further overload</span></div>
+        <pre class="tc-think">Latency increases → retries → overload</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">7</span>
+          <span class="tc-title">Dependency Failure Propagation</span>
+          <span class="tc-badge" style="background:#fee2e2;color:#991b1b;">Cascading</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Downstream service is slow or unavailable</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Your service fails even when it is perfectly healthy</span></div>
+        <pre class="tc-think">Service A fails because B is slow/down</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">8</span>
+          <span class="tc-title">Memory Leak / Resource Leak</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Gradual resource consumption — memory, file handles, sockets</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Delayed failure — hard to detect until it crashes</span></div>
+        <pre class="tc-think">System fine initially → crashes hours later</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">9</span>
+          <span class="tc-title">Misconfiguration</span>
+          <span class="tc-badge">Very Common</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Wrong config — bad timeout values, DB URL, connection limits</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Responsible for a huge % of real-world production outages</span></div>
+        <pre class="tc-think">System breaks after deployment</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">10</span>
+          <span class="tc-title">Version / Compatibility Issues</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">New version is incompatible with existing services or APIs</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Breaks inter-service communication silently</span></div>
+        <pre class="tc-think">Service mismatch → errors between services</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">11</span>
+          <span class="tc-title">Rate Limit / Throttling Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Service rejects too many requests to protect itself</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Users see errors even when system infrastructure is healthy</span></div>
+        <pre class="tc-think">System protects itself but drops traffic</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <!-- cheat model -->
+    <div class="nc mt-5">
+      <p class="nh">Final Interview Cheat Model — 6 Buckets</p>
+      <div class="ncode">Application failures =
+  1. Crash        → service is down
+  2. Slow         → service has high latency
+  3. Exhaustion   → CPU / memory / threads at limit
+  4. Blocked      → deadlock or stuck threads
+  5. Dependency   → downstream is failing
+  6. Bad deploy   → config / version mismatch</div>
+    </div>
+
+    <!-- recall trick -->
+    <div class="nc">
+      <p class="nh">Ultra-Simple Recall Trick — Ask This</p>
+      <div class="ncode">Is the service:
+  - down?                  → crash / OOM
+  - slow?                  → CPU / latency / degradation
+  - overloaded?            → thread pool / rate limit
+  - blocked?               → deadlock
+  - broken by dependency?  → propagation failure
+  - broken by deploy?      → config / version</div>
+      <p class="text-sm text-gray-700 mt-3">
+        That covers <strong>almost every application failure</strong> in a real interview.
+      </p>
+    </div>
+
+  </div><!-- /tab-types -->
+
+  <!-- ═════════════════ TAB 2 — MITIGATIONS ═════════════════ -->
+  <div id="tab-mit" class="tab-pane pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Staff Pattern — Use Every Time</p>
+      <div class="flex flex-wrap gap-2 text-xs font-semibold items-center">
+        <span class="bg-blue-600 text-white px-3 py-1.5 rounded-lg">Detect</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-orange-500 text-white px-3 py-1.5 rounded-lg">Mitigate</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-purple-600 text-white px-3 py-1.5 rounded-lg">Prevent</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="mc">
+        <p class="mc-title">1. Service Crash / Process Down</p>
+        <pre class="mc-say">Detect via health checks / heartbeats
+→ remove instance from load balancer
+→ auto-restart via orchestrator (Kubernetes)
+→ rely on multiple replicas to stay available</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">2. Out Of Memory (OOM)</p>
+        <pre class="mc-say">Detect via memory metrics / OOM kill events
+→ restart affected instances immediately
+→ set memory limits + trigger autoscaling
+→ fix root cause: memory leak or large payload</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">3. CPU Saturation</p>
+        <pre class="mc-say">Detect via CPU metrics / latency increase
+→ scale horizontally to spread load
+→ offload heavy work to async workers
+→ add caching to reduce repeated computation</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">4. Thread Pool / Connection Exhaustion</p>
+        <pre class="mc-say">Detect via queue length / thread metrics
+→ apply backpressure or rate limiting
+→ increase pool size cautiously with testing
+→ move blocking I/O to async / non-blocking</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">5. Deadlock / Blocking</p>
+        <pre class="mc-say">Detect via stuck threads / timeout spikes
+→ fail fast using timeouts on all calls
+→ restart affected instances
+→ redesign with non-blocking patterns</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">6. Slow Service / Performance Degradation</p>
+        <pre class="mc-say">Detect via latency metrics (P95 / P99)
+→ cache hot data / optimise slow queries
+→ reduce synchronous dependency calls
+→ degrade non-critical features if needed</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">7. Dependency Failure Propagation</p>
+        <pre class="mc-say">Detect via dependency health checks / error spikes
+→ circuit breaker — stop calling failing service
+→ fallback to cached or default response
+→ retry with exponential backoff when recovered</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">8. Memory Leak / Resource Leak</p>
+        <pre class="mc-say">Detect via gradual memory growth metrics
+→ restart instances on schedule (short-term fix)
+→ add memory + leak profiling in pre-prod
+→ fix leak in code — enforce resource cleanup</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">9. Misconfiguration</p>
+        <pre class="mc-say">Detect via sudden error spike post-deployment
+→ rollback config immediately
+→ use config versioning / feature flags
+→ validate configs in CI before rollout</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">10. Version / Compatibility Issues</p>
+        <pre class="mc-say">Detect via API errors between services
+→ ensure backward-compatible APIs (never break)
+→ use versioned endpoints (/v1, /v2)
+→ roll out changes gradually via canary</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">11. Rate Limit / Throttling Failure</p>
+        <pre class="mc-say">Detect via rejection rate / 429 error spike
+→ apply smarter rate limiting per client tier
+→ prioritise critical traffic over best-effort
+→ scale system capacity to absorb more load</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <!-- 5 universal patterns -->
+    <div class="nc mt-5">
+      <p class="nh">5 Universal Patterns — Everything Reduces to These</p>
+      <div class="ncode">1. Restart   → recover a crashed / stuck service
+2. Scale     → handle load (CPU / memory / threads)
+3. Retry     → handle transient failures
+4. Cache     → reduce dependency on slow services
+5. Isolate   → circuit breaker / rate limit / bulkhead</div>
+    </div>
+
+    <!-- Staff one-liner -->
+    <div class="rounded-2xl p-5" style="background:#431407;border:1px solid #c2410c;">
+      <p class="text-xs font-bold text-orange-300 uppercase tracking-widest mb-2">Staff-Level One-Liner</p>
+      <p class="text-sm text-white leading-relaxed font-medium">
+        "I would detect it via metrics, isolate the failing component, recover using restart or
+        horizontal scaling, and prevent recurrence through better resource management or decoupling."
+      </p>
+    </div>
+
+  </div><!-- /tab-mit -->
+
+  <!-- ═════════════════ TAB 3 — CHEAT SHEET ═════════════════ -->
+  <div id="tab-cheat" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">All 11 — Type + Instant Mitigation Side by Side</p>
+      <div class="overflow-x-auto mt-1">
+        <table class="nt">
+          <thead>
+            <tr><th>#</th><th>Failure</th><th>Think</th><th>Detect</th><th>Mitigate</th><th>Prevent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="font-semibold">Crash / Down</td><td>Requests fail</td><td>Health checks</td><td>Auto-restart, replicas</td><td>Multi-instance deploy</td></tr>
+            <tr><td>2</td><td class="font-semibold">OOM</td><td>Sudden crash</td><td>Memory metrics</td><td>Restart, memory limits</td><td>Fix leak, set limits</td></tr>
+            <tr><td>3</td><td class="font-semibold">CPU Saturation</td><td>Alive but slow</td><td>CPU metrics</td><td>Scale out, async workers</td><td>Caching, load testing</td></tr>
+            <tr><td>4</td><td class="font-semibold">Thread Exhaustion</td><td>Requests rejected</td><td>Queue / thread metrics</td><td>Backpressure, rate limit</td><td>Async I/O, pool sizing</td></tr>
+            <tr><td>5</td><td class="font-semibold">Deadlock</td><td>Requests hang</td><td>Stuck threads / timeouts</td><td>Timeouts, restart</td><td>Non-blocking design</td></tr>
+            <tr><td>6</td><td class="font-semibold">Slow Service</td><td>Latency cascade</td><td>P95/P99 latency</td><td>Cache, optimise queries</td><td>Load testing, profiling</td></tr>
+            <tr><td>7</td><td class="font-semibold">Dep. Propagation</td><td>Healthy svc fails</td><td>Dep. health checks</td><td>Circuit breaker, fallback</td><td>Decouple, cache locally</td></tr>
+            <tr><td>8</td><td class="font-semibold">Memory Leak</td><td>Crashes later</td><td>Gradual mem growth</td><td>Restart, profiling</td><td>Fix leak, enforce cleanup</td></tr>
+            <tr><td>9</td><td class="font-semibold">Misconfiguration</td><td>Breaks after deploy</td><td>Error spike post-deploy</td><td>Rollback config</td><td>Config validation in CI</td></tr>
+            <tr><td>10</td><td class="font-semibold">Version Mismatch</td><td>API errors</td><td>Inter-svc errors</td><td>Versioned endpoints</td><td>Backward compat. + canary</td></tr>
+            <tr><td>11</td><td class="font-semibold">Rate Limit Hit</td><td>Drops traffic</td><td>429 rate</td><td>Smarter limits, priority</td><td>Scale capacity</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- final truth -->
+    <div class="nc">
+      <p class="nh">Final Truth — All Failures Reduce to Three States</p>
+      <div class="ncode">Service is either:
+  DOWN        → crash / OOM / unresponsive
+  SLOW        → CPU / latency / blocked
+  MISBEHAVING → bad config / version / rate limit</div>
+      <p class="text-sm text-gray-700 mt-3">
+        If you can state which of these three applies and then give
+        <strong>one mitigation pattern</strong>, you've answered the question.
+      </p>
+    </div>
+
+    <!-- link to full table -->
+    <a href="application-failures-table.html"
+       class="flex items-center justify-between bg-white border border-orange-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-orange-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-orange-600 mb-1">Deep Dive Table</p>
+        <p class="font-bold text-gray-800 text-base">Application Failures — Full Scenario Table</p>
+        <p class="text-sm text-gray-500 mt-0.5">7 categories, 33 scenarios — detect / mitigate / prevent / cascading / trade-off</p>
+      </div>
+      <svg class="w-6 h-6 text-orange-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+       class="flex items-center justify-between bg-white border border-blue-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-blue-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-blue-600 mb-1">Related</p>
+        <p class="font-bold text-gray-800 text-base">Network Failures — Deep Dive</p>
+        <p class="text-sm text-gray-500 mt-0.5">Partition, timeout, retry storm, DNS, LB — same Detect to Mitigate format</p>
+      </div>
+      <svg class="w-6 h-6 text-blue-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-cheat -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cache Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#047857; border-bottom-color:#047857; }
+    .tab-btn:hover:not(.active) { color:#064e3b; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#ecfdf5; border:1px solid #a7f3d0; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#047857; margin-bottom:.6rem; }
+    .ncode{ background:#022c1a; color:#6ee7b7; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #a7f3d0; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#064e3b; color:#a7f3d0; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #d1fae5;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#ecfdf5; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#047857; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#064e3b; color:#a7f3d0; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #d1fae5; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-emerald-700 hover:text-emerald-900 font-semibold
+              bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-emerald-800 font-semibold">Cache Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Cache Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 8 categories · 37 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ══════════ TAB 1 ══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why Cache Failures Are the Most Deceptive</p>
+      <div class="ncode">Cache is designed to: reduce latency + reduce DB load + improve scalability
+But when cache fails: cache traffic → database traffic → backend collapse
+
+7 root failure classes:
+  unavailable | inconsistency | overload | invalidation issues
+  eviction | hot key | distributed coordination</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Cache Availability Failures</td></tr>
+          <tr>
+            <td>Cache Node Crash<span class="badge-crit">Must Know</span></td>
+            <td>Redis/Memcached node OOM, process kill, hardware failure</td>
+            <td>Cache health check failure, hit ratio drops to zero</td>
+            <td>Failover to replica cache node immediately</td>
+            <td>Cache replication (Redis Sentinel/Cluster), multi-node setup</td>
+            <td class="casc">All requests hit DB simultaneously — DB traffic spikes 10-100×</td>
+            <td class="troff">Replication doubles memory cost and adds coordination overhead</td>
+          </tr>
+          <tr>
+            <td>Complete Cache Cluster Outage<span class="badge-crit">Must Know</span></td>
+            <td>Cluster-wide failure — power, network, multi-node crash</td>
+            <td>Massive cache miss spike, DB connection exhaustion</td>
+            <td>Fallback to DB with rate limiting to protect it</td>
+            <td>Multi-AZ cache cluster, cross-zone replication</td>
+            <td class="casc">DB overload cascade — entire backend collapses under uncached load</td>
+            <td class="troff">Larger multi-AZ clusters cost significantly more</td>
+          </tr>
+          <tr>
+            <td>Cache Connection Failure</td>
+            <td>Network partition, connection pool exhausted, proxy down</td>
+            <td>Connection timeout/refused errors, cache latency spike</td>
+            <td>Retry with backoff, fallback to DB</td>
+            <td>Connection pooling, keepalive, multi-path network</td>
+            <td class="casc">App latency spike → callers timeout → retry storm</td>
+            <td class="troff">Larger connection pools increase memory and FD usage</td>
+          </tr>
+          <tr>
+            <td>Cache Startup Failure</td>
+            <td>Corrupted persistence file (AOF/RDB), bad config on restart</td>
+            <td>Cache restart loop, startup error logs</td>
+            <td>Restore from clean snapshot, rebuild cache from DB</td>
+            <td>Config validation before start, snapshot integrity checks</td>
+            <td class="casc">Cold cache storm — all requests hit DB until cache fully warmed</td>
+            <td class="troff">Warm-up increases startup time and adds DB load during recovery</td>
+          </tr>
+          <tr>
+            <td>Distributed Cache Partition</td>
+            <td>Network partition splits cache cluster — some nodes unreachable</td>
+            <td>Missing cache nodes in cluster view, inconsistent routing</td>
+            <td>Route to healthy cache nodes, fall back on misses</td>
+            <td>Multi-AZ deployment, redundant network paths</td>
+            <td class="casc">Inconsistent cached data — different app servers get different values</td>
+            <td class="troff">Cross-zone traffic adds latency and egress cost</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Cache Performance and Latency Failures</td></tr>
+          <tr>
+            <td>Slow Cache Response</td>
+            <td>CPU/network saturation, large values, heavy serialization</td>
+            <td>Cache latency spike, P99 increase on cache calls</td>
+            <td>Scale horizontally, reduce value size, local L1 cache</td>
+            <td>Better key/value partitioning, compression</td>
+            <td class="casc">App timeout → fallback to DB → DB overload</td>
+            <td class="troff">More cache shards add operational complexity</td>
+          </tr>
+          <tr>
+            <td>Cache CPU Saturation</td>
+            <td>Heavy concurrent read/write traffic, complex data structures</td>
+            <td>Cache CPU &gt;90%, latency increase</td>
+            <td>Add cache shards, reduce complex operations (SORT, LRANGE)</td>
+            <td>Better key distribution, avoid CPU-heavy Redis commands</td>
+            <td class="casc">Increased latency → callers retry → cache load amplifies</td>
+            <td class="troff">More shards add management overhead</td>
+          </tr>
+          <tr>
+            <td>Memory Pressure / Thrashing</td>
+            <td>Cache size exceeds memory limit — aggressive eviction begins</td>
+            <td>Eviction rate spike, cache hit ratio dropping</td>
+            <td>Increase memory allocation, tune eviction policy</td>
+            <td>Proper TTL policies, memory monitoring with headroom alert</td>
+            <td class="casc">Cache churn → hit ratio collapses → DB sees all traffic</td>
+            <td class="troff">More RAM is expensive; smaller caches reduce hit ratio</td>
+          </tr>
+          <tr>
+            <td>Disk Persistence Slowdown</td>
+            <td>Redis AOF/RDB heavy IO — persistence writes compete with reads</td>
+            <td>Write latency increase, fsync wait time metrics</td>
+            <td>Tune persistence frequency, use async AOF</td>
+            <td>Faster NVMe disks, separate persistence from read IO</td>
+            <td class="casc">Write latency increase propagates to all callers</td>
+            <td class="troff">Less persistence risks losing cache data on crash</td>
+          </tr>
+          <tr>
+            <td>Cache Query Storm</td>
+            <td>Traffic spike — too many cache requests hit simultaneously</td>
+            <td>Cache QPS spike, latency increase</td>
+            <td>Rate limiting, CDN for cacheable responses upstream</td>
+            <td>Better caching strategy, multi-tier caching (L1+L2)</td>
+            <td class="casc">DB fallback activated for overflowing requests → DB overload</td>
+            <td class="troff">Multi-tier caching adds complexity and memory cost</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Cache Miss and Stampede Failures</td></tr>
+          <tr>
+            <td>Cache Stampede<span class="badge-crit">Must Know</span></td>
+            <td>Popular cache key expires — many threads race to rebuild from DB</td>
+            <td>DB QPS spike coinciding with cache miss rate spike</td>
+            <td>Single-flight pattern (one thread rebuilds, others wait)</td>
+            <td>Staggered TTLs, probabilistic refresh before expiry, pre-warming</td>
+            <td class="casc">DB overwhelmed by simultaneous queries → slowdown → timeout cascade</td>
+            <td class="troff">Cache locking adds per-request coordination overhead</td>
+          </tr>
+          <tr>
+            <td>Cold Cache Storm<span class="badge-crit">Must Know</span></td>
+            <td>Cache restart or full flush — all data evicted simultaneously</td>
+            <td>Hit ratio drops to near zero, DB QPS spikes dramatically</td>
+            <td>Warm cache gradually using background jobs</td>
+            <td>Cache pre-warming on startup, avoid flushing in production</td>
+            <td class="casc">Massive DB spike — all requests bypass cold cache and hit DB</td>
+            <td class="troff">Warm-up adds startup complexity and initial DB load</td>
+          </tr>
+          <tr>
+            <td>Cache Avalanche<span class="badge-crit">Must Know</span></td>
+            <td>Many cache keys expire simultaneously — set with same TTL</td>
+            <td>Large-scale miss spike affecting many endpoints at once</td>
+            <td>Randomized TTL jitter, staggered expiration windows</td>
+            <td>Add random jitter to all TTL values at write time</td>
+            <td class="casc">Entire DB overloaded — avalanche of misses from all cache tiers</td>
+            <td class="troff">Harder to predict exact cache expiry time for debugging</td>
+          </tr>
+          <tr>
+            <td>Cache Penetration</td>
+            <td>Requests for keys that never exist — cache always misses, hits DB</td>
+            <td>Repeated DB misses for same non-existent keys</td>
+            <td>Bloom filter to block invalid keys, null value caching</td>
+            <td>Input validation, cache null results with short TTL</td>
+            <td class="casc">DB overloaded by repeated invalid lookups</td>
+            <td class="troff">Bloom filter consumes memory; null caching can mislead</td>
+          </tr>
+          <tr>
+            <td>Cache Breakdown (Hot Key Miss)</td>
+            <td>Single hot key expires — millions of requests race to DB for it</td>
+            <td>One DB query spiking to massive QPS instantly</td>
+            <td>Never-expire strategy for hottest keys, or mutex rebuild</td>
+            <td>Hot key replication to multiple cache nodes, local process cache</td>
+            <td class="casc">Hotspot DB collapse — single query pattern overwhelms DB</td>
+            <td class="troff">Never-expire means stale data unless invalidated explicitly</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Cache Consistency Failures</td></tr>
+          <tr>
+            <td>Stale Cache Data<span class="badge-crit">Must Know</span></td>
+            <td>Cache not invalidated after DB update — old value served</td>
+            <td>Cache/DB value mismatch, user complaints about wrong data</td>
+            <td>Invalidate cache entry on write, force refresh</td>
+            <td>Write-through cache, short TTL, CDC-based invalidation</td>
+            <td class="casc">Wrong prices, balances, or inventory shown at scale</td>
+            <td class="troff">Aggressive invalidation increases miss rate and DB load</td>
+          </tr>
+          <tr>
+            <td>Lost Cache Invalidation</td>
+            <td>Invalidation event dropped — message failure, network issue</td>
+            <td>Persistent stale reads despite DB update</td>
+            <td>Force cache refresh, TTL-based expiry as safety net</td>
+            <td>Reliable invalidation pipeline (transactional outbox + CDC)</td>
+            <td class="casc">Inconsistent user state spreads until TTL expiry</td>
+            <td class="troff">More reliable pipeline adds coordination overhead</td>
+          </tr>
+          <tr>
+            <td>Read-After-Write Inconsistency</td>
+            <td>User writes data — reads from stale cache before invalidation arrives</td>
+            <td>User sees old data immediately after their own write</td>
+            <td>Bypass cache temporarily for read after write (session routing)</td>
+            <td>Read-your-writes consistency, write-through cache</td>
+            <td class="casc">User confusion → repeat actions → duplicate data</td>
+            <td class="troff">Bypassing cache reduces its hit ratio temporarily</td>
+          </tr>
+          <tr>
+            <td>Write-Behind Data Loss</td>
+            <td>Cache crashes before async write-behind flushes to DB</td>
+            <td>Missing DB updates after cache restart</td>
+            <td>Replay from durable write log</td>
+            <td>Durable write queue (WAL for write-behind), synchronous writes on critical data</td>
+            <td class="casc">Permanent data loss if write-behind log not durable</td>
+            <td class="troff">Durable write log adds IO overhead, reducing write-behind benefit</td>
+          </tr>
+          <tr>
+            <td>Distributed Cache Inconsistency</td>
+            <td>Replication lag between cache nodes — different nodes return different values</td>
+            <td>Different cache values on different nodes for same key</td>
+            <td>Re-sync cache nodes, read from primary cache</td>
+            <td>Stronger consistency mode, shorter replication lag</td>
+            <td class="casc">Different users see different data — inconsistent UX at scale</td>
+            <td class="troff">Synchronous cache replication adds write latency</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Cache Eviction and Memory Failures</td></tr>
+          <tr>
+            <td>Aggressive Eviction</td>
+            <td>Memory limit reached — LRU/LFU evicts data faster than written</td>
+            <td>Eviction metrics spike, cache hit ratio drops steadily</td>
+            <td>Increase memory allocation, tune eviction policy</td>
+            <td>Proper cache sizing, eviction policy matching access patterns</td>
+            <td class="casc">Hit ratio collapse → all traffic falls through to DB</td>
+            <td class="troff">More memory is expensive; wrong eviction policy wastes it</td>
+          </tr>
+          <tr>
+            <td>Critical Data Evicted</td>
+            <td>Frequently-needed data evicted due to poor eviction policy</td>
+            <td>Frequent cache misses for important objects</td>
+            <td>Pin critical keys (no eviction), use dedicated cache namespace</td>
+            <td>LFU eviction, separate cache pools for hot vs cold data</td>
+            <td class="casc">DB load spikes for most important queries repeatedly</td>
+            <td class="troff">Pinned keys reduce usable cache space for other data</td>
+          </tr>
+          <tr>
+            <td>Memory Fragmentation</td>
+            <td>Long-running cache with many small writes creates fragmented memory</td>
+            <td>mem_fragmentation_ratio &gt; 1.5 in Redis INFO, OOM with free memory</td>
+            <td>Restart cache (accept cold start), or use MEMORY PURGE</td>
+            <td>jemalloc tuning, active defragmentation (Redis 4+)</td>
+            <td class="casc">OOM crash from fragmentation → cold cache storm</td>
+            <td class="troff">Active defrag adds CPU overhead during normal operation</td>
+          </tr>
+          <tr>
+            <td>Cache OOM Crash</td>
+            <td>Unbounded cache growth — no max memory configured</td>
+            <td>Memory alerts, Redis OOM error, process killed</td>
+            <td>Restart, enforce maxmemory immediately</td>
+            <td>Always set maxmemory + eviction policy in config</td>
+            <td class="casc">Cold cache DB storm immediately after crash</td>
+            <td class="troff">Smaller maxmemory reduces hit ratio</td>
+          </tr>
+          <tr>
+            <td>Large Object Domination</td>
+            <td>Few very large values consume most cache memory, evicting many small ones</td>
+            <td>Uneven memory usage per key, high eviction on small keys</td>
+            <td>Split large objects into smaller chunks, compress values</td>
+            <td>Object size limits, evict large objects first</td>
+            <td class="casc">Eviction cascade for small high-traffic keys → miss storm</td>
+            <td class="troff">Compression adds CPU overhead per read/write</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Hot Key and Partition Failures</td></tr>
+          <tr>
+            <td>Hot Key Overload<span class="badge-crit">Must Know</span></td>
+            <td>Viral content/popular item — one key gets millions of requests per second</td>
+            <td>Single cache node CPU at 100% while others are idle</td>
+            <td>Replicate hot key to multiple cache nodes, serve from local cache</td>
+            <td>Local in-process L1 cache, CDN for truly hot content</td>
+            <td class="casc">Single cache shard overloads → node unavailable → full miss cascade</td>
+            <td class="troff">Hot key replication increases memory and invalidation complexity</td>
+          </tr>
+          <tr>
+            <td>Hot Partition / Shard</td>
+            <td>Bad sharding — one shard receives most of the traffic</td>
+            <td>Uneven shard metrics — one node at capacity, others idle</td>
+            <td>Rebalance shards, add virtual nodes</td>
+            <td>Better shard key selection, consistent hashing with virtual nodes</td>
+            <td class="casc">Cache shard collapse → miss storm for all keys on that shard</td>
+            <td class="troff">Rebalancing triggers key migration — transient miss storm</td>
+          </tr>
+          <tr>
+            <td>Celebrity / Fan-out Problem</td>
+            <td>Popular entity triggers read amplification — millions hit same cache key</td>
+            <td>Read amplification spike, single key dominates cache traffic</td>
+            <td>Multi-layer caching (process cache + distributed cache + CDN)</td>
+            <td>Tiered caching, pre-compute and cache celebrity-tier content</td>
+            <td class="casc">Cache cluster overload → cascades to DB for celebrity-tier objects</td>
+            <td class="troff">More cache layers add complexity and increase total memory cost</td>
+          </tr>
+          <tr>
+            <td>Skewed Key Distribution</td>
+            <td>Hash function distributes keys unevenly across shards</td>
+            <td>One cache node overloaded, others under-utilised</td>
+            <td>Rehash with better function, add virtual nodes</td>
+            <td>Consistent hashing, rendezvous hashing, virtual node count tuning</td>
+            <td class="casc">Overloaded shard becomes bottleneck — cascades on miss</td>
+            <td class="troff">More virtual nodes add metadata management overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Distributed Cache Coordination Failures</td></tr>
+          <tr>
+            <td>Cache Replication Lag</td>
+            <td>Slow network sync between primary and replica cache node</td>
+            <td>Replica returns stale value while primary has updated value</td>
+            <td>Read from primary cache for consistency-sensitive requests</td>
+            <td>Faster replication pipeline, co-located cache nodes</td>
+            <td class="casc">Stale cache reads at scale — wrong data served from replicas</td>
+            <td class="troff">Reading from primary only removes replica read scalability benefit</td>
+          </tr>
+          <tr>
+            <td>Distributed Lock Failure</td>
+            <td>Cache rebuild lock expires or fails — multiple threads rebuild same key</td>
+            <td>Duplicate cache rebuilds, DB QPS spikes for same query</td>
+            <td>Retry lock acquisition, use Redlock for distributed locking</td>
+            <td>Reliable lock service, conservative lock TTL</td>
+            <td class="casc">Stampede returns — lock failure defeats the single-flight protection</td>
+            <td class="troff">Distributed lock coordination adds per-request overhead</td>
+          </tr>
+          <tr>
+            <td>Cache Rebalancing Storm</td>
+            <td>Node added/removed — consistent hashing triggers massive key migration</td>
+            <td>Network saturation during rebalance, miss rate spike</td>
+            <td>Gradual rebalance, virtual node count to reduce migration scope</td>
+            <td>Stable cluster size, virtual nodes to minimize migration on change</td>
+            <td class="casc">Network saturation → cache misses during migration → DB load spike</td>
+            <td class="troff">Slower rebalancing extends migration window and inconsistency</td>
+          </tr>
+          <tr>
+            <td>Split Brain Cache</td>
+            <td>Network partition — both cache sides think they are primary</td>
+            <td>Inconsistent cache state, different values returned from each side</td>
+            <td>Reconcile cache after partition heals, invalidate diverged keys</td>
+            <td>Consensus-based coordination (Redis Sentinel), fencing</td>
+            <td class="casc">Different users get different cached responses — data divergence</td>
+            <td class="troff">Consensus failover reduces availability during partition</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Persistence and Durability Failures</td></tr>
+          <tr>
+            <td>AOF Corruption (Redis)</td>
+            <td>Crash during AOF write — partial entry corrupts log</td>
+            <td>Redis fails to start, AOF loading error</td>
+            <td>Use redis-check-aof to repair, restore from RDB snapshot</td>
+            <td>AOF checksums (Redis 7+), RDB + AOF hybrid persistence</td>
+            <td class="casc">Cache rebuild storm — full cold start after restoration</td>
+            <td class="troff">Hybrid persistence uses more storage and has higher IO overhead</td>
+          </tr>
+          <tr>
+            <td>Snapshot Failure</td>
+            <td>RDB snapshot interrupted — forked process killed, disk full</td>
+            <td>Missing snapshot file, snapshotting error in Redis logs</td>
+            <td>Retry snapshot, switch to AOF-only if snapshots unstable</td>
+            <td>Monitor snapshot completion, enough disk for fork + data</td>
+            <td class="casc">Recovery impossible without snapshot — must rebuild from DB</td>
+            <td class="troff">Snapshot IO can slow Redis during fork — latency spikes</td>
+          </tr>
+          <tr>
+            <td>Durability Misconfiguration</td>
+            <td>Cache configured with no persistence — loses all data on restart</td>
+            <td>Unexpected cold cache after restart, all data missing</td>
+            <td>Reconfigure persistence immediately, document config</td>
+            <td>Infrastructure-as-code for cache config, config validation in CI</td>
+            <td class="casc">Cold cache DB storm — all traffic hits DB until cache rebuilt</td>
+            <td class="troff">Stronger persistence (fsync always) significantly slows writes</td>
+          </tr>
+          <tr>
+            <td>Cache Recovery Slowdown</td>
+            <td>Large AOF file — cache takes too long to replay and start accepting connections</td>
+            <td>Long startup time, service unavailable during replay</td>
+            <td>Restore from RDB snapshot to reduce replay length</td>
+            <td>Hybrid RDB+AOF, regular snapshots to truncate AOF length</td>
+            <td class="casc">Extended service startup delay — cold cache DB storm on completion</td>
+            <td class="troff">More frequent snapshots add snapshot IO overhead</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Cache Failures for Interviews</p>
+      <div class="ncode"> 1. Cache stampede       → single-flight + staggered TTL + pre-warming
+ 2. Cache avalanche      → TTL jitter on all keys at write time
+ 3. Hot key overload     → replicate key + local L1 cache + CDN
+ 4. Stale cache          → write-through + short TTL + CDC invalidation
+ 5. Cold cache storm     → pre-warming + gradual ramp + avoid flush in prod
+ 6. Cluster outage       → multi-AZ cluster + DB rate limit on fallback
+ 7. Cache penetration    → bloom filter + null-value caching + input validation
+ 8. Eviction storm       → proper cache sizing + LFU + separate hot/cold pools
+ 9. Write-behind loss    → durable write-behind queue + fallback to sync write
+10. Distributed inconsistency → read-your-writes routing + write-through</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- ══════════ TAB 2 ══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Cache Thinking — 8 Questions to Ask Always</p>
+      <div class="ncode">1. What if cache disappears?         → DB must survive the full miss storm
+2. DB survive miss storm?            → rate limit + circuit breaker on fallback
+3. Stale cache break correctness?    → write-through + TTL + CDC invalidation
+4. Hot key overload cluster?         → local L1 + replicate key + CDN upstream
+5. Can invalidation fail?            → TTL as safety net + reliable event pipeline
+6. Cache rebuild overload backend?   → single-flight + gradual warm-up
+7. Consistency required or eventual? → sync write-through vs async write-behind
+8. Scaling creates instability?      → virtual nodes to limit key migration scope</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Cache Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Cache cluster outage</td><td>All cache traffic → DB simultaneously → DB overload → full backend collapse</td></tr>
+          <tr><td>Cache stampede</td><td>Popular key expires → many threads query DB → DB slow → more timeouts</td></tr>
+          <tr><td>Hot key overload</td><td>Single shard saturates → that shard unavailable → miss storm for all its keys</td></tr>
+          <tr><td>Cold cache restart</td><td>Cache flushed → all queries bypass cache → DB sees 10-100× normal traffic</td></tr>
+          <tr><td>Stale cache</td><td>Wrong data served at scale → incorrect business logic applied by all users</td></tr>
+          <tr><td>Replication lag</td><td>Stale values served from replicas → inconsistent UX across user population</td></tr>
+          <tr><td>Eviction storm</td><td>Hit ratio collapses → all traffic penetrates to DB → DB overloads</td></tr>
+          <tr><td>Cache partition</td><td>Divergent cached data → different app instances see different truth</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Cache Failure vs DB Failure — Which Is More Dangerous?</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-emerald-700 mb-2">DB Down (Predictable)</p>
+          <ul class="text-xs text-emerald-800 space-y-1 list-disc pl-4">
+            <li>Clear failure — no writes accepted</li>
+            <li>Alerting fires immediately</li>
+            <li>Everyone knows DB is the bottleneck</li>
+            <li>Failover path is well understood</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">Cache Down (More Dangerous)</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>Service still responds — just slower</li>
+            <li>DB absorbs cache traffic silently</li>
+            <li>DB overloads before alert fires</li>
+            <li>Both cache AND DB fail together</li>
+            <li>Recovery itself triggers another surge</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Cache Failures Reduce to 4 Core Problems</p>
+      <div class="ncode">1. Cache unavailable  → cache traffic → DB traffic → backend collapse
+2. Cache stale        → wrong data served → incorrect business logic at scale
+3. Cache overloaded   → hot key + stampede + avalanche → all roads to DB collapse
+4. Cache inconsistent → distributed lag + invalidation failure → divergent state
+
+Key insight: cache failures are DB failures in disguise
+  → always design DB to survive cache disappearing completely</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#022c1a;border:1px solid #064e3b;">
+      <p class="text-xs font-bold text-emerald-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-emerald-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-emerald-200">DB Survive Miss?</p>
+          <p class="text-xs text-emerald-400 mt-0.5">Rate limit + circuit breaker</p>
+        </div>
+        <div class="bg-emerald-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-emerald-200">Stale Safe?</p>
+          <p class="text-xs text-emerald-400 mt-0.5">Write-through + TTL + CDC</p>
+        </div>
+        <div class="bg-emerald-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-emerald-200">Hot Key?</p>
+          <p class="text-xs text-emerald-400 mt-0.5">Local L1 + replicate + CDN</p>
+        </div>
+        <div class="bg-emerald-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-emerald-200">Stampede?</p>
+          <p class="text-xs text-emerald-400 mt-0.5">Single-flight + TTL jitter</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Layer 5 — Distributed Systems &amp; Consistency Models</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .dot-list { list-style:disc; padding-left:1.25rem; }
+    .dot-list li { line-height:1.85; break-inside:avoid; }
+    .dot-list li::marker { color:var(--dot,#2563eb); }
+    @media(min-width:640px){ .two-col{ columns:2; column-gap:1.75rem; } }
+    .section-block { scroll-margin-top:5rem; }
+    .toc-link { display:block; padding:.24rem .6rem; border-radius:.4rem; font-size:.7rem;
+                color:#64748b; transition:all .15s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .toc-link:hover { background:#eff6ff; color:#1d4ed8; }
+    .sub-h { font-size:.7rem; font-weight:700; letter-spacing:.06em;
+             text-transform:uppercase; margin-top:.9rem; margin-bottom:.4rem; }
+    .staff-note { background:#faf5ff; border-left:3px solid #9333ea;
+                  padding:.6rem .9rem; border-radius:.5rem; font-size:.78rem;
+                  color:#6b21a8; margin-top:.75rem; line-height:1.6; }
+    .badge-tag { font-size:.6rem; font-weight:600; background:#f1f5f9;
+                 color:#64748b; padding:.1em .5em; border-radius:999px; vertical-align:middle; }
+    th { background:#f8fafc; font-size:.72rem; font-weight:700; color:#475569;
+         text-transform:uppercase; letter-spacing:.05em; padding:.5rem .8rem; text-align:left; }
+    td { font-size:.82rem; color:#374151; padding:.45rem .8rem; vertical-align:top;
+         border-top:1px solid #f1f5f9; }
+    strong { color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="foundation.html"
+       class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold
+              bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-blue-700 font-semibold">Layer 5 — Distributed Systems &amp; Consistency Models</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 py-8 flex gap-7 items-start">
+
+  <!-- SIDEBAR TOC -->
+  <nav class="hidden xl:block w-52 shrink-0 sticky top-20 self-start">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p class="text-[0.68rem] font-bold text-gray-400 uppercase tracking-widest mb-2">16 Topics</p>
+      <a href="#s01" class="toc-link">01 &middot; Foundations</a>
+      <a href="#s02" class="toc-link">02 &middot; Failure Models</a>
+      <a href="#s03" class="toc-link">03 &middot; Coordination</a>
+      <a href="#s04" class="toc-link">04 &middot; Consensus Algorithms</a>
+      <a href="#s05" class="toc-link">05 &middot; CAP &amp; PACELC</a>
+      <a href="#s06" class="toc-link">06 &middot; Replication</a>
+      <a href="#s07" class="toc-link">07 &middot; Consistency Models</a>
+      <a href="#s08" class="toc-link">08 &middot; Clocks &amp; Time</a>
+      <a href="#s09" class="toc-link">09 &middot; Distributed Tx</a>
+      <a href="#s10" class="toc-link">10 &middot; Sharding</a>
+      <a href="#s11" class="toc-link">11 &middot; Distributed Storage</a>
+      <a href="#s12" class="toc-link">12 &middot; Service Discovery</a>
+      <a href="#s13" class="toc-link">13 &middot; Recovery Patterns</a>
+      <a href="#s14" class="toc-link">14 &middot; Monitoring &amp; Testing</a>
+      <a href="#s15" class="toc-link">15 &middot; Real-World Models</a>
+      <a href="#s16" class="toc-link">16 &middot; Advanced (Staff+)</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 min-w-0 space-y-5 pb-16">
+
+    <!-- S01 FOUNDATIONS -->
+    <div id="s01" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-blue-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black text-xs shrink-0">01</span>
+        <h2 class="font-bold text-gray-800 text-lg">Foundations of Distributed Systems</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#2563eb">
+        <li>Definition and purpose of distributed systems</li>
+        <li>Characteristics — concurrency, partial failure, no global clock, independent failures</li>
+        <li>Design goals — availability, scalability, fault tolerance, transparency</li>
+        <li>Transparency types — location, replication, concurrency</li>
+        <li>Centralized vs decentralized vs peer-to-peer systems</li>
+        <li>Real-world examples — Google Spanner, DynamoDB, Kafka, Cassandra</li>
+      </ul>
+    </div>
+
+    <!-- S02 FAILURE MODELS -->
+    <div id="s02" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-red-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-700 font-black text-xs shrink-0">02</span>
+        <h2 class="font-bold text-gray-800 text-lg">Failure Models &amp; Fault Tolerance</h2>
+      </div>
+      <p class="sub-h text-red-500">Failure Types</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>Crash failure</li>
+        <li>Omission failure</li>
+        <li>Timing failure</li>
+        <li>Byzantine failure</li>
+        <li>Network partition &amp; split-brain</li>
+      </ul>
+      <p class="sub-h text-red-500">Fault-Tolerance Mechanisms</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>Replication &amp; redundancy</li>
+        <li>Failover &amp; leader re-election</li>
+        <li>Retry &amp; backoff</li>
+        <li>Circuit breakers</li>
+        <li>Graceful degradation</li>
+      </ul>
+      <p class="staff-note">Staff expectation — model failures at <strong>host</strong>, <strong>zone</strong>, and <strong>region</strong> level. Design systems to recover with minimal state loss (low RPO/RTO).</p>
+    </div>
+
+    <!-- S03 COORDINATION -->
+    <div id="s03" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-indigo-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">03</span>
+        <h2 class="font-bold text-gray-800 text-lg">System Coordination &amp; Cluster Membership</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Leader election — Bully algorithm, Raft, Paxos</li>
+        <li>Heartbeats &amp; health checks</li>
+        <li>Failure detection — Gossip, SWIM</li>
+        <li>Quorums — read quorum, write quorum, <code>R + W &gt; N</code></li>
+        <li>Membership protocols and dynamic reconfiguration</li>
+        <li>Split-brain handling &amp; quorum arbitration</li>
+        <li>Lease-based coordination</li>
+        <li>Tools — ZooKeeper, Etcd, Consul, Serf</li>
+      </ul>
+    </div>
+
+    <!-- S04 CONSENSUS ALGORITHMS -->
+    <div id="s04" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-violet-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 text-violet-700 font-black text-xs shrink-0">04</span>
+        <h2 class="font-bold text-gray-800 text-lg">Consensus Algorithms</h2>
+      </div>
+      <p class="sub-h text-violet-600">Core Algorithms</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>Paxos — Basic, Multi, Fast</li>
+        <li>Raft — leader election, log replication, safety, term</li>
+        <li>ZAB (ZooKeeper Atomic Broadcast)</li>
+        <li>Viewstamped Replication</li>
+        <li>PBFT (Practical Byzantine Fault Tolerance)</li>
+        <li>Tendermint (Blockchain consensus model)</li>
+      </ul>
+      <p class="sub-h text-violet-600">Core Concepts</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>Log replication</li>
+        <li>Commit index &amp; term</li>
+        <li>Majority quorum voting</li>
+        <li>Linearizability and safety proofs</li>
+        <li>Leader election &amp; failure recovery</li>
+        <li>Write-ahead log persistence</li>
+      </ul>
+      <p class="staff-note">Staff responsibility — be able to explain and simulate Raft and Paxos behavior during leader crashes and re-election.</p>
+    </div>
+
+    <!-- S05 CAP & PACELC -->
+    <div id="s05" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-cyan-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 font-black text-xs shrink-0">05</span>
+        <h2 class="font-bold text-gray-800 text-lg">CAP Theorem &amp; PACELC Model</h2>
+      </div>
+      <p class="sub-h text-cyan-600">CAP Theorem</p>
+      <ul class="dot-list text-sm text-gray-600" style="--dot:#0891b2">
+        <li><strong>Consistency (C)</strong> — all nodes see the same data at the same time</li>
+        <li><strong>Availability (A)</strong> — every request receives a response</li>
+        <li><strong>Partition Tolerance (P)</strong> — system continues under network partition</li>
+      </ul>
+      <p class="sub-h text-cyan-600">PACELC Model</p>
+      <ul class="dot-list text-sm text-gray-600" style="--dot:#0891b2">
+        <li>If Partition &rarr; choose between Availability or Consistency</li>
+        <li>Else &rarr; trade-off between Latency and Consistency</li>
+        <li>Cassandra &rarr; AP (eventual consistency)</li>
+        <li>MongoDB &rarr; CP (strong consistency with failover)</li>
+        <li>Spanner &rarr; CP (synchronous global consistency)</li>
+        <li>Dynamo &rarr; AP (leaderless, eventual consistency)</li>
+      </ul>
+    </div>
+
+    <!-- S06 REPLICATION -->
+    <div id="s06" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-blue-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black text-xs shrink-0">06</span>
+        <h2 class="font-bold text-gray-800 text-lg">Replication &amp; Data Distribution</h2>
+      </div>
+      <p class="sub-h text-blue-600">Replication Types</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li><strong>Single Leader</strong> — Primary-Replica</li>
+        <li><strong>Multi-Leader</strong> — Active-Active</li>
+        <li><strong>Leaderless</strong> — Dynamo Model</li>
+      </ul>
+      <p class="sub-h text-blue-600">Techniques</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>Write-ahead logs</li>
+        <li>Synchronous vs Asynchronous replication</li>
+        <li>Quorum reads/writes</li>
+        <li>Read repair, hinted handoff</li>
+        <li>Anti-entropy repair (Merkle trees)</li>
+        <li>Conflict detection and resolution</li>
+        <li>Shard placement algorithms</li>
+      </ul>
+      <p class="staff-note">Staff competency — design replication and data repair strategies across multiple regions with predictable RPO/RTO.</p>
+    </div>
+
+    <!-- S07 CONSISTENCY MODELS -->
+    <div id="s07" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-700 font-black text-xs shrink-0">07</span>
+        <h2 class="font-bold text-gray-800 text-lg">Consistency Models — Read/Write Behavior</h2>
+      </div>
+      <p class="sub-h text-teal-600">Strong Models</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Linearizability</li>
+        <li>Sequential consistency</li>
+        <li>Serializability (in transactions)</li>
+      </ul>
+      <p class="sub-h text-teal-600">Relaxed Models</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Eventual consistency</li>
+        <li>Causal consistency</li>
+        <li>Monotonic Reads / Writes</li>
+        <li>Read-Your-Writes</li>
+        <li>Session consistency</li>
+      </ul>
+      <p class="sub-h text-teal-600">Specialized</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Bounded staleness — Spanner TrueTime</li>
+        <li>Consistent prefix reads — Cassandra</li>
+        <li>Causal+ (COPS system)</li>
+      </ul>
+      <p class="staff-note">Staff skill — choose model per domain: Banking &rarr; Strong · Social feeds &rarr; Eventual · Chat &rarr; Causal.</p>
+    </div>
+
+    <!-- S08 CLOCKS & TIME -->
+    <div id="s08" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-amber-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-black text-xs shrink-0">08</span>
+        <h2 class="font-bold text-gray-800 text-lg">Clocks, Time &amp; Ordering</h2>
+      </div>
+      <p class="sub-h text-amber-600">Physical Time</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>NTP, PTP synchronization</li>
+        <li>Clock drift and skew</li>
+        <li>Bounded uncertainty intervals</li>
+      </ul>
+      <p class="sub-h text-amber-600">Logical Time</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>Lamport timestamps</li>
+        <li>Vector clocks</li>
+        <li>Version vectors</li>
+        <li>Hybrid Logical Clocks (CockroachDB)</li>
+        <li>Google TrueTime (Spanner)</li>
+      </ul>
+      <p class="staff-note">Staff insight — understand how logical clocks preserve causal ordering without wall clock reliance.</p>
+    </div>
+
+    <!-- S09 DISTRIBUTED TRANSACTIONS -->
+    <div id="s09" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-orange-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-700 font-black text-xs shrink-0">09</span>
+        <h2 class="font-bold text-gray-800 text-lg">Distributed Transactions &amp; Atomic Commit</h2>
+      </div>
+      <p class="sub-h text-orange-600">Commit Protocols</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ea580c">
+        <li>Two-Phase Commit (2PC)</li>
+        <li>Three-Phase Commit (3PC)</li>
+        <li>Paxos Commit</li>
+        <li>Atomic Broadcast</li>
+      </ul>
+      <p class="sub-h text-orange-600">Patterns</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ea580c">
+        <li>Saga pattern — orchestration vs choreography</li>
+        <li>TCC (Try-Confirm-Cancel) pattern</li>
+        <li>Outbox pattern + CDC (Change Data Capture)</li>
+        <li>Idempotent transaction design</li>
+      </ul>
+      <p class="staff-note">Staff mastery — model transaction state machines (pending, committed, rolled back). Implement compensation logic for eventual consistency systems.</p>
+    </div>
+
+    <!-- S10 SHARDING -->
+    <div id="s10" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-green-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 font-black text-xs shrink-0">10</span>
+        <h2 class="font-bold text-gray-800 text-lg">Data Sharding &amp; Partitioning Strategies</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Horizontal vs Vertical partitioning</li>
+        <li>Consistent hashing — Dynamo, Cassandra, Riak</li>
+        <li>Range partitioning — Spanner, HBase</li>
+        <li>Directory-based sharding</li>
+        <li>Hotspot mitigation — randomized key hashing</li>
+        <li>Data colocation &amp; affinity grouping</li>
+        <li>Rebalancing &amp; shard movement</li>
+        <li>Dynamic shard split/merge</li>
+      </ul>
+      <p class="staff-note">Staff expectation — forecast partition skew and propose auto-balancing solutions.</p>
+    </div>
+
+    <!-- S11 DISTRIBUTED STORAGE -->
+    <div id="s11" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-slate-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-black text-xs shrink-0">11</span>
+        <h2 class="font-bold text-gray-800 text-lg">Distributed Storage &amp; File Systems</h2>
+      </div>
+      <p class="sub-h text-slate-500">Key Systems</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>Google File System (GFS)</li>
+        <li>Hadoop Distributed File System (HDFS)</li>
+        <li>Ceph — CRUSH algorithm</li>
+        <li>Amazon S3 internals</li>
+        <li>Lustre (HPC parallel FS)</li>
+        <li>IPFS — content-addressable storage</li>
+      </ul>
+      <p class="sub-h text-slate-500">Key Concepts</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>Metadata servers &amp; chunk servers</li>
+        <li>Replication and striping</li>
+        <li>Lease-based master coordination</li>
+        <li>Atomic file rename consistency</li>
+        <li>Close-to-open consistency model</li>
+      </ul>
+    </div>
+
+    <!-- S12 SERVICE DISCOVERY -->
+    <div id="s12" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-purple-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-black text-xs shrink-0">12</span>
+        <h2 class="font-bold text-gray-800 text-lg">Service Discovery &amp; Coordination</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#9333ea">
+        <li>ZooKeeper / Etcd / Consul deep dive</li>
+        <li>Ephemeral nodes, leases, sessions</li>
+        <li>Locking primitives — distributed mutex, semaphores</li>
+        <li>Watchers and event notifications</li>
+        <li>Config propagation in dynamic environments</li>
+        <li>Gossip-based membership discovery</li>
+        <li>Heartbeat and cluster liveness detection</li>
+      </ul>
+    </div>
+
+    <!-- S13 RECOVERY PATTERNS TABLE -->
+    <div id="s13" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-indigo-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">13</span>
+        <h2 class="font-bold text-gray-800 text-lg">Fault Tolerance &amp; Recovery Patterns</h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100">
+        <table class="w-full text-left">
+          <thead><tr><th>Pattern</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Leader re-election</strong></td><td>Recover consensus and coordination</td></tr>
+            <tr><td><strong>Anti-entropy repair</strong></td><td>Heal data divergence across replicas</td></tr>
+            <tr><td><strong>Read repair</strong></td><td>Self-heal on read</td></tr>
+            <tr><td><strong>Quorum reads/writes</strong></td><td>Maintain safety during partial failure</td></tr>
+            <tr><td><strong>Circuit breaker / bulkhead</strong></td><td>Prevent cascading system failures</td></tr>
+            <tr><td><strong>Graceful degradation</strong></td><td>Maintain SLA under partial failures</td></tr>
+            <tr><td><strong>Replay &amp; reconciliation</strong></td><td>Fix state divergence after recovery</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- S14 MONITORING & TESTING -->
+    <div id="s14" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-700 font-black text-xs shrink-0">14</span>
+        <h2 class="font-bold text-gray-800 text-lg">Monitoring, Testing &amp; Validation</h2>
+      </div>
+      <p class="sub-h text-teal-600">Consistency Testing</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Jepsen framework (Kyle Kingsbury)</li>
+        <li>LinCheck and Fuzz testing</li>
+        <li>Model checking — TLA+, Alloy</li>
+      </ul>
+      <p class="sub-h text-teal-600">Observability</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Distributed tracing — OpenTelemetry, Jaeger</li>
+        <li>Service log correlation (trace IDs)</li>
+        <li>Metrics — replication lag, quorum failure rate, P99 latency</li>
+        <li>Chaos testing — Chaos Monkey, Pumba, Gremlin</li>
+        <li>SLIs / SLOs / SLA metrics definition</li>
+      </ul>
+    </div>
+
+    <!-- S15 REAL-WORLD MODELS TABLE -->
+    <div id="s15" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-blue-600 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black text-xs shrink-0">15</span>
+        <h2 class="font-bold text-gray-800 text-lg">Real-World System Models</h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100">
+        <table class="w-full text-left">
+          <thead><tr><th>Model</th><th>Description</th><th>Example Systems</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Dynamo Model</strong></td><td>Leaderless replication, eventual consistency</td><td>DynamoDB, Cassandra</td></tr>
+            <tr><td><strong>Spanner Model</strong></td><td>TrueTime-based global synchronization</td><td>Google Spanner</td></tr>
+            <tr><td><strong>Calvin Model</strong></td><td>Deterministic transaction ordering</td><td>FaunaDB, CalvinDB</td></tr>
+            <tr><td><strong>Bayou Model</strong></td><td>Conflict resolution in disconnected systems</td><td>Bayou prototype</td></tr>
+            <tr><td><strong>Raft-based</strong></td><td>Leader-based log replication</td><td>Etcd, Consul, CockroachDB</td></tr>
+            <tr><td><strong>Lamport Clock-based</strong></td><td>Logical ordering via timestamps</td><td>Redis Streams, Kafka Streams</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- S16 ADVANCED STAFF+ -->
+    <div id="s16" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-pink-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100 text-pink-700 font-black text-xs shrink-0">16</span>
+        <h2 class="font-bold text-gray-800 text-lg">Advanced Concepts <span class="badge-tag ml-2">Staff+</span></h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ec4899">
+        <li>Consensus under partial synchrony (CAP proof)</li>
+        <li>Byzantine Fault Tolerance — PBFT, HotStuff, Tendermint</li>
+        <li>CRDTs — G-Counter, PN-Counter, OR-Set, LWW Register</li>
+        <li>State-based vs Operation-based CRDTs</li>
+        <li>Gossip dissemination efficiency (epidemic algorithms)</li>
+        <li>Transaction isolation levels — serializable, snapshot</li>
+        <li>Deterministic database replication</li>
+        <li>Multi-region quorum systems — Spanner, YugabyteDB</li>
+        <li>Lease-based read optimization</li>
+        <li>Clock uncertainty bounding in real-time systems</li>
+      </ul>
+    </div>
+
+  </main>
+</div>
+  <script src="layer-utils.js"></script>
+</body>
+</html>

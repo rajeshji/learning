@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disk Scheduling Algorithms — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Disk Scheduling Algorithms</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Disk Scheduling Algorithms</h1>
+      <p class="text-xs text-gray-400 mt-0.5">CFQ, NOOP, Deadline — I/O ordering for HDDs, SSDs, NVMe — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq"><strong>Linux decides the order of disk I/O requests before sending them to hardware.</strong> The scheduler merges, reorders, and prioritizes requests to maximize throughput, minimize seek time, and provide fairness — but different devices need different strategies.</p>
+      <div class="nkw mt-3">
+        <span>CFQ</span>
+        <span>NOOP</span>
+        <span>Deadline</span>
+        <span>BFQ</span>
+        <span>mq-deadline</span>
+        <span>blk-mq</span>
+        <span>Merging</span>
+        <span>Seek</span>
+      </div>
+      <div class="ncode">App → read()/write() → Page Cache → Block Layer
+→ I/O Scheduler (merge + reorder) → SSD/HDD/NVMe
+
+Without scheduling: random seeks, unpredictable latency, starvation.
+With scheduling:    merged requests, optimized order, fair access.</div>
+    </div>
+
+    <!-- Three Schedulers -->
+    <div class="nc">
+      <p class="nh">The Three Classic Schedulers</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">CFQ — Fairness</p>
+          <div class="ncode" style="font-size:.71rem;padding:.45rem .65rem">Process A → Queue A
+Process B → Queue B
+Process C → Queue C
+↓ Round-robin
+(each gets time slice)</div>
+          <p class="text-xs text-gray-600 mt-1">Per-process queues. Fair for desktops. High CPU.</p>
+        </div>
+        <div class="bg-gray-50 border border-gray-300 rounded-lg p-3">
+          <p class="text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">NOOP — Simplicity</p>
+          <div class="ncode" style="font-size:.71rem;padding:.45rem .65rem">Req1 → Req2 → Req3
+↓ Merge adjacent
+↓ FIFO dispatch
+(device handles rest)</div>
+          <p class="text-xs text-gray-600 mt-1">Minimal overhead. Ideal for SSD/NVMe. Device does the work.</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Deadline — Latency</p>
+          <div class="ncode" style="font-size:.71rem;padding:.45rem .65rem">Sorted Queue (sector)
++ Deadline Queue (time)
+Read: 500 ms deadline
+Write: 5000 ms deadline</div>
+          <p class="text-xs text-gray-600 mt-1">Balanced seek + latency. Best for databases on HDD/SSD.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CFQ Detail -->
+    <div class="nc">
+      <p class="nh">CFQ — Completely Fair Queuing</p>
+      <p class="text-sm text-gray-600 mb-2">Each process gets its own I/O queue and a time slice. Requests within each queue are reordered to reduce seek distance.</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>CFQ</th></tr></thead>
+        <tbody>
+          <tr><td>Primary Goal</td><td>Fairness across processes</td></tr>
+          <tr><td>Queue Type</td><td>Per-process</td></tr>
+          <tr><td>Request Reordering</td><td>Yes (within each queue)</td></tr>
+          <tr><td>CPU Overhead</td><td>High</td></tr>
+          <tr><td>Read Latency</td><td>Moderate</td></tr>
+          <tr><td>Best Device</td><td>HDD</td></tr>
+          <tr><td>Best Workload</td><td>Desktop, multi-user systems</td></tr>
+          <tr><td>Modern Replacement</td><td>BFQ (Budget Fair Queueing)</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Modern Linux has largely replaced CFQ with <strong>BFQ</strong> (Budget Fair Queueing) for better desktop interactivity.</p>
+    </div>
+
+    <!-- NOOP Detail -->
+    <div class="nc">
+      <p class="nh">NOOP — Minimal Scheduler</p>
+      <p class="text-sm text-gray-600 mb-2">Only merges adjacent requests and dispatches in FIFO order. No seek optimization. Works because SSDs/NVMe controllers internally optimize I/O.</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>NOOP</th></tr></thead>
+        <tbody>
+          <tr><td>Primary Goal</td><td>Minimal CPU overhead</td></tr>
+          <tr><td>Queue Type</td><td>Single FIFO</td></tr>
+          <tr><td>Request Reordering</td><td>No</td></tr>
+          <tr><td>CPU Overhead</td><td>Very Low</td></tr>
+          <tr><td>Latency</td><td>Very Low</td></tr>
+          <tr><td>Best Device</td><td>SSD, NVMe, hardware RAID</td></tr>
+          <tr><td>Best Workload</td><td>VMs, sequential I/O, NVMe workloads</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">SSD/NVMe controllers have their own parallel queues and wear-leveling — adding a software reorder scheduler is wasted overhead.</p>
+    </div>
+
+    <!-- Deadline Detail -->
+    <div class="nc">
+      <p class="nh">Deadline — Latency-Bounded Scheduling</p>
+      <p class="text-sm text-gray-600 mb-2">Maintains two queues: one sorted by disk sector (for seek efficiency) and one by deadline (to prevent starvation). Reads get 500 ms deadlines; writes get 5000 ms.</p>
+      <div class="ncode">Normal operation: serve requests in sector order (minimize seek)
+If deadline expires: immediately serve that request (no starvation)
+
+Read deadline:  500 ms  (reads serve DB queries — latency critical)
+Write deadline: 5000 ms (writes can batch more aggressively)</div>
+      <table class="nt mt-3">
+        <thead><tr><th>Feature</th><th>Deadline</th></tr></thead>
+        <tbody>
+          <tr><td>Primary Goal</td><td>Predictable latency</td></tr>
+          <tr><td>Queue Type</td><td>Sector-sorted + deadline-sorted</td></tr>
+          <tr><td>Request Reordering</td><td>Yes</td></tr>
+          <tr><td>CPU Overhead</td><td>Medium</td></tr>
+          <tr><td>Read Latency</td><td>Very Low</td></tr>
+          <tr><td>Best Device</td><td>HDD, SSD</td></tr>
+          <tr><td>Best Workload</td><td>Databases, web servers, mixed I/O</td></tr>
+          <tr><td>Modern Version</td><td><code>mq-deadline</code> (multi-queue block layer)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Full Comparison -->
+    <div class="nc">
+      <p class="nh">Full Scheduler Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>CFQ</th><th>NOOP</th><th>Deadline</th></tr></thead>
+        <tbody>
+          <tr><td>Strategy</td><td>Per-process fair queuing</td><td>FIFO + merge</td><td>Sector + deadline</td></tr>
+          <tr><td>Fairness</td><td>Excellent</td><td>Basic</td><td>High</td></tr>
+          <tr><td>Read Latency</td><td>Moderate</td><td>Low</td><td>Excellent</td></tr>
+          <tr><td>CPU Overhead</td><td>High</td><td>Lowest</td><td>Medium</td></tr>
+          <tr><td>HDD Performance</td><td>Excellent</td><td>Poor</td><td>Excellent</td></tr>
+          <tr><td>SSD Performance</td><td>Moderate</td><td>Excellent</td><td>Excellent</td></tr>
+          <tr><td>Best For</td><td>Desktop / multi-user</td><td>SSD / NVMe / VMs</td><td>Databases / servers</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- HDD vs SSD -->
+    <div class="nc">
+      <p class="nh">HDD vs SSD — Different Needs</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1">HDD — Mechanical</p>
+          <p class="text-xs text-gray-600 mb-1">Seek distance matters. Reordering requests reduces head movement.</p>
+          <div class="ncode" style="font-size:.71rem;padding:.45rem .65rem">Without scheduler:
+Sector 100 → 500 → 101 (lots of seeking)
+
+With Deadline:
+Sector 100 → 101 → 500 (minimal seek)</div>
+          <p class="text-xs text-gray-500 mt-1">Use: <strong>mq-deadline</strong> or CFQ/BFQ</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">SSD / NVMe — Flash</p>
+          <p class="text-xs text-gray-600 mb-1">No moving parts. Controller manages parallel queues internally. Reordering adds overhead without benefit.</p>
+          <div class="ncode" style="font-size:.71rem;padding:.45rem .65rem">Any order: ~same latency
+Controller: NVMe NCQ,
+           parallel channels,
+           FTL optimization</div>
+          <p class="text-xs text-gray-500 mt-1">Use: <strong>none</strong> or <strong>NOOP</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Request Merging -->
+    <div class="nc">
+      <p class="nh">Request Merging — Free Throughput</p>
+      <p class="text-sm text-gray-600 mb-2">All schedulers merge adjacent block requests before dispatch.</p>
+      <div class="ncode">Without merging:
+  Read Block 100  (1 I/O op)
+  Read Block 101  (1 I/O op)
+  Read Block 102  (1 I/O op)
+  → 3 separate device operations
+
+With merging:
+  Read Blocks 100–102  (1 I/O op)
+  → 1 device operation, 3× efficiency</div>
+      <p class="ntip">Merging is performed by all schedulers. It's the cheapest form of I/O optimization and works for both HDDs and SSDs.</p>
+    </div>
+
+    <!-- Modern blk-mq -->
+    <div class="nc">
+      <p class="nh">Modern Linux — blk-mq Schedulers</p>
+      <p class="text-sm text-gray-600 mb-2">Linux now uses the <strong>Multi-Queue Block Layer (blk-mq)</strong> for multi-core and high-throughput NVMe storage.</p>
+      <table class="nt">
+        <thead><tr><th>Scheduler</th><th>Best Use Case</th></tr></thead>
+        <tbody>
+          <tr><td><strong>BFQ</strong></td><td>Desktop fairness, interactive responsiveness (replaces CFQ)</td></tr>
+          <tr><td><strong>mq-deadline</strong></td><td>Databases, HDD, mixed workloads (replaces deadline)</td></tr>
+          <tr><td><strong>none</strong></td><td>NVMe SSDs — device handles all scheduling</td></tr>
+          <tr><td><strong>Kyber</strong></td><td>Low-latency SSD workloads with QoS</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode" style="margin-top:.75rem">Check active scheduler:
+  cat /sys/block/sda/queue/scheduler
+
+Change scheduler:
+  echo mq-deadline > /sys/block/sda/queue/scheduler</div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Which scheduler is fastest?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Should we use Deadline or NOOP?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is this HDD (seek matters) or SSD/NVMe (no seek)?</li>
+            <li>Is latency or throughput the priority?</li>
+            <li>Does the device already schedule internally?</li>
+            <li>Is this a VM? (avoid double-scheduling)</li>
+            <li>Are reads more critical than writes?</li>
+            <li>Is fairness across processes required?</li>
+            <li>What scheduler aligns with our latency SLA?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Database on HDD</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> CFQ on busy HDD → reads stuck behind writes &nbsp;·&nbsp; <strong>Fix:</strong> Switch to <code>mq-deadline</code></p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High CPU on NVMe Server</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Complex scheduler adding overhead on NVMe &nbsp;·&nbsp; <strong>Fix:</strong> Use <code>none</code></p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">VM Storage Bottleneck</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Guest OS + hypervisor both scheduling (double scheduling) &nbsp;·&nbsp; <strong>Fix:</strong> Use <code>NOOP</code> in guest, let hypervisor schedule</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Desktop Audio/Video Stutter</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> NOOP on shared HDD — no fairness, one process starves another &nbsp;·&nbsp; <strong>Fix:</strong> Use <code>BFQ</code> for interactive responsiveness</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Workload / Device</th><th>Recommended Scheduler</th></tr></thead>
+        <tbody>
+          <tr><td>PostgreSQL / MySQL on HDD</td><td><code>mq-deadline</code></td></tr>
+          <tr><td>PostgreSQL / MySQL on SSD</td><td><code>mq-deadline</code> or <code>none</code></td></tr>
+          <tr><td>NVMe SSD (any workload)</td><td><code>none</code></td></tr>
+          <tr><td>Desktop Linux</td><td><code>BFQ</code></td></tr>
+          <tr><td>Virtual Machine guest</td><td><code>NOOP</code></td></tr>
+          <tr><td>Kafka / sequential logs</td><td><code>NOOP</code> / <code>none</code></td></tr>
+          <tr><td>General-purpose HDD server</td><td><code>mq-deadline</code></td></tr>
+          <tr><td>Hardware RAID controller</td><td><code>NOOP</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Identify device type: <code>lsblk -d -o name,rota</code> (rota=1 = HDD, 0 = SSD)</li>
+        <li class="text-sm text-gray-700">✅ Check active scheduler: <code>cat /sys/block/sda/queue/scheduler</code></li>
+        <li class="text-sm text-gray-700">✅ Measure IOPS and latency: <code>iostat -x 1</code></li>
+        <li class="text-sm text-gray-700">✅ Measure queue depth: <code>iostat -x</code> (avgqu-sz)</li>
+        <li class="text-sm text-gray-700">✅ Benchmark with <code>fio</code> before and after changing scheduler</li>
+        <li class="text-sm text-gray-700">✅ Avoid double scheduling in VMs (use NOOP in guest)</li>
+        <li class="text-sm text-gray-700">✅ Verify <code>blk-mq</code> is active: <code>cat /sys/block/sda/queue/nr_requests</code></li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">I/O Scheduler: orders disk requests before sending to hardware.
+All schedulers: merge adjacent requests (free throughput win).
+
+CFQ / BFQ  → per-process queues, fair time slices
+           → HDD + desktop/multi-user
+           → Modern: BFQ
+
+NOOP       → FIFO + merge, no reordering, minimal CPU
+           → SSD / NVMe / VMs / hardware RAID
+           → Device does its own optimization
+
+Deadline   → sector-sorted + deadline queue
+           → prevents starvation, reads &lt; 500 ms guaranteed
+           → Databases + servers on HDD/SSD
+           → Modern: mq-deadline
+
+Modern Linux uses blk-mq:
+  none        → NVMe (best for &gt;100K IOPS devices)
+  mq-deadline → HDD/SSD databases
+  BFQ         → desktop fairness
+  Kyber       → low-latency SSD QoS
+
+Check: cat /sys/block/&lt;dev&gt;/queue/scheduler
+Set:   echo mq-deadline &gt; /sys/block/sda/queue/scheduler</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/2a17c965-19f2-4220-be2d-67ee4e81ed8e.png"
+        alt="Disk Scheduling Algorithms visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

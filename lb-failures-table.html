@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Load Balancer Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#a21caf; border-bottom-color:#a21caf; }
+    .tab-btn:hover:not(.active) { color:#701a75; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fdf4ff; border:1px solid #f0abfc; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#a21caf; margin-bottom:.6rem; }
+    .ncode{ background:#2e0936; color:#f0abfc; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #f0abfc; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#86198f; color:#f0abfc; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #fae8ff;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fdf4ff; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#a21caf; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#86198f; color:#f0abfc; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #fae8ff; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-fuchsia-700 hover:text-fuchsia-900 font-semibold
+              bg-fuchsia-50 hover:bg-fuchsia-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-fuchsia-800 font-semibold">Load Balancer Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-fuchsia-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-fuchsia-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M8 9l4-4 4 4M8 15l4 4 4-4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Load Balancer Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 8 categories · 38 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why LB Failures Are Uniquely Dangerous</p>
+      <div class="ncode">LB provides: routing + availability + failover + traffic distribution
+When LB fails: even healthy backends become unreachable or overloaded
+
+8 root failure classes:
+  availability | overload | routing | health check
+  network | session | config | multi-region</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Load Balancer Availability Failures</td></tr>
+          <tr>
+            <td>Load Balancer Crash<span class="badge-crit">Must Know</span></td>
+            <td>Software/hardware failure, OOM kill, process crash</td>
+            <td>LB health check failure, all traffic stops immediately</td>
+            <td>Failover to standby LB, update DNS to secondary</td>
+            <td>Active-active HA LB pair, no single point of failure</td>
+            <td class="casc">Entire service inaccessible — all backends unreachable via LB</td>
+            <td class="troff">HA LB pair doubles infrastructure cost and operational complexity</td>
+          </tr>
+          <tr>
+            <td>Single Point of Failure LB<span class="badge-crit">Must Know</span></td>
+            <td>Only one LB deployed — it fails and nothing else can route</td>
+            <td>Total traffic outage — zero connections reaching backends</td>
+            <td>Emergency failover to backup or direct backend routing</td>
+            <td>Multiple redundant LBs (active-active or active-passive)</td>
+            <td class="casc">Global outage — entire service down for duration of recovery</td>
+            <td class="troff">More LBs add cost; active-active adds state sync complexity</td>
+          </tr>
+          <tr>
+            <td>LB Process Hang</td>
+            <td>Deadlock, high CPU, or memory leak — LB alive but not routing</td>
+            <td>LB responds to ping but traffic stops flowing, connection timeouts</td>
+            <td>Watchdog detects and restarts LB process</td>
+            <td>Watchdog monitoring, automated restart on hang detection</td>
+            <td class="casc">Connection timeout cascade — all clients retry simultaneously</td>
+            <td class="troff">Aggressive auto-restart may drop valid in-flight connections</td>
+          </tr>
+          <tr>
+            <td>Control Plane Failure</td>
+            <td>Cloud LB management plane fails — config updates blocked</td>
+            <td>Cannot update LB rules, autoscaling changes not applied</td>
+            <td>Operate with existing config until control plane recovers</td>
+            <td>Separate control/data plane — data plane continues independently</td>
+            <td class="casc">Autoscaling and failover blocked — cannot adapt to traffic changes</td>
+            <td class="troff">Separate control/data plane adds architectural complexity</td>
+          </tr>
+          <tr>
+            <td>LB Startup Failure</td>
+            <td>Config corruption, bad deploy, or cert error prevents LB starting</td>
+            <td>LB restart loop, traffic routing unavailable</td>
+            <td>Rollback to last known-good config</td>
+            <td>Config validation in CI/CD, blue-green LB deployment</td>
+            <td class="casc">Traffic routing unavailable during restart loop — full outage</td>
+            <td class="troff">Config validation in pipeline slows deployment velocity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Load Balancer Overload and Resource Failures</td></tr>
+          <tr>
+            <td>LB CPU Saturation<span class="badge-crit">Must Know</span></td>
+            <td>Massive traffic spike or heavy TLS termination workload</td>
+            <td>LB CPU &gt;90%, latency increase, connection queue growing</td>
+            <td>Add more LB nodes, offload TLS to dedicated hardware</td>
+            <td>Capacity planning, horizontal LB scaling, TLS session reuse</td>
+            <td class="casc">Latency spike → client retries → LB further overloaded → collapse</td>
+            <td class="troff">More LB nodes cost more; TLS hardware adds upfront cost</td>
+          </tr>
+          <tr>
+            <td>Connection Exhaustion</td>
+            <td>Too many concurrent connections — LB max connection limit reached</td>
+            <td>Connection limit errors, new connections refused</td>
+            <td>Increase connection limit, enable keepalive reuse</td>
+            <td>Connection pooling, HTTP/2 multiplexing, keepalive tuning</td>
+            <td class="casc">New requests rejected — service unavailable to new clients</td>
+            <td class="troff">More connections consume memory; keepalive delays cleanup</td>
+          </tr>
+          <tr>
+            <td>TLS Handshake Overload<span class="badge-crit">Must Know</span></td>
+            <td>Massive HTTPS reconnects — TLS setup is CPU-intensive at scale</td>
+            <td>TLS handshake latency spike, LB CPU pegged</td>
+            <td>TLS session resumption/reuse, TLS offloading</td>
+            <td>Session ticket reuse, ECDSA certs (cheaper than RSA), TLS 1.3</td>
+            <td class="casc">LB CPU exhaustion → all HTTPS connections slow or dropped</td>
+            <td class="troff">TLS offloading removes end-to-end encryption visibility</td>
+          </tr>
+          <tr>
+            <td>Bandwidth Saturation</td>
+            <td>Traffic volume exceeds LB network interface capacity</td>
+            <td>Network throughput maxed, packet drops, latency increase</td>
+            <td>Traffic shaping, CDN offload, increase NIC capacity</td>
+            <td>CDN for static/cacheable traffic, better capacity planning</td>
+            <td class="casc">Packet drops → retransmits → more traffic → amplification</td>
+            <td class="troff">CDN adds caching complexity; more bandwidth is expensive</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Traffic Distribution Failures</td></tr>
+          <tr>
+            <td>Uneven Traffic Distribution<span class="badge-crit">Must Know</span></td>
+            <td>Bad balancing algorithm or sticky sessions concentrating traffic</td>
+            <td>Some backends at 100% load, others idle — uneven QPS metrics</td>
+            <td>Switch algorithm, redistribute sticky sessions</td>
+            <td>Least-connections or weighted round-robin, stateless backends</td>
+            <td class="casc">Hotspot backend crashes → that traffic redistributes → chain overload</td>
+            <td class="troff">Stateless backends require external session storage (DB/cache)</td>
+          </tr>
+          <tr>
+            <td>Traffic Blackholing<span class="badge-crit">Must Know</span></td>
+            <td>LB silently drops traffic — misconfigured ACL, routing bug, wrong VPC</td>
+            <td>Requests timeout from client side but LB shows no errors</td>
+            <td>Route traffic through alternate path, rollback config</td>
+            <td>Redundant routing paths, config validation, traffic monitoring</td>
+            <td class="casc">Service appears healthy but clients see timeouts — retry storm</td>
+            <td class="troff">More redundant paths add routing complexity and cost</td>
+          </tr>
+          <tr>
+            <td>Hotspot Routing</td>
+            <td>Sticky sessions pin heavy users to same backend continuously</td>
+            <td>One backend at capacity, others underutilised</td>
+            <td>Session migration, reduce stickiness duration</td>
+            <td>Stateless services with external session store</td>
+            <td class="casc">Pinned backend overloads and crashes — those users fully disrupted</td>
+            <td class="troff">External session store adds latency and infrastructure cost</td>
+          </tr>
+          <tr>
+            <td>Wrong Backend Selection</td>
+            <td>Misconfigured routing rule sends requests to wrong service/version</td>
+            <td>Unexpected errors or wrong responses from seemingly healthy backends</td>
+            <td>Rollback LB config immediately</td>
+            <td>Routing rule validation in CI, canary validation before full rollout</td>
+            <td class="casc">Cascading service errors — wrong backends return bad data</td>
+            <td class="troff">Canary validation adds time to every config deployment</td>
+          </tr>
+          <tr>
+            <td>Infinite Routing Loop</td>
+            <td>Misconfigured rules route traffic back to LB or in a cycle</td>
+            <td>Request cycles, max hop count exceeded, TTL expiry</td>
+            <td>Break routing chain, identify and remove cyclic rule</td>
+            <td>Route validation, loop detection in config tooling</td>
+            <td class="casc">Network congestion — looped traffic consumes bandwidth and CPU</td>
+            <td class="troff">Loop detection adds validation overhead to every config change</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Health Check Failures</td></tr>
+          <tr>
+            <td>False Negative Health Check<span class="badge-crit">Must Know</span></td>
+            <td>Healthy backend marked unhealthy — too strict threshold, slow check</td>
+            <td>Sudden capacity drop, errors increase despite backends being up</td>
+            <td>Re-enable node manually, tune threshold</td>
+            <td>Multi-layer health checks, grace period before removal</td>
+            <td class="casc">Remaining backends overloaded — capacity reduced incorrectly</td>
+            <td class="troff">Grace period delays removal of genuinely failing nodes</td>
+          </tr>
+          <tr>
+            <td>False Positive Health Check<span class="badge-crit">Must Know</span></td>
+            <td>Dead/unhealthy backend passes health check — LB sends it traffic</td>
+            <td>Backend errors despite showing healthy status in LB</td>
+            <td>Remove backend manually, improve check logic</td>
+            <td>Deep health checks that verify actual functionality (not just TCP ping)</td>
+            <td class="casc">Traffic routed to dead node — errors for subset of users</td>
+            <td class="troff">Deep checks add overhead and may trigger slow dependencies</td>
+          </tr>
+          <tr>
+            <td>Health Check Storm</td>
+            <td>Many LBs probing many backends simultaneously — thundering herd of checks</td>
+            <td>Backend QPS spike from health checks alone</td>
+            <td>Stagger health check timing across LB nodes</td>
+            <td>Dedicated lightweight health endpoint, jitter on check schedule</td>
+            <td class="casc">Health checks overload the service they are trying to verify</td>
+            <td class="troff">Staggered checks slow detection of genuinely failing nodes</td>
+          </tr>
+          <tr>
+            <td>Dependency-Based Health Failure</td>
+            <td>Health endpoint calls DB/cache internally — those fail, node removed</td>
+            <td>Entire cluster removed from LB despite app layer being fine</td>
+            <td>Serve degraded health response (not hard fail) when deps slow</td>
+            <td>Separate shallow (app alive) from deep (deps alive) health checks</td>
+            <td class="casc">Entire fleet removed — all traffic fails despite app code being healthy</td>
+            <td class="troff">Shallow checks miss deep dependency failures that affect users</td>
+          </tr>
+          <tr>
+            <td>Slow Health Checks</td>
+            <td>Heavy health endpoint is slow — LB times out and marks node unhealthy</td>
+            <td>Nodes cycling in/out of LB pool frequently</td>
+            <td>Use dedicated lightweight health endpoint</td>
+            <td>Health endpoint must be fast: only check in-process, not dependencies</td>
+            <td class="casc">Node flapping — traffic shifts constantly, increasing error rate</td>
+            <td class="troff">Lighter checks provide less signal about real system health</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Network and Connectivity Failures</td></tr>
+          <tr>
+            <td>DNS Failure to LB<span class="badge-crit">Must Know</span></td>
+            <td>DNS outage, misconfiguration, or TTL mismatch — clients cannot find LB</td>
+            <td>DNS lookup failures, connection refused before reaching LB</td>
+            <td>Secondary DNS resolver, reduce DNS TTL for faster propagation</td>
+            <td>Multi-provider DNS, low TTL for critical records, DNS monitoring</td>
+            <td class="casc">Entire application unreachable — all clients fail at DNS stage</td>
+            <td class="troff">Multi-provider DNS adds cost; low TTL increases DNS query volume</td>
+          </tr>
+          <tr>
+            <td>LB Network Partition</td>
+            <td>LB isolated from backend servers — network cut between LB and backend tier</td>
+            <td>Backend unreachable alerts, all requests fail with connection error</td>
+            <td>Route to alternate LB with connectivity, fail open if safe</td>
+            <td>Multi-network redundancy between LB and backend, redundant paths</td>
+            <td class="casc">Partial service outage — all traffic through that LB path fails</td>
+            <td class="troff">Redundant network paths add significant infrastructure cost</td>
+          </tr>
+          <tr>
+            <td>Cross-Zone LB Failure</td>
+            <td>AZ network issue — LB cannot reach backends in specific AZ</td>
+            <td>Zone-specific errors, AZ-scoped latency increase</td>
+            <td>Shift traffic to healthy AZs, enable cross-zone LB</td>
+            <td>Multi-AZ deployment, cross-zone load balancing enabled</td>
+            <td class="casc">Regional overload — healthy AZs absorb failed AZ's traffic suddenly</td>
+            <td class="troff">Cross-zone traffic adds inter-AZ latency and data transfer cost</td>
+          </tr>
+          <tr>
+            <td>DDoS / SYN Flood Attack</td>
+            <td>Malicious traffic overwhelms LB connection table with fake SYNs</td>
+            <td>Massive connection spike, LB CPU at 100%, legitimate traffic fails</td>
+            <td>Rate limiting, WAF, scrubbing service, block at upstream</td>
+            <td>DDoS protection (AWS Shield, Cloudflare), anycast routing</td>
+            <td class="casc">LB unavailable — all legitimate traffic blocked by attack traffic</td>
+            <td class="troff">DDoS protection adds cost; aggressive filtering causes false positives</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Session and Stateful Routing Failures</td></tr>
+          <tr>
+            <td>Sticky Session Failure<span class="badge-crit">Must Know</span></td>
+            <td>Backend that owns the session crashes — LB routes session to wrong backend</td>
+            <td>User session loss, forced re-authentication, 500 errors</td>
+            <td>Re-establish session, failover to distributed session store</td>
+            <td>Distributed session store (Redis), stateless backend design</td>
+            <td class="casc">User-visible session errors — affected users cannot complete workflows</td>
+            <td class="troff">Distributed session store adds latency and infrastructure cost</td>
+          </tr>
+          <tr>
+            <td>Session Imbalance</td>
+            <td>Heavy users pinned to one backend — that node carries disproportionate load</td>
+            <td>Uneven node load distribution, one node near capacity</td>
+            <td>Session migration, reduce sticky TTL</td>
+            <td>Stateless backend — session in external store not in-process</td>
+            <td class="casc">Overloaded pinned backend crashes — all its pinned users disrupted</td>
+            <td class="troff">Stateless design requires external session storage for every request</td>
+          </tr>
+          <tr>
+            <td>WebSocket Connection Failure</td>
+            <td>LB terminates long-lived WebSocket connection on restart or timeout</td>
+            <td>Frequent client reconnects, WebSocket error events in logs</td>
+            <td>Auto-reconnect on client, graceful LB drain before restart</td>
+            <td>LB timeout set above WebSocket idle duration, connection draining</td>
+            <td class="casc">Reconnect storm — all dropped WebSocket clients reconnect simultaneously</td>
+            <td class="troff">Long LB timeout delays detection of genuinely dead connections</td>
+          </tr>
+          <tr>
+            <td>Session Table Overflow</td>
+            <td>Too many active sessions exceed LB session table memory limit</td>
+            <td>Session storage saturation, LB memory alerts</td>
+            <td>Expire idle sessions aggressively, increase session table size</td>
+            <td>Session TTL optimization, stateless design removes session table entirely</td>
+            <td class="casc">LB memory exhaustion → LB crash → cold cache storm for sessions</td>
+            <td class="troff">Short TTL breaks long-lived legitimate user sessions</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Configuration and Deployment Failures</td></tr>
+          <tr>
+            <td>Bad LB Configuration<span class="badge-crit">Must Know</span></td>
+            <td>Wrong routing rules pushed — wrong backend pool, wrong port, wrong algo</td>
+            <td>Sudden traffic anomalies, error rate spike after config change</td>
+            <td>Rollback config immediately</td>
+            <td>Config testing in staging, blue-green LB deployment</td>
+            <td class="casc">Global outage — all traffic misrouted to wrong backends</td>
+            <td class="troff">Blue-green deployment doubles LB infrastructure during switchover</td>
+          </tr>
+          <tr>
+            <td>Certificate Misconfiguration</td>
+            <td>TLS cert expired, wrong domain, or mismatched key — HTTPS breaks</td>
+            <td>TLS handshake errors, browser certificate warnings</td>
+            <td>Rollback to previous cert, emergency cert rotation</td>
+            <td>Automated cert rotation (Let's Encrypt/ACM), cert expiry monitoring</td>
+            <td class="casc">All HTTPS traffic fails — clients see cert errors, cannot connect</td>
+            <td class="troff">Automation adds complexity; cert rotation can briefly break traffic</td>
+          </tr>
+          <tr>
+            <td>Canary Routing Failure</td>
+            <td>Wrong traffic split — canary receives too much or too little traffic</td>
+            <td>Traffic imbalance, unexpected error rate on canary</td>
+            <td>Disable canary, restore 100% traffic to stable version</td>
+            <td>Safer rollout strategy with validation gates before traffic increase</td>
+            <td class="casc">Partial outage if bad canary handles too much traffic before detected</td>
+            <td class="troff">Slower canary ramp reduces experimentation velocity</td>
+          </tr>
+          <tr>
+            <td>Ingress Controller Failure</td>
+            <td>Kubernetes ingress controller crashes — cluster-level LB gone</td>
+            <td>Routing unavailable for all services behind ingress</td>
+            <td>Restart ingress controller, failover to backup ingress</td>
+            <td>HA ingress setup (multiple replicas), ingress health monitoring</td>
+            <td class="casc">Cluster-wide routing failure — all HTTP services unreachable</td>
+            <td class="troff">HA ingress setup adds pod resource cost and complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Multi-Region and Geo-Routing Failures</td></tr>
+          <tr>
+            <td>Region Failover Failure<span class="badge-crit">Must Know</span></td>
+            <td>Primary region fails — secondary region not ready or also unavailable</td>
+            <td>Failover timeout, global traffic still directed to failed region</td>
+            <td>Manual failover, redirect via DNS or global LB</td>
+            <td>Active-active multi-region, regular failover drills</td>
+            <td class="casc">Global outage — both regions unavailable or failover incomplete</td>
+            <td class="troff">Active-active adds significant cost and data consistency complexity</td>
+          </tr>
+          <tr>
+            <td>Geo-Routing Failure</td>
+            <td>Wrong region selected — user routed to far-away region or misconfigured geo</td>
+            <td>Increased latency, users complaining of slow response</td>
+            <td>Override geo-routing rules, manual region assignment</td>
+            <td>Smarter geo-DNS with latency-based routing, regular geo-routing tests</td>
+            <td class="casc">Regional overload — one region serves all global traffic incorrectly</td>
+            <td class="troff">Latency-based routing is more complex and harder to reason about</td>
+          </tr>
+          <tr>
+            <td>Traffic Spillover Overload</td>
+            <td>Failed region's traffic spills to secondary — secondary cannot absorb it all</td>
+            <td>Secondary region at capacity, latency spike, errors appear</td>
+            <td>Rate limit spillover traffic, shed less-critical requests</td>
+            <td>Active-active with sufficient headroom in each region</td>
+            <td class="casc">Multi-region cascade — secondary overloads and fails too</td>
+            <td class="troff">Headroom means over-provisioning each region during normal operation</td>
+          </tr>
+          <tr>
+            <td>Cross-Region Config Sync Failure</td>
+            <td>LB config replication lags — different regions have different routing rules</td>
+            <td>Inconsistent behavior across regions, routing rule mismatch alerts</td>
+            <td>Force config sync from authoritative source</td>
+            <td>Distributed config consensus, GitOps config propagation with validation</td>
+            <td class="casc">Different user experiences per region — A/B users unintentionally</td>
+            <td class="troff">Strong config consensus adds synchronisation latency per change</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know LB Failures for Interviews</p>
+      <div class="ncode"> 1. LB crash / SPOF        → active-active HA pair + no SPOF
+ 2. TLS handshake overload → session reuse + TLS 1.3 + ECDSA certs
+ 3. Uneven distribution    → least-connections + stateless backends
+ 4. Traffic blackholing    → redundant paths + traffic monitoring + rollback
+ 5. False negative check   → grace period + multi-layer health checks
+ 6. Dependency health fail → shallow + deep check separation
+ 7. DNS failure to LB      → multi-provider DNS + low TTL + monitoring
+ 8. Sticky session failure → distributed session store + stateless design
+ 9. Bad LB config          → config validation + blue-green deployment
+10. Region failover fail   → active-active + failover drills + headroom</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="mq-failures-table.html" class="text-sky-600 font-semibold hover:underline">Message Queue Failures</a> &nbsp;|&nbsp;
+      <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failures</a> &nbsp;|&nbsp;
+      <a href="cache-failures-table.html" class="text-emerald-600 font-semibold hover:underline">Cache Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level LB Thinking — 8 Questions to Ask Always</p>
+      <div class="ncode">1. LB itself highly available?     → active-active pair + no SPOF
+2. LB become bottleneck?           → CPU + conn limit + TLS offload + horizontal scaling
+3. Routing uneven?                 → least-conn algo + stateless backends
+4. Health checks accurate?         → shallow vs deep + grace period + stagger timing
+5. Retries overload LB?            → circuit breaker + backoff + client-side retry limits
+6. One region absorb failover?     → active-active + 50% headroom in each region
+7. Session affinity hotspot?       → distributed session store + stateless design
+8. LB config cause global outage?  → staging validation + blue-green + rollback plan</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common LB Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root LB Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>LB overload</td><td>Latency spike → client retries → LB further overloaded → collapse</td></tr>
+          <tr><td>False health check negative</td><td>Healthy nodes removed → remaining nodes overloaded → cascade</td></tr>
+          <tr><td>Uneven traffic distribution</td><td>Hot backend crashes → redistributed traffic → next backend overloads</td></tr>
+          <tr><td>DNS failure</td><td>All clients fail at DNS → entire service inaccessible</td></tr>
+          <tr><td>Traffic blackholing</td><td>Requests timeout → clients retry → retry storm on LB</td></tr>
+          <tr><td>Sticky session imbalance</td><td>Pinned backend overloads → crashes → all pinned users disrupted</td></tr>
+          <tr><td>Region failover</td><td>Secondary region absorbs all traffic → overloads → multi-region outage</td></tr>
+          <tr><td>TLS overload</td><td>LB CPU at 100% → HTTPS connections slow/dropped → retry amplification</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Silent Routing Failures — Most Dangerous LB Pattern</p>
+      <div class="ncode">Silent routing failure: system appears healthy, traffic disappears
+
+Signs:
+  LB shows green health   → but requests timeout on client side
+  Backend servers idle    → but clients see errors
+  No LB error logs        → but users report failures
+
+Causes: traffic blackholing | wrong ACL | routing loop | VPC misconfiguration
+
+Detection: active synthetic probes + client-side error rate, not just server metrics
+
+Rule: always monitor from the CLIENT perspective, not just the LB/backend</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All LB Failures Reduce to 5 States</p>
+      <div class="ncode">1. Traffic not routed    → crash / SPOF / DNS fail / network partition
+2. Traffic misrouted     → bad config / wrong backend / infinite loop / geo-fail
+3. Traffic uneven        → hotspot / sticky imbalance / poor algorithm
+4. LB overloaded         → CPU / conn exhaustion / TLS / DDoS
+5. Health checks wrong   → false positive / false negative / dependency-based fail
+
+Silent routing failure is hardest: LB appears healthy, backends are fine, traffic vanishes</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#2e0936;border:1px solid #86198f;">
+      <p class="text-xs font-bold text-fuchsia-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-fuchsia-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-fuchsia-200">LB Redundant?</p>
+          <p class="text-xs text-fuchsia-400 mt-0.5">Active-active pair, no SPOF</p>
+        </div>
+        <div class="bg-fuchsia-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-fuchsia-200">Traffic Even?</p>
+          <p class="text-xs text-fuchsia-400 mt-0.5">Least-conn + stateless</p>
+        </div>
+        <div class="bg-fuchsia-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-fuchsia-200">Health Accurate?</p>
+          <p class="text-xs text-fuchsia-400 mt-0.5">Shallow vs deep + grace period</p>
+        </div>
+        <div class="bg-fuchsia-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-fuchsia-200">Failover Tested?</p>
+          <p class="text-xs text-fuchsia-400 mt-0.5">Active-active + failover drills</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

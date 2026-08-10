@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Security Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#b91c1c; border-bottom-color:#b91c1c; }
+    .tab-btn:hover:not(.active) { color:#7f1d1d; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fef2f2; border:1px solid #fecaca; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#b91c1c; margin-bottom:.6rem; }
+    .ncode{ background:#1f0000; color:#fca5a5; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fecaca; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#7f1d1d; color:#fca5a5; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #fee2e2;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fef2f2; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#7f1d1d; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#b91c1c; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#7f1d1d; border:1px solid #fca5a5;
+                  font-size:.6rem; font-weight:700; border-radius:999px;
+                  padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#7f1d1d; color:#fca5a5; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #fee2e2; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-red-700 hover:text-red-900 font-semibold
+              bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-red-800 font-semibold">Security Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Security Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 38 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why Security Failures Are Uniquely High Severity</p>
+      <div class="ncode">Security affects: confidentiality + integrity + availability + trust
+Unlike outages: security failures may silently persist for months
+
+9 root failure classes:
+  authentication | authorization | data exposure | encryption
+  API/network attacks | injection | availability attacks | infrastructure | org</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Authentication Failures</td></tr>
+          <tr>
+            <td>Credential Stuffing<span class="badge-crit">Must Know</span></td>
+            <td>Attackers use leaked username/password lists to authenticate at scale</td>
+            <td>Login anomaly spike from many IPs, high fail-then-succeed pattern</td>
+            <td>Rate limit per IP, force MFA for suspicious login patterns</td>
+            <td>Enforce MFA, breach password detection (HaveIBeenPwned integration)</td>
+            <td class="casc">Auth service overload, mass account takeovers across user base</td>
+            <td class="troff">Aggressive rate limiting adds friction for legitimate users</td>
+          </tr>
+          <tr>
+            <td>Brute Force Attack</td>
+            <td>Repeated automated password attempts against single or multiple accounts</td>
+            <td>Failed login surge, same account or same IP repeated attempts</td>
+            <td>Account lock after N failures, CAPTCHA after threshold</td>
+            <td>Adaptive rate limiting, account lockout policy, anomaly-based detection</td>
+            <td class="casc">Legitimate user lockouts, auth service resource exhaustion</td>
+            <td class="troff">Account lockout can be weaponised to lock out real users (DoS via lockout)</td>
+          </tr>
+          <tr>
+            <td>JWT Token Forgery / Compromise<span class="badge-crit">Must Know</span></td>
+            <td>Weak signing secret leaked or attacker uses alg:none bypass</td>
+            <td>Anomalous token signatures, invalid-format tokens being accepted</td>
+            <td>Rotate signing keys immediately, invalidate all outstanding tokens</td>
+            <td>Strong signing algorithms (RS256/ES256), reject alg:none, short TTL</td>
+            <td class="casc">Unauthorized access to entire platform for all token holders</td>
+            <td class="troff">Short JWT TTL increases refresh frequency and auth service load</td>
+          </tr>
+          <tr>
+            <td>Session Hijacking<span class="badge-crit">Must Know</span></td>
+            <td>Session token stolen via XSS, network sniffing, or log leakage</td>
+            <td>Suspicious session reuse from different IP, device, or geography</td>
+            <td>Revoke stolen session, force re-authentication</td>
+            <td>Secure HttpOnly + SameSite cookies, HTTPS everywhere, short session TTL</td>
+            <td class="casc">Account takeover — attacker acts as victim with full session privileges</td>
+            <td class="troff">Short session TTL degrades UX; frequent re-auth frustrates users</td>
+          </tr>
+          <tr>
+            <td>MFA Bypass<span class="badge-crit">Must Know</span></td>
+            <td>Logic flaw, social engineering (SIM swap), or code reuse vulnerability</td>
+            <td>Successful auth despite expected MFA failure, login from new device without MFA</td>
+            <td>Force re-authentication, disable compromised MFA method</td>
+            <td>Strong MFA enforcement (TOTP/WebAuthn), anti-SIM-swap controls</td>
+            <td class="casc">Privilege escalation — full account access without valid second factor</td>
+            <td class="troff">Stronger MFA (hardware keys) adds user friction and support burden</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Authorization and Access Control Failures</td></tr>
+          <tr>
+            <td>Privilege Escalation<span class="badge-crit">Must Know</span></td>
+            <td>RBAC/ACL flaw allows low-privilege user to gain admin or elevated access</td>
+            <td>Unexpected admin actions by non-admin user, RBAC audit anomaly</td>
+            <td>Revoke elevated access immediately, audit all actions taken</td>
+            <td>Principle of least privilege, RBAC with regular access reviews</td>
+            <td class="casc">System-wide compromise — attacker with admin access can do anything</td>
+            <td class="troff">Strict least-privilege requires more complex permission management</td>
+          </tr>
+          <tr>
+            <td>Broken Access Control<span class="badge-crit">Must Know</span></td>
+            <td>API endpoint missing authorization check — any authenticated user can access</td>
+            <td>Unauthorized resource access in logs, security scanner finding</td>
+            <td>Patch endpoint immediately, add centralised auth middleware</td>
+            <td>Centralised authorization middleware, not per-endpoint manual checks</td>
+            <td class="casc">Data leakage — any authenticated user reads/modifies any resource</td>
+            <td class="troff">Centralised auth adds latency; overly strict auth may block valid flows</td>
+          </tr>
+          <tr>
+            <td>IDOR (Insecure Direct Object Reference)<span class="badge-crit">Must Know</span></td>
+            <td>Predictable resource IDs (user?id=123 → user?id=124) allow cross-user access</td>
+            <td>Suspicious enumeration pattern, audit of resource access across user IDs</td>
+            <td>Validate resource ownership on every access, reject unauthorized access</td>
+            <td>Object-level authorization on every endpoint, use non-guessable UUIDs</td>
+            <td class="casc">Cross-user data exposure at scale — all objects enumerable</td>
+            <td class="troff">Per-object auth checks add latency; UUIDs complicate debugging</td>
+          </tr>
+          <tr>
+            <td>Tenant Isolation Failure<span class="badge-crit">Must Know</span></td>
+            <td>Multi-tenant boundary bug — one tenant accesses another tenant's data</td>
+            <td>Cross-tenant data access in audit logs, tenant-scoped data mismatch</td>
+            <td>Isolate affected tenant traffic, patch isolation layer</td>
+            <td>Strong tenant ID enforcement at DB and API layer, separate schemas/DBs</td>
+            <td class="casc">SaaS-wide exposure — all tenants potentially affected by isolation breach</td>
+            <td class="troff">Stronger isolation (separate schemas) costs more and complicates ops</td>
+          </tr>
+          <tr>
+            <td>Policy Misconfiguration</td>
+            <td>Incorrect IAM/RBAC rules pushed — too permissive or too restrictive</td>
+            <td>Unexpected permission grants, security alert on overpermissioned access</td>
+            <td>Rollback policies immediately, audit all access since misconfiguration</td>
+            <td>Policy testing in staging, least-privilege by default, policy-as-code</td>
+            <td class="casc">Broad system exposure if too permissive; lockout if too restrictive</td>
+            <td class="troff">Restrictive policy testing slows feature delivery</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Data Exposure and Leakage Failures</td></tr>
+          <tr>
+            <td>PII Data Leak<span class="badge-crit">Must Know</span></td>
+            <td>Logs, API responses, or error messages expose personally identifiable information</td>
+            <td>DLP alerts, sensitive field detected in log stream or API response body</td>
+            <td>Sanitize logs immediately, mask or remove PII from affected fields</td>
+            <td>Data masking, tokenisation, structured secure logging, DLP in pipeline</td>
+            <td class="casc">Compliance/legal impact — GDPR/CCPA fines, customer trust damage</td>
+            <td class="troff">Masking PII reduces debugging information available to engineers</td>
+          </tr>
+          <tr>
+            <td>Database / Storage Dump Exposure<span class="badge-crit">Must Know</span></td>
+            <td>Misconfigured S3 bucket, public storage ACL, or unprotected DB endpoint</td>
+            <td>Public access detection alert, unexpected external connection to storage</td>
+            <td>Revoke public access immediately, rotate credentials</td>
+            <td>Private-by-default storage policy, automated public-access detection scanning</td>
+            <td class="casc">Massive data breach — entire database or backup exposed publicly</td>
+            <td class="troff">Strict access controls reduce flexibility for legitimate cross-team sharing</td>
+          </tr>
+          <tr>
+            <td>Sensitive Data in Logs</td>
+            <td>Tokens, passwords, or API keys accidentally logged by application code</td>
+            <td>Secret scanning in log pipeline, grep for known secret patterns</td>
+            <td>Rotate all leaked credentials, sanitize log pipeline</td>
+            <td>Structured logging policy, secret scanning in CI, never log auth headers</td>
+            <td class="casc">Credential compromise — anyone with log access has valid secrets</td>
+            <td class="troff">Strict logging policy reduces debug detail available during incidents</td>
+          </tr>
+          <tr>
+            <td>Backup Exposure</td>
+            <td>Unencrypted backup stored in accessible location, or backup uploaded to wrong target</td>
+            <td>Access anomaly on backup storage, unexpected download of backup file</td>
+            <td>Revoke access, rotate exposed credentials, notify affected users</td>
+            <td>Encrypt all backups at rest, private-by-default backup storage</td>
+            <td class="casc">Long-term data compromise — attacker has full point-in-time snapshot</td>
+            <td class="troff">Encryption adds backup storage overhead and restore complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Encryption and Key Management Failures</td></tr>
+          <tr>
+            <td>TLS Certificate Expiry<span class="badge-crit">Must Know</span></td>
+            <td>Certificate not renewed in time — clients reject connection with SSL error</td>
+            <td>TLS handshake failures, browser/client certificate error, monitoring alert</td>
+            <td>Emergency certificate renewal, hot-swap cert without downtime</td>
+            <td>Automated renewal (Let's Encrypt/ACM), cert expiry monitoring with 30-day alert</td>
+            <td class="casc">Entire HTTPS service unavailable — all clients see SSL error</td>
+            <td class="troff">Automated rotation adds complexity; rotation itself can briefly fail</td>
+          </tr>
+          <tr>
+            <td>Secret / Key Leakage<span class="badge-crit">Must Know</span></td>
+            <td>API keys, DB passwords, or signing keys committed to git or embedded in logs</td>
+            <td>Secret scanning alert (git-secrets, Trufflehog), SIEM alert</td>
+            <td>Rotate leaked keys immediately, revoke old keys</td>
+            <td>Vault/KMS for all secrets, secret scanning in pre-commit hooks and CI</td>
+            <td class="casc">System-wide compromise — attacker has valid credentials for all services</td>
+            <td class="troff">Secret management systems add operational overhead and access latency</td>
+          </tr>
+          <tr>
+            <td>Improper Key Rotation</td>
+            <td>New key deployed without overlap period — services using old key fail to decrypt</td>
+            <td>Decryption failures, auth errors across services after rotation</td>
+            <td>Support both old and new key temporarily (graceful dual-key period)</td>
+            <td>Automated key rotation with dual-key overlap, rotation testing in staging</td>
+            <td class="casc">Service-wide failures — all data encrypted with old key becomes unreadable</td>
+            <td class="troff">Dual-key support increases key management complexity</td>
+          </tr>
+          <tr>
+            <td>Hardcoded Credentials</td>
+            <td>Secrets embedded directly in source code or config files committed to repo</td>
+            <td>Repository scanning (Trufflehog, GitGuardian), found in code review</td>
+            <td>Rotate credentials immediately, remove from code, purge from git history</td>
+            <td>Secret management systems (Vault/AWS Secrets Manager), pre-commit scanning</td>
+            <td class="casc">Credential compromise — anyone with repo access has valid production secrets</td>
+            <td class="troff">Secret management requires developer workflow changes and tooling investment</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — API and Network Security Failures</td></tr>
+          <tr>
+            <td>DDoS Attack<span class="badge-crit">Must Know</span></td>
+            <td>Massive malicious traffic floods infrastructure — volumetric or application-layer</td>
+            <td>Traffic spike anomalies, infrastructure saturation, unusually high request rates</td>
+            <td>Traffic scrubbing, CDN absorb, block at upstream (BGP blackholing)</td>
+            <td>DDoS protection (AWS Shield/Cloudflare), anycast routing, WAF</td>
+            <td class="casc">Entire service unavailable — legitimate traffic blocked alongside attack</td>
+            <td class="troff">DDoS protection adds cost; traffic scrubbing can cause false positives</td>
+          </tr>
+          <tr>
+            <td>API Abuse / Scraping</td>
+            <td>Automated bots make excessive requests — scrapers, credential stuffing, abuse</td>
+            <td>Unusual API usage patterns, high request volume from single client/IP range</td>
+            <td>Rate limiting, block abusive client, apply WAF rules</td>
+            <td>API quotas per client, bot detection, device fingerprinting</td>
+            <td class="casc">Backend overload — legitimate traffic starved by abusive bots</td>
+            <td class="troff">Aggressive bot detection may block legitimate automated clients</td>
+          </tr>
+          <tr>
+            <td>SSRF (Server-Side Request Forgery)<span class="badge-crit">Must Know</span></td>
+            <td>Attacker tricks backend into making HTTP request to internal or cloud metadata URL</td>
+            <td>Suspicious outbound traffic to 169.254.169.254 or internal addresses</td>
+            <td>Block access to internal IP ranges and metadata endpoints immediately</td>
+            <td>URL allowlists (not denylists), IMDSv2, egress firewall rules</td>
+            <td class="casc">Cloud credential theft — attacker retrieves IAM tokens from metadata service</td>
+            <td class="troff">Strict URL allowlisting may break valid integrations that weren't anticipated</td>
+          </tr>
+          <tr>
+            <td>DNS Hijacking</td>
+            <td>DNS record compromised — attacker redirects traffic to malicious server</td>
+            <td>Unexpected DNS resolution, traffic anomalies, certificate mismatch</td>
+            <td>Switch to trusted DNS provider, enable DNSSEC</td>
+            <td>DNSSEC validation, registrar account MFA, DNS monitoring for record changes</td>
+            <td class="casc">Traffic interception at scale — all users communicate with attacker's server</td>
+            <td class="troff">DNSSEC adds DNS resolution complexity and can fail if misconfigured</td>
+          </tr>
+          <tr>
+            <td>MITM Attack</td>
+            <td>Attacker intercepts traffic on insecure network — captures credentials or tokens</td>
+            <td>TLS anomalies, certificate pinning failure, unexpected cert issuer</td>
+            <td>Force HTTPS everywhere, implement certificate pinning on mobile</td>
+            <td>TLS everywhere (including internal), HSTS, certificate pinning</td>
+            <td class="casc">Credential theft at scale — all traffic on compromised network captured</td>
+            <td class="troff">Certificate pinning breaks on cert rotation; HSTS can lock out on misconfiguration</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Injection and Application Exploit Failures</td></tr>
+          <tr>
+            <td>SQL Injection<span class="badge-crit">Must Know</span></td>
+            <td>User input directly concatenated into SQL query without sanitisation</td>
+            <td>Suspicious DB queries in logs, WAF alert on SQL keywords in input</td>
+            <td>Block offending request, patch vulnerable endpoint</td>
+            <td>Parameterised queries (prepared statements) everywhere, ORM usage</td>
+            <td class="casc">Full DB compromise — attacker can read, modify, or delete all data</td>
+            <td class="troff">ORMs can hide query details, making complex query tuning harder</td>
+          </tr>
+          <tr>
+            <td>Command Injection</td>
+            <td>User input passed directly to shell command — attacker executes arbitrary commands</td>
+            <td>Abnormal process execution, unexpected child processes spawned by service</td>
+            <td>Disable vulnerable endpoint, kill malicious processes</td>
+            <td>Never use shell with user input, input sanitization, process sandboxing</td>
+            <td class="casc">Host compromise — attacker has shell access to application server</td>
+            <td class="troff">Sandboxing processes reduces runtime flexibility for legitimate operations</td>
+          </tr>
+          <tr>
+            <td>XSS (Cross-Site Scripting)<span class="badge-crit">Must Know</span></td>
+            <td>Attacker injects script into page that executes in victim's browser context</td>
+            <td>CSP violation reports, browser security alerts, unexpected script execution</td>
+            <td>Sanitize output immediately, force CSP headers</td>
+            <td>Output escaping, Content Security Policy, modern frameworks with auto-escaping</td>
+            <td class="casc">Session theft and account takeover at scale for all affected page visitors</td>
+            <td class="troff">Strict CSP may break legitimate third-party scripts and integrations</td>
+          </tr>
+          <tr>
+            <td>Deserialization Attack</td>
+            <td>Attacker sends malicious serialized object — deserializer executes embedded code</td>
+            <td>Unusual object patterns, unexpected class instantiation in logs</td>
+            <td>Disable vulnerable endpoint, block malicious payloads at WAF</td>
+            <td>Use safe data formats (JSON over Java serialization), type allowlisting</td>
+            <td class="casc">Remote code execution — attacker can run arbitrary code on server</td>
+            <td class="troff">Removing native serialization requires significant code migration effort</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Availability and Resource Exhaustion Attacks</td></tr>
+          <tr>
+            <td>Application-Layer DDoS<span class="badge-crit">Must Know</span></td>
+            <td>Expensive API endpoints targeted — attackers trigger resource-intensive operations</td>
+            <td>CPU/latency spike on specific endpoints, WAF anomaly detection</td>
+            <td>WAF rate limiting, disable expensive endpoint temporarily</td>
+            <td>Request cost control (timeouts, pagination), auth before expensive operations</td>
+            <td class="casc">Backend overload — expensive ops exhaust CPU/DB, blocking all other requests</td>
+            <td class="troff">Auth-before-expensive may block unauthenticated public API use cases</td>
+          </tr>
+          <tr>
+            <td>Slowloris Attack</td>
+            <td>Attacker holds many HTTP connections open sending headers slowly — exhausts connections</td>
+            <td>Connection count at maximum, legitimate requests queuing or refused</td>
+            <td>Apply aggressive idle connection timeout, kill slow connections</td>
+            <td>Connection timeout limits, reverse proxy with connection management (Nginx)</td>
+            <td class="casc">Gateway/LB connection exhaustion — legitimate clients cannot connect</td>
+            <td class="troff">Short idle timeouts may disconnect legitimate slow clients or mobile users</td>
+          </tr>
+          <tr>
+            <td>Cache Poisoning Attack</td>
+            <td>Attacker crafts request that causes malicious response to be cached globally</td>
+            <td>Unexpected/invalid cached content, users reporting wrong data globally</td>
+            <td>Flush affected cache keys, block attack vector</td>
+            <td>Cache key normalisation, avoid caching responses with attacker-controlled headers</td>
+            <td class="casc">Wrong data served globally to all users hitting poisoned cache entries</td>
+            <td class="troff">Restrictive cache key rules reduce cache hit rate and increase origin load</td>
+          </tr>
+          <tr>
+            <td>Queue Flooding Attack</td>
+            <td>Attacker floods message queue with fake events, overwhelming consumers</td>
+            <td>Queue depth explosion, consumer lag growing rapidly, legitimate events delayed</td>
+            <td>Drop/throttle traffic, apply per-sender rate limits at queue ingress</td>
+            <td>Authentication before enqueue, producer rate limits, message validation</td>
+            <td class="casc">MQ collapse — legitimate events drowned by fake events, consumers stall</td>
+            <td class="troff">Auth before enqueue adds latency to every message ingestion path</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Infrastructure and Cloud Security Failures</td></tr>
+          <tr>
+            <td>Public Cloud Bucket Exposure<span class="badge-crit">Must Know</span></td>
+            <td>Storage bucket ACL misconfigured as public — anyone on internet can download</td>
+            <td>Cloud provider public access alert, scanner detecting public bucket</td>
+            <td>Revoke public access immediately, audit what was downloaded</td>
+            <td>Private-by-default storage policy, automated misconfiguration scanning (CSPM)</td>
+            <td class="casc">Massive data breach — potentially millions of records publicly downloadable</td>
+            <td class="troff">Strict private-by-default requires explicit sharing flows that add ops overhead</td>
+          </tr>
+          <tr>
+            <td>Container Escape</td>
+            <td>Container runtime or kernel vulnerability allows attacker to break out to host</td>
+            <td>Suspicious host-level activity from container process, anomaly detection</td>
+            <td>Isolate affected node, rebuild from clean image</td>
+            <td>Container sandboxing (gVisor/Kata), non-root containers, minimal base images</td>
+            <td class="casc">Cluster-wide compromise — host access means access to all containers on node</td>
+            <td class="troff">Sandboxing adds performance overhead; restrictive containers limit flexibility</td>
+          </tr>
+          <tr>
+            <td>Kubernetes RBAC Misconfiguration</td>
+            <td>Overpermissive ClusterRole — attacker with pod access can escalate to cluster admin</td>
+            <td>Unexpected RBAC access, privilege audit anomaly in cluster</td>
+            <td>Remove overpermissive bindings, rotate compromised service account tokens</td>
+            <td>Minimal RBAC (no cluster-admin), regular RBAC audits, RBAC-as-code</td>
+            <td class="casc">Full cluster compromise — attacker can read all secrets, deploy malicious workloads</td>
+            <td class="troff">Minimal RBAC requires careful per-workload permission design</td>
+          </tr>
+          <tr>
+            <td>Cloud Metadata Service Exposure (SSRF)</td>
+            <td>SSRF vulnerability used to fetch IAM tokens from 169.254.169.254</td>
+            <td>Unexpected requests to metadata service IP, IAM token anomaly</td>
+            <td>Revoke compromised IAM credentials immediately</td>
+            <td>IMDSv2 (requires PUT hop before GET), block 169.254.169.254 via egress firewall</td>
+            <td class="casc">Cloud credential theft — attacker has IAM access to all cloud resources</td>
+            <td class="troff">IMDSv2 breaks older EC2 SDKs that don't support hop-limit requirement</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Detection, Response, and Organizational Failures</td></tr>
+          <tr>
+            <td>Audit Logging Failure<span class="badge-crit">Must Know</span></td>
+            <td>Security-relevant events not logged — pipeline failure, disk full, misconfiguration</td>
+            <td>Log gap detection, audit pipeline health check, missing expected events</td>
+            <td>Restore logging pipeline, reconstruct events from alternative sources</td>
+            <td>Redundant audit log pipeline, immutable log storage, log completeness monitoring</td>
+            <td class="casc">Undetected compromise — attacker operates undetected during log gap</td>
+            <td class="troff">Redundant logging adds storage cost; immutable logs are harder to manage</td>
+          </tr>
+          <tr>
+            <td>Incident Response Failure</td>
+            <td>Slow or ineffective response to detected breach — lack of runbooks or tooling</td>
+            <td>Long mean-time-to-contain metric, breach scope expanding during response</td>
+            <td>Emergency isolation of affected systems, activate IR playbook</td>
+            <td>IR playbooks, regular tabletop exercises, automated containment tooling</td>
+            <td class="casc">Larger compromise scope — every hour of slow response the attacker goes deeper</td>
+            <td class="troff">Aggressive isolation may cause availability disruption to unaffected systems</td>
+          </tr>
+          <tr>
+            <td>Supply Chain Attack</td>
+            <td>Malicious dependency, compromised CI pipeline, or tampered container image</td>
+            <td>Dependency scanning alert, unexpected binary in image, anomalous outbound traffic</td>
+            <td>Roll back to pre-compromise version, rebuild from verified source</td>
+            <td>Signed artifacts (SBOM), dependency pinning, supply chain security scanning</td>
+            <td class="casc">Widespread compromise — malicious code shipped to all users of the package</td>
+            <td class="troff">Strict dependency pinning slows security patches and updates</td>
+          </tr>
+          <tr>
+            <td>Insider Threat</td>
+            <td>Malicious or negligent privileged user abuses their legitimate access</td>
+            <td>Suspicious admin behavior, unusual data access volume, off-hours activity</td>
+            <td>Revoke access immediately, preserve audit trail for forensics</td>
+            <td>Least privilege, mandatory access reviews, behavioural anomaly detection</td>
+            <td class="casc">Data destruction or leakage by trusted actor — hard to detect in real time</td>
+            <td class="troff">Heavy monitoring of privileged users is privacy-sensitive and morale-affecting</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Security Failures for Interviews</p>
+      <div class="ncode"> 1. Broken authentication    → MFA + breach passwords + rate limiting
+ 2. Broken access control   → centralised auth middleware + least privilege
+ 3. IDOR                    → object-level ownership check + non-guessable UUIDs
+ 4. Secret/key leakage      → Vault/KMS + secret scanning in CI + no hardcoding
+ 5. SQL injection            → parameterised queries + ORM + WAF
+ 6. XSS                     → output escaping + CSP + auto-escaping frameworks
+ 7. DDoS                    → CDN + WAF + DDoS protection + anycast
+ 8. Tenant isolation failure → enforce tenant ID at DB + API layer + separate schemas
+ 9. TLS cert expiry         → automated renewal + 30-day expiry monitoring</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="api-gateway-failures-table.html" class="text-cyan-600 font-semibold hover:underline">API Gateway Failures</a> &nbsp;|&nbsp;
+      <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Security Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Unauthorized data access?      → object-level auth + tenant isolation + least privilege
+2. Secrets/tokens leak?          → Vault/KMS + scanning + rotation + no hardcoding
+3. One tenant access another?    → tenant ID at every layer + separate schemas
+4. Attackers exhaust resources?  → rate limits + WAF + auth before expensive ops
+5. Auth dependency fail?         → HA auth + cached JWT + fallback auth mode
+6. Internal traffic intercepted? → mTLS + zero-trust + encrypt everything
+7. Compromise detected quickly?  → SIEM + audit logs + anomaly detection + IR drills</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Security Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Security Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Credential stuffing</td><td>Mass account takeovers → auth service overload → legitimate logins fail</td></tr>
+          <tr><td>DDoS attack</td><td>Infrastructure saturation → legitimate traffic blocked → full service outage</td></tr>
+          <tr><td>Secret leakage</td><td>Valid credentials stolen → all dependent services compromised</td></tr>
+          <tr><td>SQL injection</td><td>Full DB access → all user data breached → compliance/legal consequences</td></tr>
+          <tr><td>Tenant isolation failure</td><td>Cross-tenant access → SaaS-wide breach → regulatory action</td></tr>
+          <tr><td>Audit log failure</td><td>Compromise undetected → attacker dwells longer → larger breach scope</td></tr>
+          <tr><td>TLS cert expiry</td><td>All HTTPS traffic fails → service unavailable → emergency response</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Silent vs Noisy Failures — What Makes Security Unique</p>
+      <div class="ncode">Noisy (infrastructure): crashes → immediate alert → fast response
+Silent (security):      attacker persists → no alert → weeks/months undetected
+
+OWASP Top 10 silent patterns:
+  Broken Access Control | Cryptographic Failures | Injection
+  Insecure Design       | Security Misconfiguration
+
+Detection: SIEM + audit logs + anomaly detection + IR drills
+  (infrastructure monitoring alone is NOT enough)</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Security Failures Reduce to 5 States</p>
+      <div class="ncode">1. Identity compromised    → auth fail / credential leak / token forgery
+2. Access control broken  → privilege escalation / IDOR / tenant isolation
+3. Data exposed           → PII leak / bucket exposure / sensitive logs
+4. Traffic abused         → DDoS / SSRF / injection / API abuse
+5. Detection failed       → audit log gap / slow IR / no anomaly detection
+
+Silent compromise + detection failure = worst combo
+  dwell time grows → scope grows → recovery catastrophically expensive</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#1f0000;border:1px solid #7f1d1d;">
+      <p class="text-xs font-bold text-red-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200">Identity Safe?</p>
+          <p class="text-xs text-red-400 mt-0.5">MFA + breach passwords + rate limit</p>
+        </div>
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200">Access Right?</p>
+          <p class="text-xs text-red-400 mt-0.5">Object-level auth + least privilege</p>
+        </div>
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200">Secrets Safe?</p>
+          <p class="text-xs text-red-400 mt-0.5">Vault/KMS + scan + rotate</p>
+        </div>
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200">Detectable?</p>
+          <p class="text-xs text-red-400 mt-0.5">SIEM + audit logs + IR drills</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

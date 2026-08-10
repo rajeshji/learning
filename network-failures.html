@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Network Failures in System Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#2563eb; border-bottom-color:#2563eb; }
+    .tab-btn:hover:not(.active) { color:#1e40af; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* type card */
+    .tc { background:#fff; border:1px solid #bfdbfe; border-radius:1rem; padding:1rem 1.25rem; }
+    .tc-num { display:inline-flex; align-items:center; justify-content:center;
+              width:1.5rem; height:1.5rem; border-radius:999px; background:#1d4ed8;
+              color:#fff; font-size:.65rem; font-weight:800; margin-bottom:.5rem; }
+    .tc-title { font-weight:700; font-size:.85rem; color:#1e293b; }
+    .tc-badge { font-size:.62rem; font-weight:700; border-radius:999px;
+                padding:.15em .6em; margin-left:.4rem;
+                background:#dbeafe; color:#1e40af; }
+    .tc-row { display:flex; gap:.5rem; margin-top:.45rem; align-items:flex-start; }
+    .tc-lbl { font-size:.6rem; font-weight:800; text-transform:uppercase;
+              letter-spacing:.07em; min-width:2.8rem; padding-top:.1rem; }
+    .lbl-what { color:#dc2626; }
+    .lbl-why { color:#d97706; }
+    .tc-val  { font-size:.77rem; color:#374151; line-height:1.55; }
+    .tc-think { background:#0f172a; color:#93c5fd; font-family:'Courier New',monospace;
+                font-size:.74rem; border-radius:.5rem; padding:.55rem .8rem;
+                white-space:pre; margin-top:.6rem; line-height:1.7; }
+
+    /* mitigation card */
+    .mc { background:#fff; border:1px solid #bbf7d0; border-radius:1rem; padding:1rem 1.25rem; }
+    .mc-title { font-weight:700; font-size:.83rem; color:#1e293b; margin-bottom:.5rem; }
+    .mc-say { background:#052e16; color:#86efac; font-family:'Courier New',monospace;
+              font-size:.74rem; border-radius:.55rem; padding:.65rem .9rem;
+              white-space:pre-wrap; line-height:1.8; }
+
+    /* shared */
+    .nc   { background:#eff6ff; border:1px solid #bfdbfe; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#1d4ed8; margin-bottom:.6rem; }
+    .ncode{ background:#0f172a; color:#93c5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .nt th{ background:#dbeafe; color:#1e40af; font-weight:700; font-size:.63rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .7rem; text-align:left; }
+    .nt td{ padding:.4rem .7rem; border-top:1px solid #dbeafe;
+            color:#374151; vertical-align:top; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold
+              bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-blue-700 font-semibold">Network Failures</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Network Failures in System Design</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Interview-focused · 9 failure types · instant mitigation lines · staff one-liners</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-6xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('types',this)">Failure Types</button>
+    <button class="tab-btn"        onclick="switchTab('mit',this)">Mitigations</button>
+    <button class="tab-btn"        onclick="switchTab('cheat',this)">Cheat Sheet</button>
+  </div>
+
+  <!-- ═══════════════════ TAB 1 — FAILURE TYPES ═══════════════════ -->
+  <div id="tab-types" class="tab-pane active pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">The Right Filter</p>
+      <p class="text-sm text-gray-700">You don't need 30 network failures — only the ones that
+        <strong>actually matter in system design discussions</strong>.
+        A small set with clear reasoning beats a long list every time.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">1</span>
+          <span class="tc-title">Network Partition</span>
+          <span class="tc-badge">Most Important</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Nodes cannot communicate — split brain</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Breaks distributed systems — directly triggers CAP theorem</span></div>
+        <pre class="tc-think">Some services can't talk to others
+→ inconsistent state</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">2</span>
+          <span class="tc-title">High Latency / Slow Network</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Requests take too long to complete</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Causes timeouts, retries, and cascading failures</span></div>
+        <pre class="tc-think">System is "alive" but unusable</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">3</span>
+          <span class="tc-title">Packet Loss / Unreliable Network</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Requests randomly fail / get dropped</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Leads to retries — increases overall system load</span></div>
+        <pre class="tc-think">Some requests fail intermittently
+→ retry rate climbs</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">4</span>
+          <span class="tc-title">Connection Timeout</span>
+          <span class="tc-badge">Most Common</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Request doesn't complete within the allowed time</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Most common real-world network failure</span></div>
+        <pre class="tc-think">Client waits → times out → retries
+→ load increases</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">5</span>
+          <span class="tc-title">Retry Storm</span>
+          <span class="tc-badge" style="background:#fee2e2;color:#991b1b;">Cascading</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Many clients retrying simultaneously overwhelm the system</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Turns a small issue into a system-wide outage</span></div>
+        <pre class="tc-think">Retries amplify failures
+→ small blip becomes full cascade</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">6</span>
+          <span class="tc-title">DNS Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Service name cannot be resolved to an IP</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">System looks completely down even when healthy</span></div>
+        <pre class="tc-think">Service exists but cannot be found</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">7</span>
+          <span class="tc-title">Load Balancer / Routing Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Traffic routed to wrong or dead nodes</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Causes uneven load or partial outage</span></div>
+        <pre class="tc-think">Some nodes overloaded, some idle
+→ partial failure looks like full failure</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">8</span>
+          <span class="tc-title">TLS / Handshake Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Secure connection cannot be established</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Very common in microservices / service meshes</span></div>
+        <pre class="tc-think">Connection fails before request
+even starts — invisible to app layer</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">9</span>
+          <span class="tc-title">Downstream Service Unreachable</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">A dependency service cannot be reached over the network</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Causes cascading failures upstream</span></div>
+        <pre class="tc-think">Service A fails because
+Service B is unreachable</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <!-- mental model -->
+    <div class="nc mt-5">
+      <p class="nh">Final Interview Cheat Model — 5 Buckets</p>
+      <div class="ncode">Network failures =
+  1. Can't connect    → partition / DNS
+  2. Too slow         → latency / timeout
+  3. Unreliable       → packet loss
+  4. Wrong routing    → LB issues
+  5. Retry storm      → cascading amplification</div>
+      <p class="mt-3 text-sm text-gray-600">In any design, say: <em>"Let me consider network failures: partition, latency/timeouts, retry storms, routing issues."</em>
+      That is enough to show <strong>strong system design thinking</strong>.</p>
+    </div>
+
+  </div><!-- /tab-types -->
+
+  <!-- ═══════════════════ TAB 2 — MITIGATIONS ═══════════════════ -->
+  <div id="tab-mit" class="tab-pane pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Staff Pattern — Use Every Time</p>
+      <div class="flex flex-wrap gap-2 text-xs font-semibold items-center">
+        <span class="bg-blue-600 text-white px-3 py-1.5 rounded-lg">Detect</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-green-600 text-white px-3 py-1.5 rounded-lg">Mitigate</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-purple-600 text-white px-3 py-1.5 rounded-lg">Prevent</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="mc">
+        <p class="mc-title">1. Network Partition</p>
+        <pre class="mc-say">Detect via heartbeat failures / timeouts
+→ isolate partitioned nodes (read-only or stop writes)
+→ rely on quorum / leader election for consistency
+→ reconcile data after partition heals</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">2. High Latency / Slow Network</p>
+        <pre class="mc-say">Detect via latency metrics (P95 / P99)
+→ apply timeouts + retries with backoff
+→ reduce synchronous calls, use async processing
+→ cache responses to avoid repeated calls</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">3. Packet Loss / Unreliable Network</p>
+        <pre class="mc-say">Detect via error rate / retry rate increase
+→ retry with exponential backoff
+→ use idempotent APIs to avoid duplicate side effects
+→ reduce payload size or switch protocol if needed</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">4. Connection Timeout</p>
+        <pre class="mc-say">Detect via timeout metrics
+→ set proper client-side timeouts
+→ retry with backoff and cap max retries
+→ fail fast — don't wait indefinitely</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">5. Retry Storm (Cascading)</p>
+        <pre class="mc-say">Detect via spike in retry traffic / queue buildup
+→ apply circuit breaker to halt retries
+→ rate limit incoming requests
+→ add jitter to retries to break synchronisation</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">6. DNS Failure</p>
+        <pre class="mc-say">Detect via DNS resolution errors / failed lookups
+→ use DNS caching on client side (TTL tuning)
+→ fallback to cached or secondary endpoints
+→ configure multiple DNS providers for critical paths</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">7. Load Balancer / Routing Failure</p>
+        <pre class="mc-say">Detect via uneven traffic / node-level error rates
+→ remove unhealthy instances via health checks
+→ use failover LB or reroute traffic automatically
+→ validate routing rules before every deployment</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">8. TLS / Handshake Failure</p>
+        <pre class="mc-say">Detect via handshake error logs / connection failures
+→ retry the connection with backoff
+→ monitor certificate expiry proactively (alert at 30d)
+→ automate cert rotation (cert-manager / ACM)</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">9. Downstream Service Unreachable</p>
+        <pre class="mc-say">Detect via dependency health checks / error spikes
+→ apply circuit breaker — stop calling unhealthy service
+→ fallback to cached or default response
+→ retry with backoff when service recovers</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <!-- 5 core patterns -->
+    <div class="nc mt-5">
+      <p class="nh">5 Core Network Mitigation Patterns — Everything Maps Here</p>
+      <div class="ncode">1. Retry          → handle transient failures
+2. Timeout        → avoid waiting forever
+3. Circuit Breaker → stop calling failing services
+4. Cache/Fallback  → serve something when down
+5. Load Balance    → route around failure</div>
+    </div>
+
+    <!-- Staff one-liner -->
+    <div class="rounded-2xl p-5" style="background:#1e3a5f;border:1px solid #1d4ed8;">
+      <p class="text-xs font-bold text-blue-300 uppercase tracking-widest mb-2">Staff-Level One-Liner</p>
+      <p class="text-sm text-white leading-relaxed font-medium">
+        "I would detect it via latency and error metrics, apply timeouts and retries with backoff for
+        transient issues, use circuit breakers to prevent cascading failures, and fallback to cached
+        responses where possible."
+      </p>
+    </div>
+
+  </div><!-- /tab-mit -->
+
+  <!-- ═══════════════════ TAB 3 — CHEAT SHEET ═══════════════════ -->
+  <div id="tab-cheat" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">All 9 — Type + Instant Mitigation Side by Side</p>
+      <div class="overflow-x-auto mt-1">
+        <table class="nt">
+          <thead>
+            <tr><th>#</th><th>Failure</th><th>What happens</th><th>Detect</th><th>Mitigate</th><th>Prevent</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td><td class="font-semibold">Network Partition</td>
+              <td>Nodes split, inconsistent state</td>
+              <td>Heartbeat timeouts</td>
+              <td>Quorum / read-only mode</td>
+              <td>Multi-AZ, leader election</td>
+            </tr>
+            <tr>
+              <td>2</td><td class="font-semibold">High Latency</td>
+              <td>System alive but slow</td>
+              <td>P95/P99 metrics</td>
+              <td>Timeouts + async</td>
+              <td>Caching, reduce round trips</td>
+            </tr>
+            <tr>
+              <td>3</td><td class="font-semibold">Packet Loss</td>
+              <td>Random request failures</td>
+              <td>Error/retry rate</td>
+              <td>Retry + backoff</td>
+              <td>Idempotent APIs</td>
+            </tr>
+            <tr>
+              <td>4</td><td class="font-semibold">Connection Timeout</td>
+              <td>Client waits, then fails</td>
+              <td>Timeout metrics</td>
+              <td>Fail fast + cap retries</td>
+              <td>Set timeouts everywhere</td>
+            </tr>
+            <tr>
+              <td>5</td><td class="font-semibold">Retry Storm</td>
+              <td>Retries cause cascade</td>
+              <td>Retry traffic spike</td>
+              <td>Circuit breaker + jitter</td>
+              <td>Rate limiting</td>
+            </tr>
+            <tr>
+              <td>6</td><td class="font-semibold">DNS Failure</td>
+              <td>Service not found</td>
+              <td>Resolution errors</td>
+              <td>DNS cache + secondary</td>
+              <td>Multiple DNS providers</td>
+            </tr>
+            <tr>
+              <td>7</td><td class="font-semibold">LB / Routing Failure</td>
+              <td>Uneven load / partial outage</td>
+              <td>Node error rates</td>
+              <td>Health checks + failover</td>
+              <td>Validate routing pre-deploy</td>
+            </tr>
+            <tr>
+              <td>8</td><td class="font-semibold">TLS Failure</td>
+              <td>Connection fails pre-request</td>
+              <td>Handshake error logs</td>
+              <td>Retry + cert rotation</td>
+              <td>Automated cert renewal</td>
+            </tr>
+            <tr>
+              <td>9</td><td class="font-semibold">Downstream Unreachable</td>
+              <td>Cascade to caller</td>
+              <td>Dep. health checks</td>
+              <td>Circuit breaker + fallback</td>
+              <td>Decouple, cache locally</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Ultra-compact -->
+    <div class="nc">
+      <p class="nh">Ultra-Compact Playbook — If You Forget Everything</p>
+      <div class="ncode">1. Detect via latency / errors / timeouts
+2. Retry with backoff (transient failures)
+3. Timeout + fail fast (don't block threads)
+4. Circuit breaker (persistent failures)
+5. Fallback to cache / default response</div>
+    </div>
+
+    <!-- Design assumption -->
+    <div class="nc" style="background:#eff6ff;">
+      <p class="nh">Final Design Assumption</p>
+      <p class="text-sm text-gray-700">
+        Design every service assuming:
+        <strong class="text-blue-700">the network is slow, unreliable, and can fail at any time.</strong><br/>
+        If you build with that assumption, every mitigation pattern above follows naturally.
+      </p>
+    </div>
+
+    <!-- Next up link -->
+    <a href="network-failures-table.html"
+       class="flex items-center justify-between bg-white border border-blue-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-blue-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-blue-600 mb-1">Deep Dive Table</p>
+        <p class="font-bold text-gray-800 text-base">Network Failures — Full Scenario Table</p>
+        <p class="text-sm text-gray-500 mt-0.5">7 categories, 32 scenarios — detect / mitigate / prevent / cascading / trade-off</p>
+      </div>
+      <svg class="w-6 h-6 text-blue-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-cheat -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Performance Laws for Distributed Systems</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.55rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.65rem .95rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.5rem .85rem; border-left:3px solid #7c3aed; line-height:1.6; margin-top:.65rem; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .formula{ background:#0f172a; color:#38bdf8; font-family:'Courier New',monospace;
+              font-size:1.05rem; font-weight:700; text-align:center;
+              border-radius:.65rem; padding:.85rem 1.25rem; letter-spacing:.03em; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.65rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.4rem .75rem; text-align:left; }
+    .nt td{ padding:.4rem .75rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; }
+    .nkw span{ background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+               padding:.22em .7em; border-radius:999px; }
+    .sub-h{ font-size:.65rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.8rem 0 .3rem; }
+    .dot-ul { list-style:disc; padding-left:1.2rem; }
+    .dot-ul li{ font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker{ color:#7c3aed; }
+    .check-li{ font-size:.82rem; color:#166534; line-height:1.85; }
+    .law-card { border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Performance Laws</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Performance Laws for Distributed Systems</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Little's Law &bull; Amdahl's Law &bull; Universal Scalability Law</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TAB 1 TEXT ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core idea -->
+    <div class="nc">
+      <p class="nh">Why These Laws Matter</p>
+      <p class="nq">These laws help engineers <strong>predict system capacity</strong>, identify bottlenecks, and make scaling decisions instead of guessing.</p>
+      <p class="ntip">Staff/Principal Engineers are expected to know: <strong>when to apply each law &bull; what problem it solves &bull; how to identify violations in production &bull; design implications &bull; trade-offs</strong></p>
+    </div>
+
+    <!-- ─── LAW 1: LITTLE'S LAW ─── -->
+    <div class="law-card" style="background:#eff6ff;border:1px solid #bfdbfe">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0">1</span>
+        <div>
+          <h2 class="font-bold text-blue-800 text-base">Little's Law — Capacity Planning</h2>
+          <p class="text-xs text-blue-500">Relates concurrency, throughput and latency</p>
+        </div>
+      </div>
+
+      <p class="formula mb-3">L = &lambda; &times; W</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Symbol</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>L</code></td><td>Concurrency (Requests in system)</td></tr>
+          <tr><td><code>&lambda;</code></td><td>Throughput (Requests/sec)</td></tr>
+          <tr><td><code>W</code></td><td>Latency (Seconds)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="sub-h text-blue-700">Example</p>
+          <div class="ncode">1000 RPS &times; 0.2 s = 200 concurrent requests
+
+Netflix example:
+5000 RPS &times; 0.05 s = 250 concurrent</div>
+          <p class="sub-h text-blue-700">When to Use</p>
+          <div class="nkw">
+            <span style="background:#1d4ed8">Thread Pool Sizing</span>
+            <span style="background:#1d4ed8">Connection Pool</span>
+            <span style="background:#1d4ed8">Queue Sizing</span>
+            <span style="background:#1d4ed8">API Capacity</span>
+            <span style="background:#1d4ed8">Load Testing</span>
+          </div>
+        </div>
+        <div>
+          <p class="sub-h text-red-500">Failure Symptoms</p>
+          <ul class="dot-ul" style="--tw-text-opacity:1"><li>Queue keeps growing</li><li>Increasing thread count</li><li>Rising latency</li><li>Request timeouts</li></ul>
+          <p class="sub-h text-green-600 mt-2">How to Fix</p>
+          <ul class="dot-ul"><li>Reduce latency</li><li>Increase throughput</li><li>Increase concurrency</li><li>Remove bottlenecks</li></ul>
+        </div>
+      </div>
+
+      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-blue-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-blue-700 mb-1">Staff Thinking</p>
+          <p class="text-xs text-red-500 line-through">Why is latency high?</p>
+          <p class="text-xs text-blue-800 font-medium">Is latency causing a concurrency explosion?</p>
+        </div>
+        <div class="bg-blue-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-blue-200 mb-1">Golden Rule</p>
+          <p class="text-xs text-white font-medium">Increasing latency automatically increases concurrency.</p>
+        </div>
+      </div>
+
+      <p class="text-xs text-blue-600 mt-3 font-medium">Interview Q: How many threads if API handles 2000 RPS at 100 ms latency?
+<span class="text-blue-800 font-bold">A: 2000 &times; 0.1 = 200 threads</span></p>
+    </div>
+
+    <!-- ─── LAW 2: AMDAHL'S LAW ─── -->
+    <div class="law-card" style="background:#f0fdf4;border:1px solid #bbf7d0">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-7 h-7 rounded-full bg-green-600 text-white text-xs font-black flex items-center justify-center shrink-0">2</span>
+        <div>
+          <h2 class="font-bold text-green-800 text-base">Amdahl's Law — Parallel Speedup</h2>
+          <p class="text-xs text-green-500">Maximum speedup achievable through parallelisation</p>
+        </div>
+      </div>
+
+      <p class="formula mb-3" style="color:#4ade80">Speedup = 1 / (S + P/N)</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Symbol</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>S</code></td><td>Sequential portion (cannot be parallelised)</td></tr>
+          <tr><td><code>P</code></td><td>Parallel portion</td></tr>
+          <tr><td><code>N</code></td><td>Number of CPUs</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="sub-h text-green-700">Example</p>
+          <div class="ncode" style="color:#86efac">20% sequential + 80% parallel
+100 CPUs &rarr; Max speedup = 4.8x
+          (NOT 100x)
+
+The sequential 20% is your ceiling.</div>
+          <p class="sub-h text-green-700">When to Use</p>
+          <div class="nkw">
+            <span style="background:#15803d">CPU Optimization</span>
+            <span style="background:#15803d">MapReduce / Spark</span>
+            <span style="background:#15803d">Fork-Join</span>
+            <span style="background:#15803d">Parallel Streams</span>
+            <span style="background:#15803d">GPU Workloads</span>
+          </div>
+        </div>
+        <div>
+          <p class="sub-h text-red-500">Failure Symptoms</p>
+          <ul class="dot-ul"><li>Adding CPUs doesn't improve performance</li><li>High CPU but no throughput gain</li><li>Single-threaded sections visible in profiler</li></ul>
+          <p class="sub-h text-green-600 mt-2">How to Fix</p>
+          <ul class="dot-ul"><li>Reduce sequential work</li><li>Use parallel / async algorithms</li><li>Remove global locks</li><li>Lock-free data structures</li></ul>
+        </div>
+      </div>
+
+      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-green-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 mb-1">Staff Thinking</p>
+          <p class="text-xs text-red-500 line-through">How many CPUs should we add?</p>
+          <p class="text-xs text-green-800 font-medium">What percentage is actually parallelisable?</p>
+        </div>
+        <div class="bg-green-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-200 mb-1">Golden Rule</p>
+          <p class="text-xs text-white font-medium">The sequential portion is your scalability ceiling.</p>
+        </div>
+      </div>
+
+      <p class="text-xs text-green-700 mt-3 font-medium">Interview Q: Why doesn't doubling CPUs double throughput?
+<span class="text-green-800 font-bold">A: The sequential portion is never reduced by adding CPUs — Amdahl's Law.</span></p>
+    </div>
+
+    <!-- ─── LAW 3: USL ─── -->
+    <div class="law-card" style="background:#faf5ff;border:1px solid #e9d5ff">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-7 h-7 rounded-full bg-violet-600 text-white text-xs font-black flex items-center justify-center shrink-0">3</span>
+        <div>
+          <h2 class="font-bold text-violet-800 text-base">Universal Scalability Law — Real-World Scaling</h2>
+          <p class="text-xs text-violet-500">Why systems stop scaling due to contention &amp; coordination overhead</p>
+        </div>
+      </div>
+
+      <p class="formula mb-3" style="color:#c4b5fd">Throughput(N) = N / (1 + &alpha;(N-1) + &beta;N(N-1))</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Symbol</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>&alpha;</code></td><td>Contention (competition for shared resources)</td></tr>
+          <tr><td><code>&beta;</code></td><td>Coherency (communication / coordination cost)</td></tr>
+          <tr><td><code>N</code></td><td>Number of users or resources</td></tr>
+        </tbody>
+      </table>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="sub-h text-violet-600">Scaling Phases</p>
+          <div class="ncode">Good Scaling:  Users&uarr; &rarr; Throughput&uarr;
+Diminishing:   Contention&uarr; slows growth
+Negative:      Throughput&darr; despite more servers
+
+Real Example:
+  100 Kafka consumers
+   20 partitions
+&rarr; 80 consumers sit idle</div>
+          <p class="sub-h text-violet-600 mt-2">When to Use</p>
+          <div class="nkw">
+            <span style="background:#6d28d9">Distributed Systems</span>
+            <span style="background:#6d28d9">Kubernetes</span>
+            <span style="background:#6d28d9">Microservices</span>
+            <span style="background:#6d28d9">Kafka / Queues</span>
+            <span style="background:#6d28d9">Databases</span>
+          </div>
+        </div>
+        <div>
+          <p class="sub-h text-red-500">Failure Symptoms</p>
+          <ul class="dot-ul"><li>Throughput plateaus with more servers</li><li>Higher latency with more instances</li><li>High lock wait / CPU contention</li><li>Increased network RTT &amp; queue wait</li></ul>
+          <p class="sub-h text-green-600 mt-2">How to Fix</p>
+          <ul class="dot-ul"><li>Sharding / partition data</li><li>Reduce shared state</li><li>Event-driven async messaging</li><li>Local caching &amp; lock-free structures</li></ul>
+        </div>
+      </div>
+
+      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Staff Thinking</p>
+          <p class="text-xs text-red-500 line-through">Add more servers</p>
+          <p class="text-xs text-violet-800 font-medium">What shared resource is limiting scaling?</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-200 mb-1">Golden Rule</p>
+          <p class="text-xs text-white font-medium">More servers don't always increase throughput.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="nc">
+      <p class="nh">Comparison at a Glance</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Aspect</th><th>Little's Law</th><th>Amdahl's Law</th><th>USL</th></tr></thead>
+        <tbody>
+          <tr><td>Purpose</td><td>Capacity Planning</td><td>Parallel Speedup</td><td>Real Scalability</td></tr>
+          <tr><td>Predicts</td><td>Concurrency</td><td>CPU Speedup</td><td>Distributed Scaling</td></tr>
+          <tr><td>Focus</td><td>Latency &amp; Throughput</td><td>Sequential Work</td><td>Contention &amp; Comm.</td></tr>
+          <tr><td>Used For</td><td>Thread Pools, Queues</td><td>Parallel Algorithms</td><td>Microservices, Cloud</td></tr>
+          <tr><td>Limitation</td><td>Stable system only</td><td>Ignores contention</td><td>More complex model</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Who uses what -->
+    <div class="nc">
+      <p class="nh">Who Uses What?</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Engineer Level</th><th>Laws Used</th></tr></thead>
+        <tbody>
+          <tr><td>Junior</td><td>Rarely</td></tr>
+          <tr><td>Senior</td><td>Little's Law</td></tr>
+          <tr><td>Staff</td><td>Little's Law + Amdahl's Law</td></tr>
+          <tr><td><strong>Principal</strong></td><td><strong>All three together</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- How Staff Engineers Think -->
+    <div class="nc">
+      <p class="nh">How Staff Engineers Think — The Decision Chain</p>
+      <div class="ncode">Traffic Increases
+  &darr;
+  Little's Law &rarr; How many requests exist in the system?
+  &darr;
+  Amdahl's Law &rarr; Can we parallelise to handle more?
+  &darr;
+  USL          &rarr; Will adding servers actually help?</div>
+    </div>
+
+    <!-- Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">Little's Law
+  &bull; Concurrency = Throughput x Latency
+  &bull; Capacity Planning, Thread Pools, Queue Sizing
+  &bull; Q: 2000 RPS &times; 100ms = 200 threads needed
+
+Amdahl's Law
+  &bull; Parallelisation Limit
+  &bull; Sequential code limits speedup regardless of CPUs
+  &bull; Q: 20% sequential = max 5x speedup, ever
+
+Universal Scalability Law
+  &bull; Real distributed scaling
+  &bull; Contention (&alpha;) + Communication (&beta;) = Scaling Limit
+  &bull; Q: Why did adding pods stop helping?</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#1e1b4b;border-color:#312e81">
+      <p class="text-xs font-bold text-purple-300 uppercase tracking-widest mb-3">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-blue-900 rounded-lg p-3">
+          <p class="text-xs font-bold text-blue-300 mb-1">Little's Law</p>
+          <p class="text-xs text-white">How much capacity do we need?</p>
+        </div>
+        <div class="bg-green-900 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-300 mb-1">Amdahl's Law</p>
+          <p class="text-xs text-white">Is parallelisation worth the effort?</p>
+        </div>
+        <div class="bg-violet-900 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-300 mb-1">USL</p>
+          <p class="text-xs text-white">Why did scaling stop helping?</p>
+        </div>
+      </div>
+      <p class="text-xs text-purple-200 mt-3 leading-relaxed">Together: <strong class="text-yellow-300">Estimate capacity</strong> (Little's) &rarr; <strong class="text-yellow-300">Estimate max parallel speedup</strong> (Amdahl) &rarr; <strong class="text-yellow-300">Predict real-world scaling limits</strong> (USL). The most valuable performance mental model for large-scale distributed systems.</p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== TAB 2 IMAGE ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/PerformanceLaws/performance-laws.png"
+           alt="Performance Laws for Distributed Systems"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

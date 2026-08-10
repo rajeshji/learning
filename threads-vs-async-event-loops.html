@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Threads vs Async Event Loops — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.93rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+
+    .model-card { border-radius:10px; padding:16px 20px; margin-bottom:10px; }
+    .model-thread { background:#faf5ff; border:2px solid #7c3aed; }
+    .model-async  { background:#f0fdf4; border:2px solid #16a34a; }
+    .model-hybrid { background:#eff6ff; border:2px solid #2563eb; }
+    .model-thread-title { color:#4c1d94; font-weight:700; font-size:1rem; margin-bottom:6px; }
+    .model-async-title  { color:#15803d; font-weight:700; font-size:1rem; margin-bottom:6px; }
+    .model-hybrid-title { color:#1d4ed8; font-weight:700; font-size:1rem; margin-bottom:6px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Threads vs Async Event Loops</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Threads vs Async Event Loops</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Concurrency &amp; Performance</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Why Care -->
+    <div class="nc">
+      <div class="section-badge">WHY IT MATTERS</div>
+      <div class="nh">Why Should a Staff Engineer Care?</div>
+      <div class="nq">"How will thousands (or millions) of concurrent requests be executed efficiently?"</div>
+      <p class="text-gray-700 mb-3">The answer comes down to two execution models:</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <div class="model-card model-thread">
+          <div class="model-thread-title">Thread-Based Concurrency</div>
+          <p class="text-gray-600 text-sm">OS-managed threads, each with its own stack. Preemptive scheduling, true parallelism across cores.</p>
+        </div>
+        <div class="model-card model-async">
+          <div class="model-async-title">Async Event Loop</div>
+          <p class="text-gray-600 text-sm">Single-threaded cooperative scheduler using non-blocking I/O. One thread handles thousands of connections.</p>
+        </div>
+      </div>
+      <p class="text-gray-700 mb-2">Choosing the wrong model leads to:</p>
+      <ul class="dot-ul mb-3">
+        <li>High memory usage (thread explosion)</li>
+        <li>High context switching overhead</li>
+        <li>Poor CPU utilization</li>
+        <li>High latency and low throughput</li>
+      </ul>
+      <div class="ntip">Modern production systems <strong>combine both</strong>: event loop for network I/O + thread pool for CPU-bound or blocking work.</div>
+    </div>
+
+    <!-- Core Definitions -->
+    <div class="nc">
+      <div class="section-badge">DEFINITIONS</div>
+      <div class="nh">Core Definitions</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <div class="model-card model-thread mb-0">
+            <div class="model-thread-title">Thread</div>
+            <p class="text-gray-700 text-sm mb-2">An OS-managed execution unit with its own stack, registers, program counter, and scheduler state. Multiple threads run simultaneously on different CPU cores.</p>
+            <div class="ncode" style="font-size:0.82rem;">CPU → OS Scheduler
+  → Thread 1 → Request A
+  → Thread 2 → Request B
+  → Thread 3 → Request C
+
+Preemptive: OS decides when to switch.
+Stack: ~512 KB – 2 MB per thread.</div>
+          </div>
+        </div>
+        <div>
+          <div class="model-card model-async mb-0">
+            <div class="model-async-title">Async Event Loop</div>
+            <p class="text-gray-700 text-sm mb-2">A single-threaded scheduler that waits for events (I/O readiness, timers), processes ready tasks, and cooperatively switches between coroutines.</p>
+            <div class="ncode" style="font-size:0.82rem;">Event Loop
+  → Request A → await DB → yield
+  → Request B → await Redis → yield
+  → Request C → compute → respond
+  → Request A → DB ready → resume
+
+Cooperative: tasks yield voluntarily.
+Stack: ~few KB per coroutine.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Concurrency vs Parallelism -->
+    <div class="nc">
+      <div class="section-badge">CONCURRENCY vs PARALLELISM</div>
+      <div class="nh">Concurrency vs Parallelism</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Concurrency</p>
+          <p class="text-gray-600 text-sm mb-2">Many tasks make progress over time — only one runs at a time (interleaving).</p>
+          <div class="ncode" style="font-size:0.84rem;">Time →
+  Task A ██░░██░░
+  Task B ░░██░░██
+  Task C ░░░░████
+  (interleaved on 1 core)</div>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Parallelism</p>
+          <p class="text-gray-600 text-sm mb-2">Multiple tasks execute simultaneously on multiple CPU cores.</p>
+          <div class="ncode" style="font-size:0.84rem;">Core 1: Task A ████████
+Core 2: Task B ████████
+Core 3: Task C ████████
+(truly simultaneous)</div>
+        </div>
+      </div>
+      <table class="nt">
+        <thead><tr><th>Capability</th><th>Threads</th><th>Async Event Loop</th></tr></thead>
+        <tbody>
+          <tr><td>Concurrency</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+          <tr><td>True Parallelism (multi-core)</td><td>✅ Yes</td><td>❌ No (alone) — needs multiple loops or thread pools</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip">Async provides <strong>concurrency</strong>, not CPU parallelism. To use all cores with async, run one event loop per core (Node.js cluster, Nginx workers, Rust Tokio multi-thread runtime).</div>
+    </div>
+
+    <!-- Performance Comparison -->
+    <div class="nc">
+      <div class="section-badge">PERFORMANCE</div>
+      <div class="nh">Performance Characteristics</div>
+      <table class="nt">
+        <thead><tr><th>Metric</th><th>Threads</th><th>Async Event Loop</th></tr></thead>
+        <tbody>
+          <tr><td>Context switch cost</td><td>High — kernel registers, stack, cache flush (~µs)</td><td>Very low — user-space coroutine state (~ns)</td></tr>
+          <tr><td>Memory per connection</td><td>512 KB–2 MB (stack)</td><td>~few KB (coroutine frame)</td></tr>
+          <tr><td>Scalability (connections)</td><td>~1k–10k threads max</td><td>100k–1M+ connections</td></tr>
+          <tr><td>CPU parallelism</td><td>✅ Natural across cores</td><td>❌ Needs worker threads</td></tr>
+          <tr><td>Blocking tolerance</td><td>✅ One thread blocks, others continue</td><td>❌ One block stalls entire loop</td></tr>
+          <tr><td>Locking needed</td><td>Often (shared mutable state)</td><td>Rarely (single-threaded loop)</td></tr>
+          <tr><td>Race conditions</td><td>Common</td><td>Less common, but still possible across awaits</td></tr>
+          <tr><td>Programming model</td><td>Linear blocking (easier to read)</td><td>Async/await (requires mindset shift)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CPU vs IO Bound -->
+    <div class="nc">
+      <div class="section-badge">WORKLOAD MATCHING</div>
+      <div class="nh">CPU-Bound vs I/O-Bound Workloads</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">CPU-Bound → Use Threads</p>
+          <ul class="dot-ul text-sm">
+            <li>Image / video encoding</li>
+            <li>ML inference</li>
+            <li>Compression / encryption</li>
+            <li>Numerical computation</li>
+          </ul>
+          <div class="ncode mt-3" style="font-size:0.84rem;">Thread 1: CPU ████████████
+Thread 2: CPU ████████████
+Thread 3: CPU ████████████
+All cores utilized.</div>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">I/O-Bound → Use Async</p>
+          <ul class="dot-ul text-sm">
+            <li>REST APIs / HTTP calls</li>
+            <li>Database queries</li>
+            <li>Redis / Kafka</li>
+            <li>WebSockets / long polling</li>
+          </ul>
+          <div class="ncode mt-3" style="font-size:0.84rem;">1 thread, 100k connections:
+  Conn 1: await DB  (yield)
+  Conn 2: await API (yield)
+  Conn 3: respond   (done)
+  CPU never idles waiting for I/O.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Common Pitfalls -->
+    <div class="nc">
+      <div class="section-badge">PITFALLS</div>
+      <div class="nh">Common Production Problems</div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Thread Explosion</div>
+        <div class="ncode" style="font-size:0.85rem;">100k connections → 100k threads
+  100k × 1 MB stack = 100 GB RAM
+  → OOM kill</div>
+        <p class="text-gray-700 text-sm mt-1"><strong>Fix:</strong> Thread pool with bounded size; switch to async for connection-heavy workloads.</p>
+      </div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Event Loop Blocking</div>
+        <div class="ncode" style="font-size:0.85rem;">Blocking file read (synchronous)
+  → Entire event loop freezes
+  → All other requests stall
+  → P99 latency spikes</div>
+        <p class="text-gray-700 text-sm mt-1"><strong>Fix:</strong> Always offload blocking/CPU work to worker thread pool. Never call blocking APIs on the event loop thread.</p>
+      </div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Lock Contention</div>
+        <p class="text-gray-700 text-sm">Many threads waiting on a shared mutex → CPU utilization drops while threads spin or sleep. Risk of deadlocks and priority inversion.</p>
+      </div>
+
+      <div class="nc-warn">
+        <div class="nh-warn">Async Starvation</div>
+        <p class="text-gray-700 text-sm">One coroutine that never yields (long CPU computation without await) starves all other requests on the loop. <strong>Fix:</strong> Yield periodically or offload to thread pool.</p>
+      </div>
+    </div>
+
+    <!-- Hybrid Architecture -->
+    <div class="nc">
+      <div class="section-badge">HYBRID (INDUSTRY STANDARD)</div>
+      <div class="nh">Hybrid Architecture — Best of Both Worlds</div>
+      <p class="text-gray-700 mb-3">Most production systems combine event loop + thread pool:</p>
+      <div class="ncode">Client Connection
+  ↓
+Event Loop (non-blocking network I/O)
+  ↓
+Is it CPU-heavy or blocking?
+  ├── No  → Process inline, respond
+  └── Yes → Offload to Worker Thread Pool
+               ↓
+          Execute (blocking DB, CPU work)
+               ↓
+          Return result to Event Loop
+               ↓
+          Respond to client</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+        <div class="model-card model-async">
+          <div class="model-async-title">Node.js</div>
+          <p class="text-gray-600 text-sm">Single event loop + <code>worker_threads</code> / child processes for CPU work.</p>
+        </div>
+        <div class="model-card model-async">
+          <div class="model-async-title">Netty / Vert.x</div>
+          <p class="text-gray-600 text-sm">Event loop per core + executor thread pool for blocking/CPU tasks.</p>
+        </div>
+        <div class="model-card model-async">
+          <div class="model-async-title">NGINX</div>
+          <p class="text-gray-600 text-sm">N worker processes (one per core), each with an async event loop.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modern Evolution -->
+    <div class="nc">
+      <div class="section-badge">MODERN EVOLUTION</div>
+      <div class="nh">Modern Approaches Blurring the Line</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="window-card" style="background:#faf5ff;border:1px solid #ede9fe;border-radius:8px;padding:14px 18px;border-left:4px solid #7c3aed;">
+          <p class="font-semibold text-violet-700 mb-2">Java Project Loom — Virtual Threads</p>
+          <ul class="dot-ul text-sm">
+            <li>Lightweight JVM-managed threads</li>
+            <li>Tiny stacks (comparable to coroutines)</li>
+            <li>Write blocking code, get async-level scalability</li>
+            <li>Reduces historical thread vs async trade-off</li>
+          </ul>
+        </div>
+        <div class="window-card" style="background:#faf5ff;border:1px solid #ede9fe;border-radius:8px;padding:14px 18px;border-left:4px solid #7c3aed;">
+          <p class="font-semibold text-violet-700 mb-2">Go Goroutines (M:N Scheduling)</p>
+          <ul class="dot-ul text-sm">
+            <li>Lightweight user-space threads</li>
+            <li>Scheduled onto a small OS thread pool</li>
+            <li>Blocking-style code with async-level concurrency</li>
+            <li>Good CPU utilization across cores</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Design -->
+    <div class="nc">
+      <div class="section-badge">SYSTEM DESIGN</div>
+      <div class="nh">System Design Applications</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Model</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>API Gateway / Reverse Proxy</td><td><strong>Async</strong></td><td>High concurrency, low per-request CPU</td></tr>
+          <tr><td>Chat / WebSocket Server</td><td><strong>Async</strong></td><td>Millions of long-lived connections</td></tr>
+          <tr><td>NGINX</td><td><strong>Async</strong></td><td>Event-driven, one loop per core</td></tr>
+          <tr><td>Video Encoding / ML Inference</td><td><strong>Threads</strong></td><td>CPU-heavy, needs multi-core parallelism</td></tr>
+          <tr><td>Kafka Broker</td><td><strong>Hybrid</strong></td><td>Async network I/O + disk write threads</td></tr>
+          <tr><td>Search Engine</td><td><strong>Hybrid</strong></td><td>Async network + CPU-intensive ranking</td></tr>
+          <tr><td>Payment Service</td><td><strong>Hybrid</strong></td><td>I/O to DB/APIs + business logic</td></tr>
+          <tr><td>Database Server</td><td><strong>Hybrid</strong></td><td>Async I/O + worker execution pool</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <div class="section-badge">DECISION FRAMEWORK</div>
+      <div class="nh">When to Use Which Model</div>
+      <table class="nt">
+        <thead><tr><th>Question</th><th>Choose</th></tr></thead>
+        <tbody>
+          <tr><td>CPU-intensive work?</td><td><strong>Threads</strong></td></tr>
+          <tr><td>Mostly waiting on I/O?</td><td><strong>Async Event Loop</strong></td></tr>
+          <tr><td>Millions of concurrent sockets?</td><td><strong>Async Event Loop</strong></td></tr>
+          <tr><td>Must call blocking libraries?</td><td><strong>Threads</strong> (or isolate in separate service)</td></tr>
+          <tr><td>Low memory budget?</td><td><strong>Async Event Loop</strong></td></tr>
+          <tr><td>Multi-core parallelism required?</td><td><strong>Threads</strong></td></tr>
+          <tr><td>High throughput network service?</td><td><strong>Async Event Loop</strong></td></tr>
+          <tr><td>Mixed workload (I/O + CPU)?</td><td><strong>Hybrid</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Metrics &amp; Debugging Tools</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Thread Metrics</p>
+          <ul class="dot-ul text-sm mb-2">
+            <li>Thread count (alert on growth)</li>
+            <li>Context switches per second</li>
+            <li>CPU utilization</li>
+            <li>Lock contention / deadlock detection</li>
+          </ul>
+          <p class="text-gray-600 text-sm"><strong>Tools:</strong> <span class="nkw"><span>JFR</span></span><span class="nkw"><span>VisualVM</span></span><span class="nkw"><span>jstack</span></span><span class="nkw"><span>perf</span></span></p>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Async Metrics</p>
+          <ul class="dot-ul text-sm mb-2">
+            <li>Event loop lag (P99 delay)</li>
+            <li>Queue depth</li>
+            <li>Active coroutines</li>
+            <li>Blocking call duration in loop</li>
+          </ul>
+          <p class="text-gray-600 text-sm"><strong>Tools:</strong> <span class="nkw"><span>Netty metrics</span></span><span class="nkw"><span>Node event loop delay</span></span><span class="nkw"><span>Tokio Console</span></span><span class="nkw"><span>eBPF</span></span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Questions -->
+    <div class="nc">
+      <div class="section-badge">INTERVIEW PREP</div>
+      <div class="nh">Common Interview Questions</div>
+      <p class="font-semibold text-violet-700 mb-1">Fundamentals</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700 mb-4" start="1">
+        <li>What is the difference between concurrency and parallelism?</li>
+        <li>Why are event loops more scalable than thread-per-connection?</li>
+        <li>Why are threads expensive?</li>
+        <li>What is cooperative vs preemptive scheduling?</li>
+        <li>Why does Node.js perform well with many connections?</li>
+      </ol>
+      <p class="font-semibold text-violet-700 mb-1">Production</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700 mb-4" start="6">
+        <li>What happens if you call <code>Thread.sleep()</code> on an event loop thread?</li>
+        <li>How would you handle CPU-intensive work in an async server?</li>
+        <li>How do Go goroutines differ from OS threads?</li>
+        <li>How does Java Project Loom change the trade-offs?</li>
+        <li>When would you prefer thread pools over async I/O?</li>
+      </ol>
+      <p class="font-semibold text-violet-700 mb-1">Staff-Level Design</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700" start="11">
+        <li>Design a chat server handling 10 million concurrent WebSocket connections.</li>
+        <li>Design an API gateway processing 500k requests/sec.</li>
+        <li>How would you prevent event-loop starvation?</li>
+        <li>How would you implement backpressure in an async architecture?</li>
+        <li>How would you scale an async server across all CPU cores?</li>
+        <li>Explain why modern high-performance systems use a hybrid architecture.</li>
+      </ol>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt">
+        <thead><tr><th>Level</th><th>Thinking Pattern</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Junior</strong></td>
+            <td>"I'll use threads because I understand blocking code. One thread per request makes sense."</td>
+          </tr>
+          <tr>
+            <td><strong>Senior</strong></td>
+            <td>"For high concurrency I'll use async/event loop — it handles more connections with less memory. I'll use a thread pool for CPU work."</td>
+          </tr>
+          <tr>
+            <td><strong>Staff</strong></td>
+            <td>"I classify the workload first: I/O-bound? → async event loop with one loop per core. CPU-bound? → bounded thread pool sized to core count. Mixed? → hybrid: event loop for network, thread pool for blocking/CPU tasks with backpressure between them. I instrument event loop lag, thread pool queue depth, and context switches per second. I ensure no blocking calls land on the event loop thread. For Java, I consider virtual threads (Loom) to simplify the model. I validate under production-like load, not just unit tests, and tune pool sizes using Little's Law (Pool Size = RPS × avg task duration)."</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ntip">
+        <strong>Key Takeaways:</strong>
+        <ul class="dot-ul mt-2">
+          <li><strong>Threads</strong> provide true CPU parallelism with preemptive scheduling — ideal for CPU-bound work, blocking libraries, and multi-core computation.</li>
+          <li><strong>Async event loops</strong> use cooperative scheduling and non-blocking I/O to scale to millions of connections with minimal memory and context-switch overhead — ideal for I/O-bound services.</li>
+          <li><strong>Neither is universally superior</strong>: CPU-bound → threads; I/O-bound → async; mixed → hybrid.</li>
+          <li>Modern systems (NGINX, Envoy, Netty, Go, Java Loom) combine event-driven networking with worker threads to achieve both scalability and parallelism.</li>
+          <li>In interviews: discuss scheduling models, memory overhead, context-switch costs, blocking behavior, backpressure, failure modes, observability, and how you'd architect a hybrid system.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ORIGINAL NOTES TAB -->
+  <div id="tab-original" class="tab-pane pb-16">
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES</div>
+      <div class="nh">Threads vs Async Event Loops — Deep Dive (Staff Engineer Interview)</div>
+
+      <p class="text-gray-700 mb-4"><strong>TL;DR:</strong> Threads (kernel or user-level) give <strong>parallelism + preemptive multitasking</strong> — good for CPU work and blocking code. Async/event loops give <strong>massive concurrency with low memory/cost</strong> for I/O-bound workloads, but <strong>don't give CPU parallelism</strong> by themselves and require non-blocking code.</p>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">1) Core Concepts (One-Line Definitions)</div>
+      <ul class="dot-ul mb-4">
+        <li><strong>Thread</strong> — an OS (or user) schedulable execution context with its own stack and registers. Multiple threads can run in parallel on multiple CPU cores.</li>
+        <li><strong>Async event loop</strong> — a single (or few) thread(s) running a loop that waits for events (I/O readiness, timers, completions) and dispatches callbacks/coroutines. Uses non-blocking I/O and cooperative multitasking.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">2) The Internals (What Actually Happens)</div>
+      <p class="font-semibold text-violet-700 mb-1">Threads:</p>
+      <ul class="dot-ul mb-3">
+        <li>Kernel threads: OS maintains thread control blocks; scheduler preemptively switches. Context switch saves registers, switches kernel structures.</li>
+        <li>User threads / green threads / fibers: scheduled in user-space (low-cost switches) but may be mapped to kernel threads (M:N models).</li>
+        <li>Each thread has its own stack (~1 MB default on many platforms).</li>
+        <li>Blocking syscall in a thread blocks <em>that thread</em> only (not entire process) when using kernel threads.</li>
+      </ul>
+      <p class="font-semibold text-violet-700 mb-1">Async event loop:</p>
+      <ul class="dot-ul mb-4">
+        <li>Uses non-blocking syscalls (epoll/kqueue/IOCP) to wait for readiness.</li>
+        <li>The event loop wakes and runs a handler/coroutine on the same thread; handlers must yield/return control quickly.</li>
+        <li>Context switching is cooperative (await/yield), extremely cheap — no kernel context switch.</li>
+        <li>For heavy CPU work, must offload to worker threads/processes.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">3) Concurrency vs Parallelism</div>
+      <ul class="dot-ul mb-4">
+        <li><strong>Concurrency</strong> = many tasks appear to make progress (interleaving).</li>
+        <li><strong>Parallelism</strong> = tasks actually run at the same time on multiple cores.</li>
+        <li>Threads can provide both. Async event loop provides concurrency but <strong>not true parallelism</strong> unless paired with threads/processes or multiple event-loop instances.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">4) Performance Characteristics</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Metric</th><th>Threads</th><th>Async Event Loop</th></tr></thead>
+        <tbody>
+          <tr><td>Memory per connection</td><td>High (stack per thread)</td><td>Low (small coroutine frames)</td></tr>
+          <tr><td>Context switch cost</td><td>High (kernel context switch)</td><td>Very low (user-space yield)</td></tr>
+          <tr><td>Scalability for many I/O connections</td><td>Worse (thousands of threads heavy)</td><td>Excellent (tens/hundreds of thousands)</td></tr>
+          <tr><td>CPU-bound task handling</td><td>Natural (parallelize across cores)</td><td>Poor — needs worker threads/processes</td></tr>
+          <tr><td>Programming complexity</td><td>Easier mental model but race conditions/deadlocks</td><td>Requires non-blocking APIs, avoids locking issues</td></tr>
+          <tr><td>Blocking tolerance</td><td>Each thread can block without halting others</td><td>One blocking call stalls entire loop — catastrophic</td></tr>
+          <tr><td>Determinism</td><td>Non-deterministic preemptive scheduling</td><td>More deterministic (cooperative scheduling)</td></tr>
+        </tbody>
+      </table>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">5) When to Prefer Which</div>
+      <p class="font-semibold text-violet-700 mb-1">Pick Async/Event Loop when:</p>
+      <ul class="dot-ul mb-3">
+        <li>Workload is <strong>highly I/O-bound</strong>: web servers, API gateways, chat servers, websockets, long polling, streaming, proxies.</li>
+        <li>You need to handle <strong>massive concurrent connections</strong> with low memory.</li>
+        <li>You can control or obtain non-blocking libraries for I/O.</li>
+      </ul>
+      <p class="font-semibold text-violet-700 mb-1">Pick Threads when:</p>
+      <ul class="dot-ul mb-3">
+        <li>Workload is <strong>CPU-bound</strong> or does heavy computation.</li>
+        <li>You must call <strong>blocking third-party libraries</strong>.</li>
+        <li>Simpler synchronous coding model preferred.</li>
+      </ul>
+      <p class="font-semibold text-violet-700 mb-1">Best architecture is often Hybrid:</p>
+      <ul class="dot-ul mb-4">
+        <li>Event loop handles protocol/non-blocking I/O. CPU-heavy tasks offloaded to a <strong>bounded worker thread pool</strong> or separate service.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">6) Design Patterns &amp; Equivalents</div>
+      <ul class="dot-ul mb-4">
+        <li><strong>Reactor pattern</strong> — typical event-loop design (dispatch on readiness). Used by Node.js, Python asyncio, libuv, Java NIO.</li>
+        <li><strong>Proactor pattern</strong> — completion-based async I/O (IOCP on Windows).</li>
+        <li><strong>Worker pool</strong> — pool of threads for blocking or CPU-bound tasks.</li>
+        <li><strong>Actor model</strong> — isolates state in actors (Erlang, Akka); works on threads or async loops.</li>
+        <li><strong>Sharded event-loops</strong> — N loops (one per core) for scalability + parallelism.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">7) Practical Pitfalls &amp; Gotchas</div>
+      <ul class="dot-ul mb-4">
+        <li><strong>Blocking syscall in event loop</strong> → stalls entire loop. Calling <code>sleep()</code> or expensive JSON serialization freezes processing. Always offload.</li>
+        <li><strong>Thread per connection at scale</strong> → thread explosion, OOM or massive CPU from context switching.</li>
+        <li><strong>Locking &amp; contention</strong> — threads with shared mutable state need locks; prone to deadlocks and priority inversion. Async code can still have races across awaits.</li>
+        <li><strong>Starvation</strong> — long-running async handler starves others; need fairness policies.</li>
+        <li><strong>Backpressure</strong> — both models need strategies: TCP-level, rate-limiting, bounded queues.</li>
+        <li><strong>Debugging</strong> — thread races hard to reproduce; async stacks complex to trace but more deterministic.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">8) Resource Sizing</div>
+      <ul class="dot-ul mb-4">
+        <li>Threads: each stack + native structures (~MBs). 100k threads ≈ too large (OOM).</li>
+        <li>Async: memory for task frames + socket buffers — tens/hundreds of thousands of connections feasible.</li>
+        <li>CPU: to use all cores with async, run one event-loop per core or offload CPU tasks.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">9) Real System Examples</div>
+      <ul class="dot-ul mb-4">
+        <li><strong>Node.js</strong> — single-threaded event loop; <code>worker_threads</code>/child processes for CPU. Great for I/O-heavy APIs.</li>
+        <li><strong>Nginx</strong> — event-loop model (multiprocess, event-driven workers). Extremely efficient for many sockets.</li>
+        <li><strong>Java</strong> — historically thread-per-connection; newer: NIO + Project Loom virtual threads blur thread/async distinction.</li>
+        <li><strong>Python</strong> — <code>asyncio</code> for async; threads/processes for CPU. GIL limits CPU parallelism in CPython.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">10) Whiteboard Strategy</div>
+      <ol class="list-decimal pl-5 space-y-2 text-gray-700 mb-4">
+        <li>Start with definitions and contrast concurrency vs parallelism.</li>
+        <li>Draw two diagrams: (a) many threads on cores with OS scheduler; (b) single event-loop with coroutines and epoll.</li>
+        <li>State cost model: "1 MB stack/thread vs ~few KB coroutine frame".</li>
+        <li>Walk through chat service design: threaded (scaling issues, locking) vs async (event-loop per core + worker pool).</li>
+        <li>Conclude with tradeoffs and hybrid recommendation.</li>
+      </ol>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">11) Sample Interview Answer</div>
+      <div class="nq">"Threads give preemptive multitasking and true parallelism (useful for CPU-bound tasks or blocking libraries), but are heavy in memory and context-switch cost. Async event loops use non-blocking I/O and cooperative scheduling, enabling massive concurrency with low overhead — ideal for I/O-bound workloads. In production I usually recommend a hybrid: event-loop architecture for handling many connections and a bounded worker pool for blocking or CPU-intensive work so you get both scalability and parallel CPU utilization."</div>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">12) Quick Checklist</div>
+      <ul class="dot-ul mb-4">
+        <li>Is workload IO-bound or CPU-bound? → event-loop vs thread/process.</li>
+        <li>Blocking third-party libs required? → use threads or isolate in separate service.</li>
+        <li>Expected concurrent connections? → if large, favor async or event-loop sharding.</li>
+        <li>Fault isolation &amp; security? → separate workers/processes for untrusted work.</li>
+        <li>Observability &amp; debugging plan? → tracing, per-request IDs, timeouts, watchdogs.</li>
+        <li>Backpressure &amp; flow control? → bounded queues, circuit breakers, rate limits.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">13) Advanced Staff-Level Notes</div>
+      <ul class="dot-ul mb-4">
+        <li><strong>Project Loom / virtual threads</strong> — changes cost model; lightweight blocking threads on JVM make thread-per-request viable again.</li>
+        <li><strong>IOCP vs epoll</strong> — proactor vs reactor semantics (completion notifications vs readiness); match libraries to OS semantics.</li>
+        <li><strong>Cache and NUMA</strong> — threads on different cores have cache effects; event-loop sharding per socket affinity helps.</li>
+        <li><strong>Deterministic scheduling for testing</strong> — cooperative async makes reproducing races easier; consider time virtualization in tests.</li>
+        <li><strong>Fault domains</strong> — offloading to separate processes removes risk that one blocked handler kills the whole server.</li>
+      </ul>
+
+      <hr class="border-violet-100 mb-4"/>
+
+      <div class="nh">Deep-Dive Comparison Table</div>
+      <div style="overflow-x:auto;">
+        <table class="nt mb-4" style="min-width:700px;">
+          <thead><tr><th>Aspect</th><th>Threads</th><th>Async Event Loop</th><th>Staff Insights</th></tr></thead>
+          <tbody>
+            <tr><td>Core Concept</td><td>OS-managed units with own stack, registers, context</td><td>Single-threaded loop managing I/O cooperatively via non-blocking APIs</td><td>Threads = preemptive; Event loops = cooperative</td></tr>
+            <tr><td>Scheduling Type</td><td>Preemptive — OS decides when to switch</td><td>Cooperative — tasks yield voluntarily (await/callback)</td><td>Preemptive = simpler code, higher switch cost; Cooperative = faster but blocking risk</td></tr>
+            <tr><td>Concurrency vs Parallelism</td><td>True parallelism across cores</td><td>Concurrency, not parallelism (unless multiple loops)</td><td>CPU-heavy → threads; I/O-heavy → async</td></tr>
+            <tr><td>Context Switching Cost</td><td>High — kernel registers, cache, stack switch</td><td>Very Low — user-space coroutine state switch</td><td>Async wins massive concurrency; threads win CPU multi-core</td></tr>
+            <tr><td>Memory Overhead</td><td>~512 KB–2 MB stack per thread</td><td>~few KB coroutine frame</td><td>Async allows millions of connections</td></tr>
+            <tr><td>Blocking Behavior</td><td>Only that thread blocks</td><td>Halts entire event loop</td><td>One blocking mistake in async is catastrophic</td></tr>
+            <tr><td>Scalability (connections)</td><td>~1k–10k max</td><td>100k–1M+ concurrent sockets</td><td>Async used in web servers, gateways, chat apps</td></tr>
+            <tr><td>CPU-bound Handling</td><td>Native (multi-core)</td><td>Poor — offload to worker pool</td><td>Async delegates CPU to thread pools</td></tr>
+            <tr><td>Fault Isolation</td><td>Per-thread crash isolation</td><td>Uncaught exception may crash entire loop</td><td>Use supervision/restart if async</td></tr>
+            <tr><td>Typical Frameworks</td><td>Java threads, Go goroutines, pthreads</td><td>Node.js, Netty, NGINX, asyncio, Tokio</td><td>Go &amp; Loom blur the line</td></tr>
+            <tr><td>Hybrid Model</td><td>Event loop + thread pool for blocking/CPU</td><td>Same hybrid recommended</td><td>Industry best practice across NGINX, Netty, Kafka</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="nh mt-4">Interview Scenario Mapping</div>
+      <table class="nt mb-4">
+        <thead><tr><th>System Design Scenario</th><th>Best Fit</th><th>Reasoning</th></tr></thead>
+        <tbody>
+          <tr><td>Chat / WebSocket Server</td><td>Async Event Loop</td><td>Thousands of persistent connections, minimal CPU</td></tr>
+          <tr><td>CPU-heavy Analytics / ML</td><td>Threads / Thread Pool</td><td>Needs multi-core parallelism</td></tr>
+          <tr><td>API Gateway / Reverse Proxy</td><td>Async (Nginx-like)</td><td>Network I/O heavy; async scales better</td></tr>
+          <tr><td>Microservice with blocking DB calls</td><td>Hybrid (Async + Worker Pool)</td><td>Async for requests; thread pool for DB</td></tr>
+          <tr><td>Batch Processing / Data Pipelines</td><td>Threads / Processes</td><td>CPU + I/O balanced; easy to parallelize</td></tr>
+          <tr><td>Real-time Game Server</td><td>Async (per-core sharded loops)</td><td>Low-latency message handling, room isolation</td></tr>
+          <tr><td>REST API with DB I/O</td><td>Hybrid</td><td>Async network; bounded worker pool for DB</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div><!-- /tab-original -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/c4b939dc-621f-4df2-9a68-0d28b4a24b95.png"
+           alt="Threads vs Async Event Loops Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Network Latency Sources — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Network Latency Sources</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Network Latency Sources</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Serialization · Propagation · Queuing · Processing — where latency actually comes from</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">When a request feels "slow," it is rarely one reason. Network latency is the sum of multiple delays as data travels from one machine to another. <strong>Total Latency = Serialization + Propagation + Queuing + Processing.</strong> Each component dominates in a different environment.</p>
+      <div class="ncode">Client
+  │ Serialization Delay  (packet placed on wire)
+  ▼
+══════════════════════ Wire ══════════════════════
+  │ Propagation Delay    (bits travel at ~2/3 light speed)
+  ▼
+Router / Switch
+  │ Queuing Delay        (waits in buffer)
+  ▼
+Server NIC
+  │ Processing Delay     (decrypt, route, forward)
+  ▼
+Application</div>
+      <div class="nkw mt-3">
+        <span>Serialization</span>
+        <span>Propagation</span>
+        <span>Queuing</span>
+        <span>Processing</span>
+        <span>RTT</span>
+        <span>P99 Latency</span>
+        <span>Bufferbloat</span>
+        <span>Latency Budget</span>
+      </div>
+    </div>
+
+    <!-- Four Source Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+      <!-- Serialization -->
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">1 — Serialization Delay</p>
+        <p class="text-xs text-gray-600 mb-2">Time to place every bit of a packet onto the wire (filling the pipe).</p>
+        <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Delay = Packet Size (bits) / Bandwidth (bps)
+
+1500 B packet @ 1 Gbps  → ~12 µs
+1500 B packet @ 100 Mbps → ~120 µs
+1500 B packet @ 1 Mbps  → ~12 ms</div>
+        <p class="text-xs font-semibold text-violet-700 mt-2 mb-1">Reduce by:</p>
+        <ul class="dot-ul">
+          <li>Compress payloads (gzip, Brotli)</li>
+          <li>Use Protobuf instead of JSON</li>
+          <li>Batch multiple requests</li>
+          <li>Jumbo Frames in datacenters</li>
+          <li>Remove unnecessary metadata</li>
+        </ul>
+        <p class="ntip"><strong>Dominates</strong> on: mobile, IoT, large payloads, slow WAN links.</p>
+      </div>
+
+      <!-- Propagation -->
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">2 — Propagation Delay</p>
+        <p class="text-xs text-gray-600 mb-2">Time for the first bit to physically travel across the medium. Limited by speed of light — cannot be eliminated.</p>
+        <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Delay = Distance / Signal Speed
+Signal speed: fiber ~200,000 km/s
+
+Same rack (100m)  → ~0.5 µs
+City (200 km)     → ~1 ms
+India → US        → ~70–80 ms one-way
+GEO satellite     → ~120 ms one-way</div>
+        <p class="text-xs font-semibold text-violet-700 mt-2 mb-1">Reduce by:</p>
+        <ul class="dot-ul">
+          <li>CDN / Edge Computing</li>
+          <li>Regional replicas</li>
+          <li>Local caches</li>
+          <li>Fewer round trips (0-RTT, QUIC)</li>
+          <li>Connection reuse</li>
+        </ul>
+        <p class="ntip"><strong>Dominates</strong> on: cross-region, global services.</p>
+      </div>
+
+      <!-- Queuing -->
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">3 — Queuing Delay</p>
+        <p class="text-xs text-gray-600 mb-2">Time a packet waits in a buffer before being transmitted. The main cause of jitter and high P99 latency.</p>
+        <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Delay ≈ Queue Size / Bandwidth
+
+Router buffer 1 MB @ 1 Gbps → ~8 ms wait!
+
+Causes: congestion, burst traffic, bufferbloat,
+        slow downstream, overloaded LB</div>
+        <p class="text-xs font-semibold text-violet-700 mt-2 mb-1">Reduce by:</p>
+        <ul class="dot-ul">
+          <li>Backpressure</li>
+          <li>Active Queue Management (CoDel, RED)</li>
+          <li>BBR congestion control</li>
+          <li>Rate limiting</li>
+          <li>Autoscaling</li>
+          <li>Load balancing + reduce fan-out</li>
+        </ul>
+        <p class="ntip"><strong>Dominates</strong> on: high QPS backends, congested networks, mobile.</p>
+      </div>
+
+      <!-- Processing -->
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">4 — Processing Delay</p>
+        <p class="text-xs text-gray-600 mb-2">Time devices spend examining, routing, decrypting, and forwarding. Accumulates at every hop.</p>
+        <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Simple switch    → 1–5 µs
+Router           → 10–100 µs
+TLS termination  → 1–5 ms
+Service mesh     → 0.5–2 ms
+API gateway      → 1–10 ms
+
+Multiple proxies can add 5–20ms inside a datacenter!</div>
+        <p class="text-xs font-semibold text-violet-700 mt-2 mb-1">Reduce by:</p>
+        <ul class="dot-ul">
+          <li>Async I/O, io_uring</li>
+          <li>Zero-copy networking</li>
+          <li>TLS offloading to hardware</li>
+          <li>Kernel bypass (DPDK)</li>
+          <li>Reduce proxy chain depth</li>
+        </ul>
+        <p class="ntip"><strong>Dominates</strong> on: same-rack, TLS-heavy, multi-proxy paths.</p>
+      </div>
+    </div>
+
+    <!-- Latency Breakdown Table -->
+    <div class="nc">
+      <p class="nh">Typical Latency Breakdown by Environment</p>
+      <table class="nt">
+        <thead><tr><th>Environment</th><th>Serialization</th><th>Propagation</th><th>Queuing</th><th>Processing</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><td>Same Rack</td><td>~1 µs</td><td>~0.5 µs</td><td>&lt;5 µs</td><td>~10 µs</td><td>~16 µs</td></tr>
+          <tr><td>Same Region</td><td>~5 µs</td><td>~100 µs</td><td>~200 µs</td><td>~100 µs</td><td>~0.4 ms</td></tr>
+          <tr><td>Cross Region</td><td>~5 µs</td><td>~25 ms</td><td>~2 ms</td><td>~1 ms</td><td>~28 ms</td></tr>
+          <tr><td>India ↔ US</td><td>~10 µs</td><td>~80 ms</td><td>~5 ms</td><td>~2 ms</td><td>~87 ms</td></tr>
+          <tr><td>Mobile (4G)</td><td>~200 µs</td><td>~50 ms</td><td>~50 ms</td><td>~2 ms</td><td>~100+ ms</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Dominant Delay by Environment -->
+    <div class="nc">
+      <p class="nh">Which Delay Dominates?</p>
+      <table class="nt">
+        <thead><tr><th>Environment</th><th>Dominant Source</th></tr></thead>
+        <tbody>
+          <tr><td>Same Rack</td><td>Processing</td></tr>
+          <tr><td>Same Datacenter</td><td>Processing + Queuing</td></tr>
+          <tr><td>High QPS Backend</td><td>Queuing</td></tr>
+          <tr><td>Cross Region</td><td>Propagation</td></tr>
+          <tr><td>Global Services</td><td>Propagation</td></tr>
+          <tr><td>Mobile Networks</td><td>Propagation + Queuing</td></tr>
+          <tr><td>IoT Devices</td><td>Serialization</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Symptoms -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Symptoms → Root Cause</p>
+      <table class="nt">
+        <thead><tr><th>Symptom</th><th>Likely Source</th><th>Investigate</th></tr></thead>
+        <tbody>
+          <tr><td>Slow upload speeds</td><td>Serialization</td><td>Payload size, encoding, bandwidth</td></tr>
+          <tr><td>Fast locally, slow globally</td><td>Propagation</td><td>ping / traceroute RTT</td></tr>
+          <tr><td>High P99 latency / jitter</td><td>Queuing</td><td>Queue depth, retransmits, bbr</td></tr>
+          <tr><td>CPU-bound gateway</td><td>Processing</td><td>TLS, proxy chain, perf profiling</td></tr>
+          <tr><td>TLS dominates response time</td><td>Processing</td><td>TLS offload, session reuse</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- System Design Applications -->
+    <div class="nc">
+      <p class="nh">System Design Applications</p>
+      <table class="nt">
+        <thead><tr><th>Design Problem</th><th>Dominant Source</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td>Global Web App</td><td>Propagation</td><td>CDN + regional deployment</td></tr>
+          <tr><td>Microservices</td><td>Queuing</td><td>Backpressure + connection pooling</td></tr>
+          <tr><td>Video Streaming</td><td>Propagation + Queuing</td><td>Edge servers + QUIC</td></tr>
+          <tr><td>API Gateway</td><td>Processing</td><td>TLS offload + async I/O</td></tr>
+          <tr><td>IoT Ingestion</td><td>Serialization</td><td>Compression + batching</td></tr>
+          <tr><td>Cross-region DB</td><td>Propagation</td><td>Async replication + local reads</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Observability Tools -->
+    <div class="nc">
+      <p class="nh">Observability Tools</p>
+      <table class="nt">
+        <thead><tr><th>Tool</th><th>Measures</th></tr></thead>
+        <tbody>
+          <tr><td><code>ping</code></td><td>RTT (propagation + processing)</td></tr>
+          <tr><td><code>traceroute</code></td><td>Per-hop propagation delay</td></tr>
+          <tr><td><code>tcpdump</code></td><td>Packet timings</td></tr>
+          <tr><td><code>ss -ti</code></td><td>RTT, congestion window, socket state</td></tr>
+          <tr><td><code>iperf3</code></td><td>Throughput / bandwidth headroom</td></tr>
+          <tr><td><code>perf</code></td><td>CPU processing cost</td></tr>
+          <tr><td>eBPF</td><td>Queue depth, socket latency, kernel paths</td></tr>
+          <tr><td>Prometheus + Grafana</td><td>End-to-end latency distributions (P50/P99/P999)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">The network is slow</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">P99 latency is high, check queuing</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>What is the latency breakdown per source?</li>
+            <li>Which source dominates — and is it reducible?</li>
+            <li>Is propagation irreducible (speed-of-light limit)?</li>
+            <li>Is P99 driven by queuing bursts or retransmits?</li>
+            <li>What is our latency budget per tier?</li>
+            <li>How many proxy hops are adding processing delay?</li>
+            <li>Is TLS handshake cost measured and cached?</li>
+            <li>How do we model cross-region latency in SLO budgets?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Total Latency = Serialization + Propagation + Queuing + Processing
+
+Serialization:
+  = Packet Size / Bandwidth
+  Optimize: compression, Protobuf, batching, Jumbo Frames
+  Dominates: mobile, IoT, large payloads
+
+Propagation:
+  = Distance / Speed of Light (~2/3c in fiber)
+  CANNOT be eliminated — reduce distance instead
+  Optimize: CDN, edge, regional replicas, fewer RTTs
+  Dominates: cross-region, global
+
+Queuing:
+  ≈ Queue Size / Bandwidth
+  Main driver of tail latency (P99/P999) and jitter
+  Optimize: backpressure, BBR, CoDel, autoscaling
+  Dominates: high-QPS, congested networks
+
+Processing:
+  Every hop adds: TLS 1–5ms, service mesh 0.5–2ms, etc.
+  Optimize: async I/O, TLS offload, zero-copy, fewer proxies
+  Dominates: same-rack, TLS-heavy, multi-proxy paths
+
+Staff mindset:
+  1. Identify dominant source
+  2. Quantify its impact
+  3. Propose targeted mitigation
+  4. Discuss trade-offs
+  5. Tie back to latency budget + SLOs</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/57a1717e-5abf-466f-9c73-abd80b032a1e.png"
+        alt="Network Latency Sources Serialization Propagation Queuing Processing visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

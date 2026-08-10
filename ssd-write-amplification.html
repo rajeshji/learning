@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SSD Write Amplification & Wear Leveling — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">SSD Write Amplification & Wear Leveling</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9l-6-6z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v6h6"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">SSD Write Amplification & Wear Leveling</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Why SSDs slow down over time and how controllers maximize endurance</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">Unlike HDDs, SSDs <strong>cannot overwrite data directly</strong>. Every write goes through the SSD controller which manages FTL, Garbage Collection, Wear Leveling, and ECC. This extra layer makes SSDs fast — but introduces <strong>Write Amplification</strong>, the biggest factor affecting SSD lifespan.</p>
+      <div class="ncode">Application
+  ↓
+Filesystem
+  ↓
+Logical Block Address (LBA)
+  ↓
+Flash Translation Layer (FTL)
+  ↓
+NAND Flash Pages
+  ↓
+Physical SSD</div>
+      <div class="nkw mt-3">
+        <span>WAF</span>
+        <span>FTL</span>
+        <span>Garbage Collection</span>
+        <span>Wear Leveling</span>
+        <span>TRIM</span>
+        <span>Over-Provisioning</span>
+        <span>SLC Cache</span>
+        <span>P/E Cycles</span>
+      </div>
+    </div>
+
+    <!-- NAND Constraint -->
+    <div class="nc">
+      <p class="nh">Why SSDs Need Write Amplification</p>
+      <p class="text-sm text-gray-600 mb-2">NAND Flash has a fundamental constraint:</p>
+      <div class="grid grid-cols-3 gap-3 mt-1 text-center text-xs">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="font-bold text-green-700">Read</p>
+          <p class="text-gray-600 mt-1">Page Level ✔</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="font-bold text-blue-700">Write</p>
+          <p class="text-gray-600 mt-1">Empty Pages Only ✔</p>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p class="font-bold text-red-700">Erase</p>
+          <p class="text-gray-600 mt-1">Entire Block ⚠️</p>
+        </div>
+      </div>
+      <div class="ncode mt-3">A simple 4 KB update triggers:
+
+Page Modified
+  ↓
+Cannot Overwrite In Place
+  ↓
+Allocate New Page
+  ↓
+Copy Valid Pages From Old Block
+  ↓
+Erase Entire Old Block
+  ↓
+Update FTL Mapping
+
+→ A 4 KB write can cause hundreds of KB of internal writes.</div>
+    </div>
+
+    <!-- WAF Formula -->
+    <div class="nc">
+      <p class="nh">Write Amplification Factor (WAF)</p>
+      <p class="text-sm text-gray-600 mb-2">WAF measures how much the SSD actually writes vs what the app requested:</p>
+      <div class="ncode">WAF = NAND Bytes Written / Host Bytes Written
+
+Example:
+  App writes:       100 GB
+  SSD internally:   160 GB
+  WAF = 160 / 100 = 1.6
+
+Lower WAF = Better SSD health & longer lifetime</div>
+      <table class="nt mt-3">
+        <thead><tr><th>WAF</th><th>Meaning</th><th>Typical Scenario</th></tr></thead>
+        <tbody>
+          <tr><td>1.0</td><td>Ideal (no amplification)</td><td>Large sequential writes</td></tr>
+          <tr><td>1.1–2.0</td><td>Good</td><td>Mixed workload, TRIM enabled</td></tr>
+          <tr><td>2–5</td><td>Acceptable</td><td>Small random writes</td></tr>
+          <tr><td>5–10+</td><td>Problematic</td><td>Full SSD, heavy GC, no TRIM</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FTL -->
+    <div class="nc">
+      <p class="nh">Flash Translation Layer (FTL)</p>
+      <p class="text-sm text-gray-600 mb-2">Applications use Logical Block Addresses (LBA). The SSD stores data at Physical Block Addresses (PBA). The FTL maintains this translation transparently:</p>
+      <div class="ncode">App writes to LBA 1000
+  ↓
+FTL maps → PBA 4200
+  ↓
+App overwrites LBA 1000
+  ↓
+FTL allocates new PBA 7800
+  ↓
+Old PBA 4200 marked invalid
+  ↓
+Garbage Collection cleans it later</div>
+      <p class="ntip">The FTL also handles bad block replacement, wear leveling, and garbage collection. Applications never know where data physically resides — writes land on fresh blocks always.</p>
+    </div>
+
+    <!-- Garbage Collection -->
+    <div class="nc">
+      <p class="nh">Garbage Collection (GC)</p>
+      <p class="text-sm text-gray-600 mb-2">When blocks accumulate invalid pages, GC reclaims them:</p>
+      <div class="ncode">Block with mix of valid + invalid pages
+  ↓
+Copy valid pages to new empty block
+  ↓
+Erase entire old block
+  ↓
+Block is now clean and reusable</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Foreground GC</p>
+          <p class="text-xs text-gray-600">Runs during active writes. Provides immediate free space but adds latency to application writes.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Background GC</p>
+          <p class="text-xs text-gray-600">Runs during idle periods. Lower application latency and better sustained performance. Preferred for enterprise SSDs.</p>
+        </div>
+      </div>
+      <p class="ntip">More garbage collection = Higher WAF. Keeping 15–20% SSD free reduces GC pressure significantly.</p>
+    </div>
+
+    <!-- Wear Leveling -->
+    <div class="nc">
+      <p class="nh">Wear Leveling</p>
+      <p class="text-sm text-gray-600 mb-2">Every NAND block supports a limited number of Program/Erase (P/E) cycles. Without wear leveling, frequently written blocks fail early while others sit barely used:</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Dynamic Wear Leveling</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">New writes → least-used block
+Hot data only
+Fast and efficient
+Cold data stays untouched</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Static Wear Leveling</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Even cold data relocated
+to spread erase cycles
+Slightly more internal writes
+Best overall SSD lifetime</div>
+        </div>
+      </div>
+      <table class="nt mt-3">
+        <thead><tr><th>Feature</th><th>Dynamic</th><th>Static</th></tr></thead>
+        <tbody>
+          <tr><td>Hot Data</td><td>✔</td><td>✔</td></tr>
+          <tr><td>Cold Data</td><td>✘</td><td>✔</td></tr>
+          <tr><td>Wear Distribution</td><td>Good</td><td>Excellent</td></tr>
+          <tr><td>Additional Writes</td><td>Low</td><td>Higher</td></tr>
+          <tr><td>SSD Lifetime</td><td>High</td><td>Highest</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Enterprise SSDs combine both dynamic and static wear leveling for maximum endurance.</p>
+    </div>
+
+    <!-- Over-Provisioning & TRIM -->
+    <div class="nc">
+      <p class="nh">Over-Provisioning & TRIM</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Over-Provisioning (OP)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Physical: 1 TB
+User-visible: 930 GB
+Reserved: ~70 GB spare area
+
+Benefits:
+  Faster GC (more room to work)
+  Lower WAF
+  Better sustained performance
+  More endurance headroom</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">TRIM (Discard)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">File deleted by OS
+  ↓
+TRIM command sent to SSD
+  ↓
+Controller marks pages invalid
+  ↓
+GC can reclaim them early
+
+Benefits:
+  Lower WAF
+  Better performance
+  Faster GC cycles</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLC Cache -->
+    <div class="nc">
+      <p class="nh">SLC Cache</p>
+      <p class="text-sm text-gray-600 mb-2">Many SSDs temporarily stage writes in fast SLC (single-level cell) mode before moving to TLC/QLC:</p>
+      <div class="ncode">Host Write
+  ↓
+SLC Cache (fast: 1 bit/cell)
+  ↓ (background, idle time)
+TLC / QLC NAND (dense: 3–4 bits/cell)
+
+Benefits:
+  Burst write performance looks great
+  Better user experience
+Warning:
+  When cache fills, performance drops until data is flushed
+  Never benchmark only burst — test sustained writes too</div>
+    </div>
+
+    <!-- WAF Impact on Lifetime -->
+    <div class="nc">
+      <p class="nh">WAF Impact on SSD Lifetime</p>
+      <p class="text-sm text-gray-600 mb-2">A 1 TB SSD with 3000 P/E cycles can sustain 3000 TB of total NAND writes:</p>
+      <table class="nt">
+        <thead><tr><th>WAF</th><th>Host Writes (100 GB/day)</th><th>Est. Lifetime</th></tr></thead>
+        <tbody>
+          <tr><td>1.0</td><td>100 GB/day → 3000 TB total</td><td>~82 years</td></tr>
+          <tr><td>2.0</td><td>200 GB/day effectively</td><td>~41 years</td></tr>
+          <tr><td>3.0</td><td>300 GB/day effectively</td><td>~27 years</td></tr>
+          <tr><td>5.0</td><td>500 GB/day effectively</td><td>~16 years</td></tr>
+          <tr><td>10.0</td><td>1 TB/day effectively</td><td>~8 years</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Higher WAF directly multiplies the effective write rate against the SSD's endurance budget.</p>
+    </div>
+
+    <!-- Factors Affecting WAF -->
+    <div class="nc">
+      <p class="nh">Factors Affecting WAF</p>
+      <table class="nt">
+        <thead><tr><th>Factor</th><th>Effect on WAF</th></tr></thead>
+        <tbody>
+          <tr><td>Small Random Writes</td><td>⬆ Increase WAF</td></tr>
+          <tr><td>Large Sequential Writes</td><td>⬇ Reduce WAF</td></tr>
+          <tr><td>TRIM Enabled</td><td>⬇ Reduce WAF</td></tr>
+          <tr><td>More Over-Provisioning</td><td>⬇ Reduce WAF</td></tr>
+          <tr><td>SSD Nearly Full (&gt;90%)</td><td>⬆ Increase WAF</td></tr>
+          <tr><td>Heavy Garbage Collection</td><td>⬆ Increase WAF</td></tr>
+          <tr><td>Write Compression</td><td>⬇ Fewer physical writes</td></tr>
+          <tr><td>Group Commit / Batching</td><td>⬇ Reduce WAF</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SMART Monitoring -->
+    <div class="nc">
+      <p class="nh">SSD Monitoring — SMART / NVMe Metrics</p>
+      <table class="nt">
+        <thead><tr><th>Metric</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>Percentage Used</td><td>SSD wear (0–100%+)</td></tr>
+          <tr><td>Total Host Writes</td><td>Application writes</td></tr>
+          <tr><td>NAND Writes</td><td>Internal writes (use with host writes to derive WAF)</td></tr>
+          <tr><td>Wear Level Count</td><td>Average P/E cycles consumed</td></tr>
+          <tr><td>Available Spare</td><td>Remaining over-provisioning headroom</td></tr>
+          <tr><td>Bad Block Count</td><td>Media health indicator</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode mt-2"># NVMe check
+nvme smart-log /dev/nvme0
+
+# SATA SMART
+smartctl -a /dev/sda</div>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-violet-700">PostgreSQL</p>
+          <p class="text-xs text-gray-600 mt-0.5">Every transaction generates WAL — many small writes increase WAF. Optimizations: Group Commit, batched fsync, enterprise NVMe with PLP, dedicated WAL device.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Kafka</p>
+          <p class="text-xs text-gray-600 mt-0.5">Mostly sequential appends → low WAF, efficient GC, long SSD life. Ideal SSD workload.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Elasticsearch</p>
+          <p class="text-xs text-gray-600 mt-0.5">Frequent indexing creates many small writes. Optimizations: larger bulk requests, background segment merges, dedicated SSDs per data node.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">RocksDB / LevelDB</p>
+          <p class="text-xs text-gray-600 mt-0.5">LSM-tree design buffers writes and flushes large sorted segments → sequential writes → naturally low WAF.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Why do SSDs wear out?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Why is WAF high on this server?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>What is the current measured WAF?</li>
+            <li>Is the workload random or sequential?</li>
+            <li>Is TRIM enabled end-to-end (OS + FS + SSD)?</li>
+            <li>Is over-provisioning sufficient for the write rate?</li>
+            <li>Is background GC causing P99 latency spikes?</li>
+            <li>Would batching writes or group commit reduce amplification?</li>
+            <li>Do we need enterprise SSDs with larger spare area?</li>
+            <li>Are we monitoring wear % before SSD replacement threshold?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">SSD Performance Drops Gradually</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> GC running continuously on a nearly full drive &nbsp;·&nbsp; <strong>Fix:</strong> Keep 15–20% free, enable TRIM, reduce random writes</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">SSD Wears Out Earlier Than Expected</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> High WAF from small random writes without batching &nbsp;·&nbsp; <strong>Fix:</strong> Batch writes, increase over-provisioning, use enterprise SSDs</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Database P99 Latency Spikes</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Foreground GC blocking writes &nbsp;·&nbsp; <strong>Fix:</strong> Enterprise SSDs with larger spare area and background GC tuning</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">SSD Completely Full — Write Stalls</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> No free blocks available for GC to work &nbsp;·&nbsp; <strong>Fix:</strong> Maintain &gt;15% free capacity; add capacity before hitting limits</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Burst Fast, Sustained Slow</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> SLC cache exhausted; falling back to TLC/QLC write speed &nbsp;·&nbsp; <strong>Fix:</strong> Benchmark sustained writes, not burst; choose appropriately sized SLC cache</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Requirement</th><th>Recommended Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>OLTP Database</td><td>Enterprise NVMe SSD + PLP + high OP%</td></tr>
+          <tr><td>Kafka Logs</td><td>Standard SSD (sequential writes → low WAF)</td></tr>
+          <tr><td>Elasticsearch</td><td>Bulk indexing + background merges + dedicated SSDs</td></tr>
+          <tr><td>Heavy Random Writes</td><td>High over-provisioning + TRIM + enterprise SSD</td></tr>
+          <tr><td>Long SSD Life</td><td>Static wear leveling + TRIM + keep &lt;80% full</td></tr>
+          <tr><td>Maximum Performance</td><td>Large SLC cache + DRAM write buffer</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Readiness Checklist -->
+    <div class="nc">
+      <p class="nh">Production Readiness Checklist</p>
+      <ol class="list-decimal pl-4 space-y-1 mt-1">
+        <li class="text-xs text-gray-700">Measure WAF using SMART/NVMe metrics in production</li>
+        <li class="text-xs text-gray-700">Keep 15–20% free SSD capacity at all times</li>
+        <li class="text-xs text-gray-700">Enable TRIM/discard on OS + filesystem</li>
+        <li class="text-xs text-gray-700">Batch small writes (group commit, bulk APIs)</li>
+        <li class="text-xs text-gray-700">Use large sequential writes where possible (LSM, WAL)</li>
+        <li class="text-xs text-gray-700">Select enterprise SSDs with appropriate endurance rating for databases</li>
+        <li class="text-xs text-gray-700">Monitor wear percentage and alert before reaching limits</li>
+        <li class="text-xs text-gray-700">Benchmark sustained write performance (not just burst)</li>
+        <li class="text-xs text-gray-700">Avoid unnecessary random writes (merge before flush)</li>
+        <li class="text-xs text-gray-700">Plan SSD replacement schedule based on wear + workload projections</li>
+      </ol>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">WAF = NAND Bytes Written / Host Bytes Written
+→ Lower is better. 1.0 is ideal; >5 is problematic.
+
+NAND constraint:
+  Read: page level  ✔
+  Write: empty page only  ✔
+  Erase: entire block ⚠️  ← causes WAF > 1
+
+Key mechanisms that reduce WAF:
+  TRIM      → tells controller about deleted pages early
+  OP        → spare area reduces GC pressure
+  GC (BG)   → idle-time cleanup avoids foreground stalls
+  Batching  → fewer, larger writes = lower amplification
+  Sequential writes → minimal GC needed
+
+Wear leveling:
+  Dynamic → moves hot data to least-used blocks
+  Static  → also moves cold data (uniform wear)
+  Enterprise SSDs combine both
+
+SLC cache: fast burst → drops to TLC/QLC speed when full
+  Always benchmark sustained, not burst writes.
+
+Monitor: nvme smart-log / smartctl
+  Track: % Used, Available Spare, NAND Writes / Host Writes</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/3cfa7656-8fe6-411e-b810-10443adb482f.png"
+        alt="SSD Write Amplification and Wear Leveling visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

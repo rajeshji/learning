@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>API Layer Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#334155; border-bottom-color:#334155; }
+    .tab-btn:hover:not(.active) { color:#0f172a; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#f8fafc; border:1px solid #cbd5e1; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#334155; margin-bottom:.6rem; }
+    .ncode{ background:#0f172a; color:#cbd5e1; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #cbd5e1; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#1e293b; color:#cbd5e1; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #e2e8f0;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f8fafc; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#334155; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#1e293b; color:#cbd5e1; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #e2e8f0; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-slate-700 hover:text-slate-900 font-semibold
+              bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-800 font-semibold">API Layer Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">API Layer Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 10 categories · 39 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — API Availability and Request Handling Failures</td></tr>
+          <tr>
+            <td>API Server Crash<span class="badge-crit">Must Know</span></td>
+            <td>Runtime bug, OOM kill, or unhandled exception crashes the API process</td>
+            <td>Health check failures, all 5xx, zero successful requests</td>
+            <td>Restart/failover to healthy replica</td>
+            <td>HA replicas, graceful degradation, watchdog supervision</td>
+            <td class="casc">Complete request outage — all clients see connection refused or 503</td>
+            <td class="troff">HA replicas add infra cost; watchdog supervision adds operational complexity</td>
+          </tr>
+          <tr>
+            <td>Thread Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>Blocking IO or slow dependency holds all threads — no thread available for new requests</td>
+            <td>Request queue growing, thread pool saturation metric, timeouts increasing</td>
+            <td>Async/non-blocking IO, reject new requests with 503</td>
+            <td>Non-blocking IO (Netty/reactive), aggressive downstream timeouts, bulkheads</td>
+            <td class="casc">Timeout cascade — every API request times out when thread pool is full</td>
+            <td class="troff">Async programming is significantly more complex to develop and debug</td>
+          </tr>
+          <tr>
+            <td>Connection Pool Exhaustion</td>
+            <td>Too many concurrent downstream calls — connection pool to DB/service runs out</td>
+            <td>Connection pool saturation metric, downstream timeouts growing</td>
+            <td>Increase pool size carefully, circuit-break overloaded downstream</td>
+            <td>Connection reuse, bounded pool with explicit overflow handling</td>
+            <td class="casc">Dependency overload — every API call queues waiting for a connection slot</td>
+            <td class="troff">Larger pool consumes more memory; too large causes downstream overload</td>
+          </tr>
+          <tr>
+            <td>Request Timeout Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Slow upstream dependencies cascade — every API request exceeds timeout</td>
+            <td>P95/P99 latency spike, timeout error rate rising</td>
+            <td>Fail fast with circuit breaker, return cached/degraded response</td>
+            <td>Per-dependency timeout configuration, shorter timeouts than client expects</td>
+            <td class="casc">Retry storm — timed-out clients retry → amplifies load on already-slow backend</td>
+            <td class="troff">Tight timeouts may fail valid slow-but-correct operations</td>
+          </tr>
+          <tr>
+            <td>Process Deadlock</td>
+            <td>Lock or thread contention — threads mutually wait and make no forward progress</td>
+            <td>All requests hang, CPU low but no throughput, thread dump shows blocked threads</td>
+            <td>Restart service to clear deadlock</td>
+            <td>Lock-free design, global lock ordering, timeout on every lock acquisition</td>
+            <td class="casc">Complete API stall — service alive but processing zero requests</td>
+            <td class="troff">Lock-free design requires more complex data structures</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Input Validation and Parsing Failures</td></tr>
+          <tr>
+            <td>Invalid Request Parsing<span class="badge-crit">Must Know</span></td>
+            <td>Malformed JSON, invalid protobuf, or truncated body received</td>
+            <td>Parse error spike, 400 Bad Request rate increasing</td>
+            <td>Reject with descriptive 400, do not crash on parse error</td>
+            <td>Schema validation at ingress, strict parser with max depth limits</td>
+            <td class="casc">Increased error traffic — malformed requests trigger retries, amplifying load</td>
+            <td class="troff">Strict parsing rejects valid edge cases; lenient parsing risks security issues</td>
+          </tr>
+          <tr>
+            <td>Large Payload Attack<span class="badge-crit">Must Know</span></td>
+            <td>Attacker or misconfigured client sends oversized request body</td>
+            <td>Memory or network spike, OOM kills, latency spike on ingest</td>
+            <td>Reject immediately with 413 at ingress, enforce payload size limits</td>
+            <td>Hard payload size limits (e.g. 10MB max), reject at gateway before parsing</td>
+            <td class="casc">OOM kills API servers if body is buffered before size check</td>
+            <td class="troff">Payload limits break legitimate large upload use cases</td>
+          </tr>
+          <tr>
+            <td>Schema Validation Failure</td>
+            <td>Required field missing, type wrong, or constraint violated in request body</td>
+            <td>Validation error metric spike, 400 errors from schema checks</td>
+            <td>Return descriptive validation error with field-level detail</td>
+            <td>API schema enforcement (JSON Schema/OpenAPI), client SDK validation</td>
+            <td class="casc">Client failures at scale if schema changed without consumer notification</td>
+            <td class="troff">Strict schema enforcement rejects requests that might be handleable with defaults</td>
+          </tr>
+          <tr>
+            <td>Encoding / Unicode Failure</td>
+            <td>Invalid UTF-8 or mixed encoding in request payload or headers</td>
+            <td>Decode exceptions, garbled data in DB, character validation errors</td>
+            <td>Normalize encoding at ingress, reject invalid sequences</td>
+            <td>UTF-8 validation before processing, sanitise input encoding</td>
+            <td class="casc">Corrupted data persisted to DB if invalid bytes pass through unchecked</td>
+            <td class="troff">Strict encoding validation adds processing overhead per request</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Serialization and Deserialization Failures</td></tr>
+          <tr>
+            <td>Serialization Failure<span class="badge-crit">Must Know</span></td>
+            <td>Response object contains unsupported type (circular reference, non-serializable field)</td>
+            <td>Response serialization error spike, 500 errors on specific endpoints</td>
+            <td>Return safe fallback error response, add error boundary around serialization</td>
+            <td>DTO separation — never expose internal domain objects directly in response</td>
+            <td class="casc">API endpoint completely broken — every request to that endpoint fails</td>
+            <td class="troff">DTO pattern adds boilerplate and mapping code for every response type</td>
+          </tr>
+          <tr>
+            <td>Deserialization Failure<span class="badge-crit">Must Know</span></td>
+            <td>Producer schema changed — consumer cannot deserialize new format</td>
+            <td>Decode exceptions in consumer, 500 errors on received messages</td>
+            <td>Apply version fallback, use schema registry to detect mismatch early</td>
+            <td>Backward-compatible schema changes, Avro/Protobuf with schema registry</td>
+            <td class="casc">Consumer incompatibility — entire message pipeline stops if deserialization fails</td>
+            <td class="troff">Schema registry adds operational infrastructure and process overhead</td>
+          </tr>
+          <tr>
+            <td>Payload Size Explosion</td>
+            <td>Deeply nested or large collection in response — network and memory overwhelmed</td>
+            <td>Response latency spike, memory growth on API server, client timeouts</td>
+            <td>Apply pagination, response field filtering (sparse fieldsets)</td>
+            <td>Enforce response size limits, pagination on all list endpoints, gzip compression</td>
+            <td class="casc">Gateway/network overload — large responses queue and slow all concurrent requests</td>
+            <td class="troff">Pagination requires client to implement multi-page traversal logic</td>
+          </tr>
+          <tr>
+            <td>Binary Protocol Corruption</td>
+            <td>gRPC/Protobuf message corrupted in transit — receiver gets garbled bytes</td>
+            <td>Decode mismatch error, protobuf parse exception in consumer</td>
+            <td>Retry request (corruption usually transient on network)</td>
+            <td>End-to-end checksums, TLS to prevent in-transit corruption</td>
+            <td class="casc">Service communication failure for that RPC — affects all callers of the endpoint</td>
+            <td class="troff">Checksums add per-message compute overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Timeout, Retry, and Idempotency Failures</td></tr>
+          <tr>
+            <td>Retry Storm<span class="badge-crit">Must Know</span></td>
+            <td>Clients retry aggressively on failure — amplifying load on already-struggling backend</td>
+            <td>Retry traffic spike in backend metrics, backend receiving N×normal load</td>
+            <td>Exponential backoff + jitter immediately, circuit breaker to stop retrying</td>
+            <td>Retry budgets, retry-after header, exponential backoff with jitter in client</td>
+            <td class="casc">Backend collapse — retry amplification turns partial outage into full outage</td>
+            <td class="troff">Exponential backoff increases latency for legitimate retry-able failures</td>
+          </tr>
+          <tr>
+            <td>Duplicate Request Execution<span class="badge-crit">Must Know</span></td>
+            <td>Client retries after uncertain success — request processed twice (payment, order)</td>
+            <td>Duplicate operations detected in audit log, double charges, duplicate records</td>
+            <td>Detect and deduplicate by idempotency key, return cached first result</td>
+            <td>Idempotency keys on all mutating endpoints, request deduplication store</td>
+            <td class="casc">Double business operations — payments charged twice, inventory decremented twice</td>
+            <td class="troff">Idempotency key store adds storage overhead and TTL management complexity</td>
+          </tr>
+          <tr>
+            <td>Timeout Misconfiguration<span class="badge-crit">Must Know</span></td>
+            <td>Timeout too short causes false failures; too long causes resource starvation</td>
+            <td>Premature 504 errors (too short) or threads held forever (too long)</td>
+            <td>Tune timeout to dependency's P99 latency + headroom</td>
+            <td>Dependency-aware timeout configuration, separate timeout per dependency</td>
+            <td class="casc">Resource exhaustion (too long) or unnecessary failures (too short)</td>
+            <td class="troff">Per-dependency timeouts add configuration complexity</td>
+          </tr>
+          <tr>
+            <td>Partial Request Completion</td>
+            <td>Multi-step workflow interrupted mid-flight — some steps done, others not</td>
+            <td>Inconsistent state detected, workflow stuck in partial state</td>
+            <td>Saga compensation — run compensating actions to undo completed steps</td>
+            <td>Saga/outbox pattern, idempotent compensating actions</td>
+            <td class="casc">Corrupted workflows — partial state causes downstream failures or incorrect data</td>
+            <td class="troff">Saga pattern complexity grows with number of steps in the workflow</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — API Contract and Versioning Failures</td></tr>
+          <tr>
+            <td>Breaking API Change<span class="badge-crit">Must Know</span></td>
+            <td>Request/response schema changed without backward compatibility — clients break</td>
+            <td>Client error spike after deployment, deserialization/missing field errors</td>
+            <td>Rollback, serve old schema from new version as compatibility shim</td>
+            <td>Backward-compatible schema changes only, consumer-driven contract testing</td>
+            <td class="casc">All consumers of the API break simultaneously</td>
+            <td class="troff">Backward compatibility slows API evolution and accumulates tech debt</td>
+          </tr>
+          <tr>
+            <td>Version Drift<span class="badge-crit">Must Know</span></td>
+            <td>Different services in the same system use different API contract versions</td>
+            <td>Serialization mismatch between services, intermittent cross-service errors</td>
+            <td>Deploy to central schema registry, force version alignment</td>
+            <td>Contract governance, schema registry (Confluent/AWS Glue)</td>
+            <td class="casc">Cross-service communication failures wherever incompatible versions interact</td>
+            <td class="troff">Schema registry adds infra and process overhead per team</td>
+          </tr>
+          <tr>
+            <td>Field Removal Failure</td>
+            <td>Existing field removed from response — old clients depend on that field</td>
+            <td>Null pointer exceptions or missing field errors in old client code</td>
+            <td>Reintroduce removed field, serve null/default value temporarily</td>
+            <td>Deprecation lifecycle — mark deprecated, wait for all consumers to update, then remove</td>
+            <td class="casc">Mobile/web app failures at scale — old app versions crash or behave incorrectly</td>
+            <td class="troff">Long deprecation lifecycle means maintaining old fields for months or years</td>
+          </tr>
+          <tr>
+            <td>gRPC Proto Incompatibility</td>
+            <td>Proto file changed without following evolution rules — receiver cannot decode message</td>
+            <td>RPC decode errors, "unknown field" warnings escalating to parse failures</td>
+            <td>Multi-version proto support, rollback to compatible proto version</td>
+            <td>Follow proto evolution rules (never reuse field numbers, only add/deprecate)</td>
+            <td class="casc">Service-to-service communication failure for all callers using incompatible proto</td>
+            <td class="troff">Proto evolution rules constrain schema design flexibility</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Dependency Orchestration Failures</td></tr>
+          <tr>
+            <td>Slow Dependency Amplification<span class="badge-crit">Must Know</span></td>
+            <td>One slow downstream service causes API thread to block — affects all requests</td>
+            <td>API P99 latency spike, correlated with slow downstream in dependency metrics</td>
+            <td>Fail fast with circuit breaker, return cached/partial response</td>
+            <td>Per-dependency timeout isolation, bulkhead pattern (separate thread pool per dep)</td>
+            <td class="casc">Entire endpoint slowdown — thread pool fills waiting for slow dependency</td>
+            <td class="troff">Bulkhead pattern requires separate thread/connection pool per dependency</td>
+          </tr>
+          <tr>
+            <td>N+1 Dependency Calls<span class="badge-crit">Must Know</span></td>
+            <td>API makes one downstream call per item in list — fanout multiplies with list size</td>
+            <td>Downstream QPS much higher than API request rate, latency grows with list size</td>
+            <td>Batch downstream calls, parallelize with bounded concurrency</td>
+            <td>DataLoader pattern, batched RPC calls, precomputed aggregates</td>
+            <td class="casc">Backend overload — N×downstream calls for each API request</td>
+            <td class="troff">Batching adds complexity; DataLoader requires framework integration</td>
+          </tr>
+          <tr>
+            <td>Partial Aggregation Failure<span class="badge-crit">Must Know</span></td>
+            <td>One dependency fails mid-aggregation — API has partial data from multiple backends</td>
+            <td>Partial API failures, some fields null/missing in response</td>
+            <td>Return degraded response with successful parts, mark failed section absent</td>
+            <td>Resilient aggregation — each dependency has independent fallback/timeout</td>
+            <td class="casc">Entire endpoint fails if aggregation not resilient to partial backend failure</td>
+            <td class="troff">Partial responses may confuse clients expecting complete responses</td>
+          </tr>
+          <tr>
+            <td>Cyclic Service Dependency</td>
+            <td>Service A calls B which calls A — request enters infinite loop or mutual deadlock</td>
+            <td>Request timeout after full cycle, recursive call depth exceeded</td>
+            <td>Break dependency cycle, add circuit breaker to detect loops</td>
+            <td>Clear architectural boundaries, dependency graphs must be acyclic</td>
+            <td class="casc">Resource exhaustion — recursive calls consume threads/connections until crash</td>
+            <td class="troff">Strict architectural boundaries limit flexibility in service communication patterns</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Concurrency and State Management Failures</td></tr>
+          <tr>
+            <td>Race Condition<span class="badge-crit">Must Know</span></td>
+            <td>Concurrent API requests update same resource — interleaved reads/writes cause corruption</td>
+            <td>Inconsistent state detected, data appears randomly wrong under load</td>
+            <td>Optimistic locking — retry on version conflict</td>
+            <td>Idempotent APIs, optimistic concurrency control (version field), compare-and-swap</td>
+            <td class="casc">Data corruption — concurrent updates partially applied, creating invalid state</td>
+            <td class="troff">Optimistic locking requires retry logic; pessimistic locking reduces concurrency</td>
+          </tr>
+          <tr>
+            <td>Shared Mutable State Corruption</td>
+            <td>In-process shared state accessed concurrently — data races cause non-deterministic bugs</td>
+            <td>Random inconsistent behaviour under load, different results for same input</td>
+            <td>Stateless API design, move shared state to external store</td>
+            <td>Immutable request/response objects, share nothing architecture</td>
+            <td class="casc">Hard-to-debug failures — non-deterministic, only appears under concurrent load</td>
+            <td class="troff">External shared state adds network round-trip and latency per request</td>
+          </tr>
+          <tr>
+            <td>Session State Loss<span class="badge-crit">Must Know</span></td>
+            <td>API restart or cache eviction — in-process session state lost for active users</td>
+            <td>Users logged out unexpectedly, session-dependent workflows reset</td>
+            <td>Replicate session to external store, re-authenticate user</td>
+            <td>Distributed session store (Redis), JWT (stateless auth)</td>
+            <td class="casc">UX degradation at scale — all active users lose session simultaneously on restart</td>
+            <td class="troff">Distributed session adds latency; JWT requires careful token revocation design</td>
+          </tr>
+          <tr>
+            <td>Sticky Session Imbalance</td>
+            <td>Heavy session users pinned to same node — that node overloads, others idle</td>
+            <td>Uneven load across API replicas, hot node at 100% with others at 10%</td>
+            <td>Migrate sessions to external store, remove stickiness</td>
+            <td>Stateless APIs with external session store (removes need for stickiness)</td>
+            <td class="casc">Hot node collapse — overloaded node fails, its session users lose state</td>
+            <td class="troff">External session store adds infrastructure cost and round-trip latency</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Security and Abuse Failures</td></tr>
+          <tr>
+            <td>Authentication Bypass<span class="badge-crit">Must Know</span></td>
+            <td>Validation bug, JWT alg:none exploit, or misconfigured route skips auth check</td>
+            <td>Unauthorized access patterns, requests succeeding without valid token</td>
+            <td>Emergency patch, add auth check to bypassed route</td>
+            <td>Centralised auth middleware applied to ALL routes, deny-by-default</td>
+            <td class="casc">Data breach — attacker accesses arbitrary resources without authentication</td>
+            <td class="troff">Centralised auth adds latency overhead to every request</td>
+          </tr>
+          <tr>
+            <td>Rate Limit Failure (Open)<span class="badge-crit">Must Know</span></td>
+            <td>Rate limiter unavailable or bypassed — unlimited traffic reaches backends</td>
+            <td>Traffic anomalies, rate limiter health check failing</td>
+            <td>Emergency throttling at API layer, local fallback rate limit</td>
+            <td>HA rate limiter (Redis Sentinel), local fallback limiter as defence-in-depth</td>
+            <td class="casc">Backend overload — unlimited requests hammer database and downstream services</td>
+            <td class="troff">Local fallback limiter cannot enforce global fairness across replicas</td>
+          </tr>
+          <tr>
+            <td>API Abuse / Bot Attack<span class="badge-crit">Must Know</span></td>
+            <td>Automated bots make high-volume requests — scraping, credential stuffing, data mining</td>
+            <td>Traffic spike from small number of IPs, high request rate per client</td>
+            <td>Rate limit, block offending IPs/clients, apply CAPTCHA</td>
+            <td>Bot detection (device fingerprinting, CAPTCHA), API quotas per client</td>
+            <td class="casc">Resource exhaustion — legitimate users starved while bots consume all capacity</td>
+            <td class="troff">Bot detection adds friction and may block legitimate automated clients</td>
+          </tr>
+          <tr>
+            <td>Sensitive Data Exposure in Response<span class="badge-crit">Must Know</span></td>
+            <td>Internal fields (PII, tokens, hashes) accidentally included in API response</td>
+            <td>DLP alert, security scan finding PII in response body</td>
+            <td>Redact response immediately, rotate exposed credentials</td>
+            <td>Response field filtering layer, allow-list response fields (not block-list)</td>
+            <td class="casc">Compliance breach — GDPR/CCPA violation, customer data exposed to all callers</td>
+            <td class="troff">Allow-list response filtering requires explicit field definition for every response</td>
+          </tr>
+          <tr>
+            <td>Injection via API Input</td>
+            <td>Unsanitised input passed to DB/shell/template — attacker executes arbitrary code</td>
+            <td>Suspicious query patterns, WAF alert, unexpected system behaviour</td>
+            <td>Block request at WAF, patch vulnerable endpoint</td>
+            <td>Parameterised queries, input sanitisation, never concatenate input to queries</td>
+            <td class="casc">DB/system compromise — SQL injection can expose or destroy entire database</td>
+            <td class="troff">Strict input sanitisation may reject valid inputs containing special characters</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Observability and Debugging Failures</td></tr>
+          <tr>
+            <td>Missing Request Tracing<span class="badge-crit">Must Know</span></td>
+            <td>Trace context not propagated — distributed request cannot be reconstructed</td>
+            <td>Broken trace chains, orphan spans, impossible to follow request path</td>
+            <td>Generate fallback trace ID at entry point, patch propagation</td>
+            <td>OpenTelemetry standardised propagation, trace ID in all log statements</td>
+            <td class="casc">Hard debugging — post-incident analysis cannot determine root cause service</td>
+            <td class="troff">Trace propagation requires changes in every service and adds per-request overhead</td>
+          </tr>
+          <tr>
+            <td>Silent Partial Failure (HTTP 200 with Error)<span class="badge-crit">Must Know</span></td>
+            <td>API returns HTTP 200 but includes error payload or partial data — client sees "success"</td>
+            <td>Business metric anomaly, client-side parsing reveals hidden error in body</td>
+            <td>Add semantic monitoring that checks response body, not just status code</td>
+            <td>Correct HTTP status codes for all error conditions, error schema standardisation</td>
+            <td class="casc">Hidden outages — alerting shows 0% errors while actual error rate is high</td>
+            <td class="troff">Strict HTTP status usage requires client error handling for all 4xx/5xx codes</td>
+          </tr>
+          <tr>
+            <td>High Cardinality Metrics Explosion</td>
+            <td>Per-user or per-request ID labels on metrics — TSDB explodes in memory</td>
+            <td>Prometheus memory growing, query latency spike, monitoring OOM</td>
+            <td>Drop high-cardinality labels, apply recording rules for aggregation</td>
+            <td>Cardinality governance — no user IDs, request IDs as metric labels</td>
+            <td class="casc">Monitoring crash — Prometheus OOM kills observability during an active incident</td>
+            <td class="troff">Low cardinality metrics reduce per-request debugging granularity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">10 — Multi-Region and Distributed API Failures</td></tr>
+          <tr>
+            <td>Cross-Region API Version Drift<span class="badge-crit">Must Know</span></td>
+            <td>Different API versions deployed across regions — same request behaves differently</td>
+            <td>Inconsistent response behaviour for same user hitting different regions</td>
+            <td>Sync API versions, route user to consistent region during rollout</td>
+            <td>Global deployment orchestration, session affinity during multi-region rollout</td>
+            <td class="casc">Regional incompatibility — cross-region service calls fail between versions</td>
+            <td class="troff">Synchronised global deployment is slower than region-by-region rollout</td>
+          </tr>
+          <tr>
+            <td>Cross-Region Consistency Failure</td>
+            <td>Write committed in primary region but not yet replicated — secondary serves stale data</td>
+            <td>Read-after-write inconsistency, users see old value after successful write</td>
+            <td>Route reads to primary for consistency-sensitive operations</td>
+            <td>Session consistency, read-your-writes guarantee, monotonic reads</td>
+            <td class="casc">User confusion — write appears successful but subsequent read shows old value</td>
+            <td class="troff">Reading from primary for all operations removes read scalability benefit of replicas</td>
+          </tr>
+          <tr>
+            <td>Failover Replay Duplication</td>
+            <td>Request replayed after failover — originally processed but assumed failed</td>
+            <td>Duplicate operations in audit log, double payments or duplicate records</td>
+            <td>Detect duplicates using idempotency key at receiving service</td>
+            <td>Exactly-once or at-least-once with idempotency, request deduplication store</td>
+            <td class="casc">Duplicate business actions — payments, orders, inventory changes applied twice</td>
+            <td class="troff">Deduplication store adds storage and lookup overhead per request</td>
+          </tr>
+          <tr>
+            <td>Geo-Routing Sending to Wrong API Version</td>
+            <td>Geo-routing directs users to a region with an older or broken API version</td>
+            <td>Latency spike or error rate spike for users in specific geographic region</td>
+            <td>Override geo-routing, redirect affected region to healthy API version</td>
+            <td>API version health checks in geo-routing decision, traffic weighted by version health</td>
+            <td class="casc">Regional API outage — all users routed to that region experience failures</td>
+            <td class="troff">Version-aware geo-routing adds significant routing complexity</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know API Layer Failures for Interviews</p>
+      <div class="ncode"> 1. Retry storm              → exponential backoff + jitter + retry budgets + circuit breaker
+ 2. Duplicate execution      → idempotency keys + dedup store + return cached first result
+ 3. Thread pool exhaustion   → async IO + aggressive downstream timeout + bulkhead
+ 4. Breaking API change      → backward-compat + contract testing + version fallback
+ 5. Slow dependency amplifiy → per-dep timeout + circuit breaker + bulkhead + fail fast
+ 6. N+1 dependency calls     → DataLoader + batch + bounded concurrency + precompute
+ 7. Missing request tracing  → OpenTelemetry + trace ID in logs + propagation test
+ 8. Silent 200 with error    → semantic monitoring + correct HTTP codes + body inspection
+ 9. Session state loss       → distributed session / JWT + stateless design
+ 9. Session state loss       → distributed session / JWT + stateless design
+10. Serialization failure    → DTO separation + schema testing + versioned schema registry</div>
+    </div>
+
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level API Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Retries duplicate operations?  → idempotency keys + dedup store + return first result
+2. Slow dep slows entire API?   → bulkhead + per-dep timeout + circuit breaker + async IO
+3. Contracts evolve safely?     → backward-compat + contract testing + deprecation lifecycle
+4. Thread pools exhaust?        → non-blocking IO + aggressive timeout + reject-on-full
+5. APIs idempotent?             → idempotency key on every mutating endpoint
+6. Partial workflows corrupt?   → saga + compensating actions + outbox pattern
+7. Abuse overloads backends?    → rate limit at multiple layers + bot detection + quotas</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common API Layer Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root API Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Retry storm</td><td>Client retries multiply → backend load N× → backend collapse</td></tr>
+          <tr><td>Thread pool exhaustion</td><td>All threads blocked on slow dep → every API request times out</td></tr>
+          <tr><td>Breaking API contract</td><td>All consumers break simultaneously → cross-service outage</td></tr>
+          <tr><td>N+1 dependency calls</td><td>1 API request → N downstream calls → backend saturation</td></tr>
+          <tr><td>Silent 200 with error</td><td>Monitoring shows 0% error → outage undetected → MTTR hours</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All API Failures Reduce to 5 States</p>
+      <div class="ncode">1. Not processed    → crash / thread exhaustion / timeout / queue overflow
+2. Wrong result     → validation fail / serialization bug / contract mismatch
+3. Too many times   → duplicate execution / retry storm / replay duplication
+4. Too slow         → dependency amplification / N+1 / blocking IO
+5. Insecure         → auth bypass / injection / data exposure / rate limit bypass
+
+Most dangerous: retry amplification + duplicate execution
+  retries → overload → more retries → collapse + double business ops</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#0f172a;border:1px solid #1e293b;">
+      <p class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-slate-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-slate-200">Idempotent?</p>
+          <p class="text-xs text-slate-400 mt-0.5">Key + dedup + return first</p>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-slate-200">Non-blocking?</p>
+          <p class="text-xs text-slate-400 mt-0.5">Async IO + bulkhead + timeout</p>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-slate-200">Compatible?</p>
+          <p class="text-xs text-slate-400 mt-0.5">Backward-compat + registry</p>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-slate-200">Observable?</p>
+          <p class="text-xs text-slate-400 mt-0.5">OTel + semantic monitoring</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

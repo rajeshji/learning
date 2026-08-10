@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Locks, Mutexes, Semaphores &amp; Monitors — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+    .prim-card { border-radius:10px; padding:16px 20px; margin-bottom:10px; border-left:5px solid #7c3aed; background:#faf5ff; }
+    .prim-title { color:#7c3aed; font-weight:700; font-size:1rem; margin-bottom:6px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Locks, Mutexes, Semaphores &amp; Monitors</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Locks, Mutexes, Semaphores &amp; Monitors</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Concurrency &amp; OS Internals</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Why Care -->
+    <div class="nc">
+      <div class="section-badge">WHY IT MATTERS</div>
+      <div class="nh">Why Should a Staff Engineer Care?</div>
+      <p class="text-gray-700 mb-3">Modern applications execute <strong>hundreds of thousands of concurrent operations</strong> across multiple CPU cores. Without synchronization: race conditions, data corruption, deadlocks, lost updates, inconsistent state.</p>
+      <div class="ncode">Concurrency Hierarchy:
+  Application
+    → Monitor (lock + condition variable + shared state)
+    → Mutex (ownership + blocking)
+    → Lock / Spinlock (atomic CAS)
+    → Atomic CPU Instructions (Compare-And-Swap)
+    → Kernel Futex (wait queue + scheduler)</div>
+      <div class="ntip">Everything eventually relies on: <strong>atomic CPU instructions → Linux futex → kernel wait queues → OS thread scheduler</strong>. Understanding this stack separates staff-level answers from senior-level ones.</div>
+    </div>
+
+    <!-- Locks -->
+    <div class="nc">
+      <div class="section-badge">LOCKS</div>
+      <div class="nh">1. Locks (Foundation)</div>
+      <p class="text-gray-700 mb-3">A lock provides <strong>mutual exclusion</strong> — only one thread enters a critical section. Implemented using hardware-level atomic instructions (CAS, Test-And-Set, Fetch-And-Add).</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="prim-card">
+          <div class="prim-title">Spinlock</div>
+          <p class="text-gray-600 text-sm mb-2">Busy-waits in a loop without sleeping. No kernel involvement.</p>
+          <div class="ncode" style="font-size:0.83rem;">while (CAS(&lock, FREE, TAKEN) != FREE) {
+  while (lock != FREE); // spin
+}</div>
+          <p class="text-gray-600 text-sm mt-2">✅ Zero syscall overhead. ❌ Wastes CPU under contention.<br/>Use for: kernel internals, &lt; few µs critical sections.</p>
+        </div>
+        <div class="prim-card">
+          <div class="prim-title">Blocking Lock</div>
+          <p class="text-gray-600 text-sm mb-2">Uses kernel to suspend waiting threads via futex.</p>
+          <div class="ncode" style="font-size:0.83rem;">if CAS fails:
+  futex_wait(lock)   // kernel sleep
+// woken by futex_wake
+// resume</div>
+          <p class="text-gray-600 text-sm mt-2">✅ CPU-efficient under contention. ❌ syscall overhead.<br/>Use for: longer critical sections.</p>
+        </div>
+      </div>
+      <div class="ntip"><strong>Staff Rule:</strong> Short wait → Spin. Long or unpredictable wait → Block. Modern systems (Linux) adaptively switch between both.</div>
+    </div>
+
+    <!-- Mutex -->
+    <div class="nc">
+      <div class="section-badge">MUTEX</div>
+      <div class="nh">2. Mutex (Mutual Exclusion)</div>
+      <p class="text-gray-700 mb-3">Mutex = Lock with <strong>ownership</strong> + <strong>blocking</strong>. Only the owning thread can unlock it. Linux implements via <strong>futex (Fast Userspace Mutex)</strong>.</p>
+      <div class="ncode">pthread_mutex_lock():
+
+Fast path:  CAS(lock, FREE, LOCKED) → success → enter critical section
+Slow path:  CAS fails → futex_wait() → kernel puts thread on wait queue → sleep
+
+pthread_mutex_unlock():
+  Atomic release → futex_wake() → kernel wakes next waiter → resumes
+
+Kernel only involved when there is CONTENTION — otherwise pure user-space.</div>
+
+      <p class="font-semibold text-violet-700 mb-2 mt-3">State Machine</p>
+      <div class="ncode" style="font-size:0.85rem;">UNLOCKED → (CAS acquire) → LOCKED → (contention) → WAIT_QUEUE → (wake) → UNLOCKED</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+        <div>
+          <p class="font-semibold text-violet-700 mb-1">✅ Advantages</p>
+          <ul class="dot-ul text-sm">
+            <li>Ownership semantics prevent accidental unlock</li>
+            <li>Efficient blocking via futex (no spin)</li>
+            <li>Low CPU usage under contention</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-red-700 mb-1">⚠️ Problems</p>
+          <ul class="dot-ul text-sm">
+            <li>Deadlock (circular wait)</li>
+            <li>Priority inversion (mitigated by Priority Inheritance)</li>
+            <li>Lock contention at scale</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Semaphore -->
+    <div class="nc">
+      <div class="section-badge">SEMAPHORE</div>
+      <div class="nh">3. Semaphore (Counting Resource Control)</div>
+      <p class="text-gray-700 mb-3">Semaphore = Atomic counter. Unlike mutexes, <strong>multiple threads may hold it simultaneously</strong> (up to count N). No ownership — any thread may signal.</p>
+      <div class="ncode">sem_wait()  → counter--; if counter < 0 → block (kernel sleep)
+sem_post()  → counter++; if waiters exist → wake one
+
+Binary:   count = 0 or 1 (like mutex, but no ownership)
+Counting: count = N   (N threads may proceed concurrently)</div>
+
+      <table class="nt mt-3 mb-3">
+        <thead><tr><th>Feature</th><th>Mutex</th><th>Semaphore</th></tr></thead>
+        <tbody>
+          <tr><td>Ownership</td><td>✅ Yes (only owner unlocks)</td><td>❌ No</td></tr>
+          <tr><td>Count</td><td>1</td><td>N (configurable)</td></tr>
+          <tr><td>Resource Control</td><td>No</td><td>✅ Yes</td></tr>
+          <tr><td>Mutual Exclusion</td><td>Yes</td><td>Only if count=1</td></tr>
+        </tbody>
+      </table>
+      <p class="text-gray-700 mb-2"><strong>Use cases:</strong></p>
+      <ul class="dot-ul">
+        <li>Database connection pool (max 10 connections → count=10)</li>
+        <li>Thread pool limiting (max N active workers)</li>
+        <li>Producer-consumer (empty slots + full slots semaphores)</li>
+        <li>Rate limiting</li>
+      </ul>
+    </div>
+
+    <!-- Monitor -->
+    <div class="nc">
+      <div class="section-badge">MONITOR</div>
+      <div class="nh">4. Monitor (Mutex + Condition Variable)</div>
+      <p class="text-gray-700 mb-3">Monitor = Mutex + Condition Variable + Shared State. Used by Java (<code>synchronized</code>), Python (<code>with lock</code>), C#.</p>
+      <div class="ncode">Monitor Flow:
+Thread enters → acquires mutex
+  ↓
+Condition not met → wait()
+  → releases mutex
+  → sleeps in CV wait queue
+  ↓
+Another thread signals notify() → futex_wake
+  → waiter reacquires mutex
+  → checks condition again (always in while loop!)
+  ↓
+Work done → notifies others → exits monitor (releases mutex)</div>
+
+      <div class="ncode mt-3">Java (synchronized):
+synchronized(obj) {
+  while (condition == false) {
+    obj.wait();      // releases lock, sleeps
+  }
+  doWork();
+  obj.notify();     // wake one waiter
+}</div>
+      <div class="ntip"><strong>Always use while(condition), never if(condition)</strong> — spurious wakeups can occur. The thread must recheck the condition after being woken.</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+        <div>
+          <p class="font-semibold text-violet-700 mb-1">✅ Advantages</p>
+          <ul class="dot-ul text-sm">
+            <li>Encapsulates lock + signaling</li>
+            <li>Automatic mutual exclusion</li>
+            <li>Easier to reason about correctness</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-red-700 mb-1">⚠️ Problems</p>
+          <ul class="dot-ul text-sm">
+            <li>Convoying (thundering herd on notifyAll)</li>
+            <li>Spurious wakeups</li>
+            <li>Less flexible than raw locks for tuning</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison -->
+    <div class="nc">
+      <div class="section-badge">COMPARISON</div>
+      <div class="nh">Full Comparison Table</div>
+      <div style="overflow-x:auto;">
+        <table class="nt" style="min-width:600px;">
+          <thead><tr><th>Feature</th><th>Lock / Spinlock</th><th>Mutex</th><th>Semaphore</th><th>Monitor</th></tr></thead>
+          <tbody>
+            <tr><td>Ownership</td><td>No</td><td>✅ Yes</td><td>No</td><td>✅ Yes</td></tr>
+            <tr><td>Blocking</td><td>Optional (spin/block)</td><td>Yes (futex)</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Counting</td><td>No</td><td>No</td><td>✅ Yes (N)</td><td>No</td></tr>
+            <tr><td>Condition Signaling</td><td>No</td><td>No</td><td>Via count</td><td>✅ Yes (CV)</td></tr>
+            <tr><td>Context Switch</td><td>None</td><td>Moderate</td><td>Moderate</td><td>Moderate</td></tr>
+            <tr><td>CPU Under Contention</td><td>High (spin)</td><td>Low (block)</td><td>Low</td><td>Low</td></tr>
+            <tr><td>Best For</td><td>Short kernel paths</td><td>Shared mutable state</td><td>Resource limits</td><td>OOP synchronization</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Failure Modes -->
+    <div class="nc">
+      <div class="section-badge">FAILURE MODES</div>
+      <div class="nh">Common Failure Modes</div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Deadlock — 4 Coffman Conditions</div>
+        <div class="ncode" style="font-size:0.85rem;">Thread A: holds Lock1, waits for Lock2
+Thread B: holds Lock2, waits for Lock1
+→ Circular wait → neither progresses</div>
+        <p class="text-gray-700 text-sm mt-1"><strong>Prevention:</strong> Lock ordering, timeouts, TryLock, deadlock detection, lock hierarchy.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Priority Inversion</div>
+        <p class="text-gray-700 text-sm">High-priority thread waits for a low-priority thread holding the lock.<br/><strong>Fix:</strong> Priority Inheritance — kernel temporarily boosts lock holder's priority.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Lock Contention / Starvation</div>
+        <p class="text-gray-700 text-sm">Many threads queued on one lock → high latency. Low-priority tasks never get lock.<br/><strong>Fix:</strong> Lock sharding, fine-grained locks, read-write locks, lock-free algorithms, fair locks with aging.</p>
+      </div>
+      <div class="nc-warn">
+        <div class="nh-warn">Livelock</div>
+        <p class="text-gray-700 text-sm">Threads continuously change state reacting to each other but never progress.<br/><strong>Fix:</strong> Randomized retry backoff, arbitration.</p>
+      </div>
+    </div>
+
+    <!-- Advanced -->
+    <div class="nc">
+      <div class="section-badge">ADVANCED</div>
+      <div class="nh">Advanced Primitives</div>
+      <table class="nt">
+        <thead><tr><th>Primitive</th><th>How It Works</th><th>Use Case</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Read-Write Lock</strong></td><td>Concurrent readers; exclusive writers</td><td>Mostly-read caches, configs</td></tr>
+          <tr><td><strong>Seqlock</strong></td><td>Readers check version before/after read; retry if version changed — no lock</td><td>Linux kernel timekeeping</td></tr>
+          <tr><td><strong>Lock-Free (CAS)</strong></td><td>Atomic compare-and-swap, no mutex</td><td>High-throughput queues, counters</td></tr>
+          <tr><td><strong>Adaptive Mutex</strong></td><td>Spins briefly, then blocks — best of both</td><td>JVM (HotSpot), Solaris</td></tr>
+          <tr><td><strong>ReentrantLock (Java)</strong></td><td>Mutex with fairness option + tryLock with timeout</td><td>Production Java concurrency</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <div class="section-badge">DECISION FRAMEWORK</div>
+      <div class="nh">Choosing the Right Primitive</div>
+      <div class="ncode">Need exclusive access?
+  ├── Very short critical section (&lt; few µs)?
+  │     → Spinlock
+  ├── Shared mutable state, longer wait?
+  │     → Mutex
+  ├── Limit N concurrent resources?
+  │     → Semaphore
+  ├── Wait for a condition to become true?
+  │     → Monitor + Condition Variable
+  └── Extreme performance, lock-free?
+        → CAS (lock-free data structures)</div>
+
+      <table class="nt mt-3">
+        <thead><tr><th>Scenario</th><th>Best Choice</th></tr></thead>
+        <tbody>
+          <tr><td>Shared HashMap update</td><td>Mutex</td></tr>
+          <tr><td>Database connection pool</td><td>Semaphore</td></tr>
+          <tr><td>Producer-consumer queue</td><td>Monitor (mutex + condvar)</td></tr>
+          <tr><td>Kernel scheduler data structure</td><td>Spinlock</td></tr>
+          <tr><td>Read-heavy cache</td><td>Read-Write Lock</td></tr>
+          <tr><td>Lock-free counter</td><td>CAS / Atomic</td></tr>
+          <tr><td>Java OOP synchronization</td><td>synchronized / Monitor</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Systems -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION SYSTEMS</div>
+      <div class="nh">Production System Usage</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Primitive Used</th></tr></thead>
+        <tbody>
+          <tr><td>Java <code>synchronized</code></td><td>Monitor (mutex + condvar via futex)</td></tr>
+          <tr><td>Java <code>ReentrantLock</code></td><td>Mutex with fairness + tryLock</td></tr>
+          <tr><td>Linux Kernel Scheduler</td><td>Spinlock (disable preemption)</td></tr>
+          <tr><td>Database Connection Pool</td><td>Semaphore</td></tr>
+          <tr><td>Kafka</td><td>Locks + Condition Variables</td></tr>
+          <tr><td>Redis</td><td>Mostly single-threaded (minimal locking)</td></tr>
+          <tr><td>Netty</td><td>Event Loop (avoids locks)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Metrics &amp; Tools</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Key Metrics</p>
+          <table class="nt">
+            <thead><tr><th>Metric</th><th>Indicates</th></tr></thead>
+            <tbody>
+              <tr><td>Lock Wait Time</td><td>Contention</td></tr>
+              <tr><td>Context Switches/s</td><td>Excessive blocking</td></tr>
+              <tr><td>CPU Spin Time</td><td>Spinlock misuse</td></tr>
+              <tr><td>Deadlock Detection</td><td>Correctness issues</td></tr>
+              <tr><td>Queue Length</td><td>Resource pressure</td></tr>
+              <tr><td>Semaphore Utilization</td><td>Capacity planning</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Tools</p>
+          <ul class="dot-ul text-sm">
+            <li><span class="nkw"><span>JFR</span></span> — Java lock contention profiling</li>
+            <li><span class="nkw"><span>async-profiler</span></span> — off-CPU analysis</li>
+            <li><span class="nkw"><span>jstack</span></span> — deadlock detection</li>
+            <li><span class="nkw"><span>perf lock</span></span> — Linux lock analysis</li>
+            <li><span class="nkw"><span>eBPF</span></span> — futex wait time tracing</li>
+            <li><span class="nkw"><span>htop / top</span></span> — context switch rate</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Questions -->
+    <div class="nc">
+      <div class="section-badge">INTERVIEW PREP</div>
+      <div class="nh">Common Interview Questions</div>
+      <p class="font-semibold text-violet-700 mb-1">Fundamentals</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700 mb-3" start="1">
+        <li>What is mutual exclusion?</li>
+        <li>Difference between a lock and a mutex?</li>
+        <li>Why does Linux use futexes?</li>
+        <li>What is a semaphore vs a binary semaphore?</li>
+        <li>What is a monitor? What is a condition variable?</li>
+        <li>Why does <code>wait()</code> release the mutex?</li>
+      </ol>
+      <p class="font-semibold text-violet-700 mb-1">Production</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700 mb-3" start="7">
+        <li>What are the 4 Coffman conditions for deadlock?</li>
+        <li>How do you prevent priority inversion?</li>
+        <li>What is lock contention and how do you resolve it?</li>
+        <li>When should you use a spinlock vs mutex?</li>
+        <li>When to use a read-write lock?</li>
+      </ol>
+      <p class="font-semibold text-violet-700 mb-1">Staff-Level Design</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700" start="12">
+        <li>Design a thread-safe LRU cache.</li>
+        <li>Design a bounded producer-consumer queue.</li>
+        <li>How would you eliminate a hot lock bottleneck?</li>
+        <li>How would you debug mutex contention in production?</li>
+        <li>Explain how futex bridges user-space and kernel synchronization.</li>
+        <li>Why does Netty avoid heavy locking?</li>
+      </ol>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt">
+        <thead><tr><th>Level</th><th>Thinking Pattern</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Junior</strong></td>
+            <td>"I'll just add <code>synchronized</code> everywhere to be safe."</td>
+          </tr>
+          <tr>
+            <td><strong>Senior</strong></td>
+            <td>"I use synchronized for shared mutable state, a semaphore for the connection pool (bounded to 10), and condition variables for producer-consumer signaling. I always use while() around wait() for spurious wakeup safety."</td>
+          </tr>
+          <tr>
+            <td><strong>Staff</strong></td>
+            <td>"I select primitives based on workload: spinlocks for &lt;µs kernel paths, mutexes for critical sections with variable wait times, semaphores for bounded resource permits, and monitors for state-based coordination. I know that all of these bottom out at CAS + futex + kernel wait queues. I diagnose lock contention using async-profiler off-CPU flamegraphs and Linux <code>perf lock</code>. When contention is the bottleneck, I eliminate it: partition state (lock striping), use read-write locks for mostly-read paths, convert synchronous blocking to async event loops, or switch to lock-free CAS-based structures (e.g., ConcurrentLinkedQueue). I also test under realistic concurrency — unit tests rarely expose contention."</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ntip">
+        <strong>Key Takeaways:</strong>
+        <ul class="dot-ul mt-2">
+          <li><strong>Locks/Mutexes</strong> provide mutual exclusion via atomic CAS + kernel futex. Mutex adds ownership and efficient blocking.</li>
+          <li><strong>Semaphores</strong> manage N concurrent resource slots — ideal for connection pools, thread limiters, and producer-consumer.</li>
+          <li><strong>Monitors</strong> encapsulate mutex + condition variable, simplifying state-based coordination (always use <code>while</code> not <code>if</code> around <code>wait()</code>).</li>
+          <li>Choose primitive based on <strong>contention duration</strong>: short → spin; long → block; N resources → semaphore; condition → monitor.</li>
+          <li>At Staff level: explain CAS → futex → wait queue → scheduler, discuss failure modes (deadlock/priority inversion/starvation), and know when to eliminate locks entirely.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ORIGINAL NOTES TAB -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <!-- Intro -->
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — OVERVIEW</div>
+      <div class="nh">Concurrency Control — Overview</div>
+      <p class="text-gray-700 mb-3">One of the <strong>most fundamental OS + concurrency topics</strong> that <strong>staff-level engineers</strong> must explain fluently — covering concepts, OS-level behavior, atomic operations, use cases, trade-offs, and when to apply each.</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Level</th><th>Mechanism</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1</strong></td><td><strong>Atomic operations</strong> (CAS, load/store fences)</td><td>Hardware-level synchronization</td></tr>
+          <tr><td><strong>2</strong></td><td><strong>Locks / Spinlocks / Mutexes</strong></td><td>Mutual exclusion — only one thread executes a critical section</td></tr>
+          <tr><td><strong>3</strong></td><td><strong>Semaphores</strong></td><td>Counting or signaling across threads or processes</td></tr>
+          <tr><td><strong>4</strong></td><td><strong>Monitors / Condition Variables</strong></td><td>High-level abstraction combining mutual exclusion + signaling</td></tr>
+        </tbody>
+      </table>
+      <table class="nt">
+        <thead><tr><th>Mechanism</th><th>Goal</th><th>Common Use</th><th>Analogy</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Lock / Spinlock</strong></td><td>Protect a small critical section by spinning</td><td>Very short, CPU-only code paths</td><td>Guard at a door who won't sleep, just keeps checking</td></tr>
+          <tr><td><strong>Mutex</strong></td><td>Mutual exclusion with blocking (sleeps instead of spinning)</td><td>Long or unpredictable critical sections</td><td>Guard who sleeps until door opens</td></tr>
+          <tr><td><strong>Semaphore</strong></td><td>Control access to limited number of resources</td><td>Thread pool, producer-consumer, rate-limiter</td><td>Ticket counter giving limited passes</td></tr>
+          <tr><td><strong>Monitor</strong></td><td>Encapsulation of lock + condition variable + shared data</td><td>Object synchronization in OOP</td><td>A guarded room with a bell for signaling</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 1: Locks -->
+    <div class="nc">
+      <div class="section-badge">SECTION 1 — LOCKS</div>
+      <div class="nh">Locks (e.g., Spinlocks)</div>
+
+      <p class="text-gray-700 mb-3">A <strong>lock</strong> ensures only one thread at a time can execute a <strong>critical section</strong>. Simplest form: <strong>spinlock</strong> — the thread repeatedly checks ("spins") until the lock becomes free.</p>
+
+      <div style="overflow-x:auto;">
+        <table class="nt mb-4" style="min-width:600px;">
+          <thead><tr><th>Aspect</th><th>Explanation</th><th>Staff-Level Insight</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Definition</strong></td><td>A <strong>lock</strong> ensures that <strong>only one thread</strong> executes a critical section at a time.</td><td>The most basic concurrency primitive for mutual exclusion.</td></tr>
+            <tr><td><strong>Implementation Level</strong></td><td>User-space + Hardware-level atomic operations (e.g., <strong>CAS</strong>, <strong>Test-and-Set</strong>, <strong>Fetch-and-Add</strong>).</td><td>OS provides kernel-assisted locks when needed (e.g., futex).</td></tr>
+            <tr><td><strong>How it works</strong></td><td>1️⃣ Thread tries to acquire lock. 2️⃣ If unlocked, sets it atomically and proceeds. 3️⃣ If locked, it spins (busy wait) or blocks.</td><td>Low-level hardware synchronization used by higher primitives.</td></tr>
+            <tr><td><strong>Types</strong></td><td><strong>Spinlock</strong>: Busy-wait loop. <strong>Blocking lock</strong>: Uses kernel to sleep until free. <strong>Recursive lock</strong>: Same thread can re-acquire.</td><td>Spinlocks are for very short critical sections (microseconds).</td></tr>
+            <tr><td><strong>OS Interaction</strong></td><td>Spinlocks entirely in user space; blocking locks may use kernel via <strong>futex</strong> or semaphores to block.</td><td>Avoid blocking locks in high-frequency paths — causes syscalls.</td></tr>
+            <tr><td><strong>Trade-offs</strong></td><td>Spinlocks waste CPU if held long; blocking locks save CPU but incur syscall latency.</td><td>Modern OS kernels (Linux) dynamically switch between both.</td></tr>
+            <tr><td><strong>Example</strong></td><td>Linux kernel <code>spin_lock()</code> uses atomic <code>xchg</code>; <code>pthread_mutex_lock()</code> uses futex for blocking.</td><td>Staff engineers tune between these based on contention pattern.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-1 mt-2">OS-level internals</p>
+      <ul class="dot-ul mb-3">
+        <li>Implemented using <strong>atomic instructions</strong> (<code>Test-And-Set</code>, <strong>Compare-And-Swap</strong>).</li>
+        <li>Spinlock lives entirely in <strong>user-space</strong> (no syscalls).</li>
+        <li>If contention high, wastes CPU time.</li>
+        <li>Kernel spinlocks <strong>disable preemption</strong> to avoid deadlocks.</li>
+      </ul>
+
+      <p class="font-semibold text-violet-700 mb-1">Example (C pseudocode — Spinlock)</p>
+      <div class="ncode">typedef int spinlock_t;  // 0 = unlocked, 1 = locked
+
+void spin_lock(spinlock_t *lock) {
+    while (__sync_lock_test_and_set(lock, 1)) {
+        // busy wait
+        while (*lock) ; // spin until unlocked
+    }
+}
+
+void spin_unlock(spinlock_t *lock) {
+    __sync_lock_release(lock);
+}</div>
+      <ul class="dot-ul mt-2 mb-3">
+        <li><code>__sync_lock_test_and_set()</code> is an atomic <strong>CAS</strong> CPU instruction</li>
+        <li>When lock=1, thread <strong>spins</strong> (busy loop) — no syscall</li>
+        <li>When lock=0, CAS succeeds and enters critical section</li>
+        <li>Used inside OS kernels or user space when critical section &lt; few microseconds</li>
+      </ul>
+
+      <p class="font-semibold text-violet-700 mb-1">Use Cases</p>
+      <ul class="dot-ul mb-3">
+        <li>Protecting a <strong>short shared data structure</strong> in the kernel (e.g., updating scheduler run queue)</li>
+        <li>Implementing <strong>reference count increments</strong> for shared objects</li>
+      </ul>
+
+      <table class="nt mb-3">
+        <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+        <tbody>
+          <tr><td>No syscall overhead</td><td>Wastes CPU cycles if long wait</td></tr>
+          <tr><td>Fast for short critical sections</td><td>Not scalable under contention</td></tr>
+          <tr><td>Used in kernel fast paths</td><td>Dangerous if thread is preempted</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nq">"Locks serialize access; implemented using atomic CAS; OS may block threads via futex if contention is high."</div>
+    </div>
+
+    <!-- Section 2: Mutexes -->
+    <div class="nc">
+      <div class="section-badge">SECTION 2 — MUTEXES</div>
+      <div class="nh">Mutexes (Mutual Exclusion Locks)</div>
+
+      <p class="text-gray-700 mb-3">A <strong>mutex</strong> is a lock with <strong>ownership</strong> and <strong>blocking behavior</strong>: if a thread can't acquire it, it <strong>sleeps (via futex)</strong> instead of spinning.</p>
+
+      <div style="overflow-x:auto;">
+        <table class="nt mb-4" style="min-width:600px;">
+          <thead><tr><th>Aspect</th><th>Explanation</th><th>Staff-Level Insight</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Definition</strong></td><td>A <strong>mutex</strong> (mutual exclusion) allows <strong>only one thread</strong> to access a critical section and <strong>blocks</strong> others.</td><td>Think of it as a <em>lock with ownership semantics</em>.</td></tr>
+            <tr><td><strong>Difference from generic lock</strong></td><td>Adds <strong>ownership</strong> (only the owner can unlock) and usually supports <strong>blocking</strong> rather than spinning.</td><td>OS ensures correctness, prevents accidental unlock by others.</td></tr>
+            <tr><td><strong>Typical flow</strong></td><td>Thread tries <code>pthread_mutex_lock()</code>. <strong>Fast path</strong>: atomic CAS in user-space. <strong>Slow path</strong>: if locked, call into kernel via <strong>futex</strong> to sleep. Unlock: atomic release + <code>futex_wake</code>.</td><td>Futex = "fast userspace mutex." Avoids kernel syscalls when uncontended.</td></tr>
+            <tr><td><strong>Kernel Internals (Linux)</strong></td><td>Kernel keeps per-futex <strong>wait queues</strong>. <code>futex_wait()</code> blocks thread; <code>futex_wake()</code> wakes next.</td><td>Efficient hybrid of user-space atomics + kernel sleep.</td></tr>
+            <tr><td><strong>State transitions</strong></td><td>UNLOCKED → LOCKED → WAITING → WOKEN → UNLOCKED</td><td>Helps visualize race conditions and contention.</td></tr>
+            <tr><td><strong>Advantages</strong></td><td>Simple API · Kernel-assisted blocking (no busy wait) · Enforces ownership.</td><td>Default for most thread-safe structures.</td></tr>
+            <tr><td><strong>Drawbacks</strong></td><td>Kernel transitions under contention · Priority inversion possible</td><td>Avoid using in real-time paths without care.</td></tr>
+            <tr><td><strong>Priority Inheritance</strong></td><td>Temporarily raises priority of lock-holder if higher-priority thread is waiting.</td><td>Used in RTOS and Linux RT patches.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-1">Example (C / POSIX)</p>
+      <div class="ncode">#include &lt;pthread.h&gt;
+#include &lt;stdio.h&gt;
+
+pthread_mutex_t lock;
+
+void* worker(void* arg) {
+    pthread_mutex_lock(&amp;lock);   // Acquire lock (fast path if free)
+    printf("Thread %ld in critical section\n", (long)arg);
+    sleep(1);
+    pthread_mutex_unlock(&amp;lock); // Release lock and wake others
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_mutex_init(&amp;lock, NULL);
+    pthread_create(&amp;t1, NULL, worker, (void*)1);
+    pthread_create(&amp;t2, NULL, worker, (void*)2);
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    pthread_mutex_destroy(&amp;lock);
+}</div>
+
+      <p class="font-semibold text-violet-700 mb-1 mt-3">What happens under the hood</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Step</th><th>Kernel/Hardware Action</th></tr></thead>
+        <tbody>
+          <tr><td>Thread 1 locks</td><td>Atomic <strong>CAS</strong> succeeds (user-space only)</td></tr>
+          <tr><td>Thread 2 locks</td><td>CAS fails → calls <code>futex_wait()</code> (kernel sleep)</td></tr>
+          <tr><td>Thread 1 unlocks</td><td>CAS releases → calls <code>futex_wake()</code></td></tr>
+          <tr><td>Thread 2 wakes</td><td>Kernel moves thread to <strong>runqueue</strong> → resumes</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">Use Cases</p>
+      <ul class="dot-ul mb-3">
+        <li>Protect <strong>shared data</strong> (cache, map, config)</li>
+        <li>Database connection pool management</li>
+        <li>Logging system (serialize file writes)</li>
+      </ul>
+
+      <table class="nt mb-3">
+        <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+        <tbody>
+          <tr><td>Blocks instead of busy-wait</td><td>Syscall overhead under contention</td></tr>
+          <tr><td>Ownership prevents misuse</td><td>Priority inversion possible</td></tr>
+          <tr><td>Ideal for moderate contention</td><td>Slightly slower than spinlocks for tiny critical sections</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nq">"Mutex = lock with ownership, blocking behavior, implemented via atomic ops + futex. Used for critical sections with possible contention."</div>
+    </div>
+
+    <!-- Section 3: Semaphores -->
+    <div class="nc">
+      <div class="section-badge">SECTION 3 — SEMAPHORES</div>
+      <div class="nh">Semaphores (Counting Synchronization Primitive)</div>
+
+      <p class="text-gray-700 mb-3">A <strong>semaphore</strong> is a synchronization primitive with a <strong>count</strong>. Unlike mutex, it <strong>doesn't have ownership</strong> — any thread can signal (release).</p>
+      <ul class="dot-ul mb-3">
+        <li><strong>Binary Semaphore</strong> (count = 0/1) → behaves like a mutex</li>
+        <li><strong>Counting Semaphore</strong> (count = N) → allows up to N threads concurrently</li>
+      </ul>
+
+      <div style="overflow-x:auto;">
+        <table class="nt mb-4" style="min-width:600px;">
+          <thead><tr><th>Aspect</th><th>Explanation</th><th>Staff-Level Insight</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Definition</strong></td><td>A counter representing <strong>available resources</strong>. Threads <code>wait()</code> (P) to acquire and <code>signal()</code> (V) to release.</td><td>Used to control access to finite resources or signal between threads.</td></tr>
+            <tr><td><strong>How it works</strong></td><td><code>wait()</code> decrements counter. If counter &lt; 0 → thread blocks. <code>signal()</code> increments counter and wakes a waiter (if any).</td><td>Used for producer-consumer, rate limiting, or buffer slots.</td></tr>
+            <tr><td><strong>Kernel Interaction</strong></td><td>Maintains semaphore count + wait queue. Blocked threads sleep in kernel (<code>down()</code> syscall).</td><td>Kernel may use semaphores internally (e.g., process synchronization).</td></tr>
+            <tr><td><strong>Advantages</strong></td><td>Simple resource counting · Allows multiple concurrent users · Good for limiting concurrency.</td><td>Commonly used for connection or thread limiting.</td></tr>
+            <tr><td><strong>Drawbacks</strong></td><td>Harder to reason about (no ownership) · Can lead to deadlocks or leaks (if <code>post()</code> forgotten).</td><td>Use mutexes for critical sections; semaphores for permits.</td></tr>
+            <tr><td><strong>Common Use Cases</strong></td><td>Thread pool limiting (N worker threads) · Producer-consumer buffer control · Rate-limiting (token bucket style).</td><td>For system design, use semaphores for <strong>bounded concurrency</strong>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-1">Example (Producer-Consumer, C)</p>
+      <div class="ncode">#include &lt;pthread.h&gt;
+#include &lt;semaphore.h&gt;
+#include &lt;stdio.h&gt;
+
+#define BUFFER_SIZE 3
+int buffer[BUFFER_SIZE];
+int in = 0, out = 0;
+
+sem_t empty, full;
+pthread_mutex_t mutex;
+
+void* producer(void* arg) {
+    for (int i = 0; i &lt; 5; i++) {
+        sem_wait(&amp;empty);         // Wait for empty slot (decrement)
+        pthread_mutex_lock(&amp;mutex);
+        buffer[in] = i;
+        printf("Produced: %d\n", i);
+        in = (in + 1) % BUFFER_SIZE;
+        pthread_mutex_unlock(&amp;mutex);
+        sem_post(&amp;full);          // Signal one full slot (increment)
+    }
+    return NULL;
+}
+
+void* consumer(void* arg) {
+    for (int i = 0; i &lt; 5; i++) {
+        sem_wait(&amp;full);          // Wait for filled slot
+        pthread_mutex_lock(&amp;mutex);
+        int item = buffer[out];
+        printf("Consumed: %d\n", item);
+        out = (out + 1) % BUFFER_SIZE;
+        pthread_mutex_unlock(&amp;mutex);
+        sem_post(&amp;empty);         // Signal one empty slot
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t p, c;
+    sem_init(&amp;empty, 0, BUFFER_SIZE);  // 3 empty slots
+    sem_init(&amp;full,  0, 0);            // 0 full slots
+    pthread_mutex_init(&amp;mutex, NULL);
+    pthread_create(&amp;p, NULL, producer, NULL);
+    pthread_create(&amp;c, NULL, consumer, NULL);
+    pthread_join(p, NULL);
+    pthread_join(c, NULL);
+}</div>
+
+      <table class="nt mt-3 mb-3">
+        <thead><tr><th>Operation</th><th>OS-level Behavior</th></tr></thead>
+        <tbody>
+          <tr><td><code>sem_wait()</code></td><td>Atomic decrement; if &lt; 0 → kernel sleeps thread</td></tr>
+          <tr><td><code>sem_post()</code></td><td>Atomic increment; wakes one waiting thread</td></tr>
+          <tr><td><code>sem_init()</code></td><td>Initializes count and associated kernel semaphore structure</td></tr>
+          <tr><td><strong>Wait Queue</strong></td><td>Kernel keeps semaphore's wait queue for sleepers</td></tr>
+        </tbody>
+      </table>
+
+      <table class="nt mb-3">
+        <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+        <tbody>
+          <tr><td>Allows multiple concurrent users</td><td>Harder to reason about (no ownership)</td></tr>
+          <tr><td>Useful for rate-limiting</td><td>Misuse can cause leaks or deadlocks</td></tr>
+          <tr><td>Kernel-level counting</td><td>Slightly higher overhead than mutex</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nq">"Semaphore = atomic counter + wait queue. Great for resource limits and producer-consumer synchronization."</div>
+    </div>
+
+    <!-- Section 4: Monitors -->
+    <div class="nc">
+      <div class="section-badge">SECTION 4 — MONITORS</div>
+      <div class="nh">Monitors (High-level Abstraction)</div>
+
+      <p class="text-gray-700 mb-3">A <strong>Monitor</strong> is a higher-level synchronization construct combining a <strong>mutex</strong> (mutual exclusion) + one or more <strong>condition variables</strong> (for signaling/waiting). Used widely in <strong>Java</strong>, <strong>Python</strong>, and <strong>C#</strong>.</p>
+
+      <div style="overflow-x:auto;">
+        <table class="nt mb-4" style="min-width:600px;">
+          <thead><tr><th>Aspect</th><th>Explanation</th><th>Staff-Level Insight</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Definition</strong></td><td>A <strong>monitor</strong> is a high-level concurrency construct combining a <strong>mutex</strong> + <strong>condition variables</strong> + <strong>shared state</strong> in one abstraction.</td><td>Used in OOP languages for encapsulated thread-safe classes.</td></tr>
+            <tr><td><strong>Concept</strong></td><td>Each object (monitor) has an implicit lock and condition variables for signaling.</td><td>E.g., Java's <code>synchronized</code> methods or Python's <code>with Lock:</code> blocks.</td></tr>
+            <tr><td><strong>How it works</strong></td><td>Thread enters monitor (acquires lock). Only one thread can be active. Thread may <code>wait()</code> on condition (releases lock, waits). Another thread <code>notify()</code>s, waking it.</td><td>Automatically manages locking/unlocking + signaling.</td></tr>
+            <tr><td><strong>Implemented using</strong></td><td>Underneath → mutex + condition variables (CVs use futex).</td><td>CV = wait queue + predicate variable.</td></tr>
+            <tr><td><strong>Advantages</strong></td><td>Clean encapsulation · Automatic mutual exclusion · Supports condition signaling.</td><td>Easier correctness — avoids explicit lock/unlock mismatch.</td></tr>
+            <tr><td><strong>Drawbacks</strong></td><td>Less flexible than raw locks · Can lead to <strong>convoying</strong> (waking multiple waiters).</td><td>In high-perf systems, use explicit locks for control.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-1">Example (Java-style Monitor)</p>
+      <div class="ncode">class SharedBuffer {
+    private Queue&lt;Integer&gt; queue = new LinkedList&lt;&gt;();
+    private final int LIMIT = 5;
+
+    public synchronized void produce(int val) throws InterruptedException {
+        while (queue.size() == LIMIT) {
+            wait();  // releases lock, waits for consumer
+        }
+        queue.add(val);
+        System.out.println("Produced " + val);
+        notify();   // wake one waiting consumer
+    }
+
+    public synchronized int consume() throws InterruptedException {
+        while (queue.isEmpty()) {
+            wait();  // releases lock, waits for producer
+        }
+        int val = queue.remove();
+        System.out.println("Consumed " + val);
+        notify();   // wake one waiting producer
+        return val;
+    }
+}
+// NOTE: Always while() not if() — spurious wakeups are possible!</div>
+
+      <table class="nt mt-3 mb-3">
+        <thead><tr><th>Step</th><th>Underlying Mechanism</th></tr></thead>
+        <tbody>
+          <tr><td><code>synchronized</code></td><td>Acquires an internal <strong>mutex</strong> (implemented via futex or pthread)</td></tr>
+          <tr><td><code>wait()</code></td><td>Releases lock + adds thread to <strong>condition variable's wait queue</strong> (kernel sleep)</td></tr>
+          <tr><td><code>notify()</code></td><td>Wakes one (or all) threads waiting on that condition (via <code>futex_wake</code>)</td></tr>
+          <tr><td>Resumed thread</td><td>Reacquires the mutex before continuing</td></tr>
+        </tbody>
+      </table>
+
+      <table class="nt mb-3">
+        <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+        <tbody>
+          <tr><td>Encapsulates locking and signaling logic</td><td>Slightly less explicit control</td></tr>
+          <tr><td>Easier to reason about</td><td>Can lead to spurious wakeups or notify storms</td></tr>
+          <tr><td>Built into many languages</td><td>Performance depends on JVM/runtime implementation</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nq">"Monitor = high-level abstraction built on mutex + condition variable. Manages entry, exit, and signaling automatically."</div>
+    </div>
+
+    <!-- Section 5: Comparison -->
+    <div class="nc">
+      <div class="section-badge">SECTION 5 — SUMMARY</div>
+      <div class="nh">Full Comparison Table</div>
+      <div style="overflow-x:auto;">
+        <table class="nt" style="min-width:700px;">
+          <thead><tr><th>Feature</th><th>Lock</th><th>Mutex</th><th>Semaphore</th><th>Monitor</th></tr></thead>
+          <tbody>
+            <tr><td>Purpose</td><td>Protect small critical section</td><td>Exclusive access</td><td>Limit concurrent access</td><td>Encapsulated synchronization</td></tr>
+            <tr><td>Ownership</td><td>None</td><td>✅ Yes</td><td>No</td><td>✅ Yes</td></tr>
+            <tr><td>Count</td><td>Binary</td><td>Binary</td><td>Counting (N)</td><td>Binary</td></tr>
+            <tr><td>Blocking</td><td>Optional (spin/block)</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Kernel Involvement</td><td>None (spin) / futex (block)</td><td>Futex (sleep/wake)</td><td>Kernel wait queues</td><td>Futex via mutex + CV</td></tr>
+            <tr><td>Signal Mechanism</td><td>Unlock</td><td>Unlock</td><td><code>post()/signal()</code></td><td><code>notify()/wait()</code></td></tr>
+            <tr><td>Best for</td><td>Very short code paths</td><td>Shared mutable state</td><td>Resource limiting</td><td>High-level object locks</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 6: OS Internals -->
+    <div class="nc">
+      <div class="section-badge">SECTION 6 — OS INTERNALS</div>
+      <div class="nh">OS-Level Internals (Deep Detail)</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Layer</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td><strong>User space fast path</strong></td><td>Try atomic <strong>CAS</strong> or atomic decrement without syscall.</td></tr>
+          <tr><td><strong>Kernel slow path</strong></td><td>If fails, call <code>futex_wait()</code> to block; kernel puts thread on wait queue associated with lock address.</td></tr>
+          <tr><td><strong>Wakeup path</strong></td><td>Unlock or post → atomic change + <code>futex_wake()</code> syscall → kernel dequeues one (or all) waiters and sets runnable.</td></tr>
+          <tr><td><strong>Scheduler interaction</strong></td><td>Kernel marks thread runnable → placed in per-CPU runqueue → context switch → user thread resumes.</td></tr>
+          <tr><td><strong>Priority inversion</strong></td><td>Kernel may boost owner thread priority (<strong>priority inheritance</strong>).</td></tr>
+          <tr><td><strong>NUMA locality</strong></td><td>Threads waiting on same lock in different NUMA nodes may suffer remote memory latency — critical for scaling.</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Advanced OS / Kernel Details</p>
+      <ul class="dot-ul mb-3">
+        <li><strong>Spinlocks in kernel</strong> disable preemption or interrupts to prevent deadlock.</li>
+        <li><span class="nkw"><span>Futex</span></span> is central to Linux locking: <em>"fast path = user-space atomic,"</em> <em>"slow path = kernel queue."</em></li>
+        <li><strong>Adaptive mutexes</strong> spin briefly before sleeping, reducing wake-up latency.</li>
+        <li><strong>Priority inheritance</strong> avoids low-priority holder delaying high-priority waiter.</li>
+        <li><strong>Read-write locks (RWLocks)</strong>: allow concurrent readers, exclusive writers.</li>
+        <li><strong>Seqlocks</strong>: lock-free reads using versioning, retries on conflict (used in Linux timekeeping).</li>
+      </ul>
+    </div>
+
+    <!-- Section 7: Practical Trade-offs -->
+    <div class="nc">
+      <div class="section-badge">SECTION 7</div>
+      <div class="nh">Practical Trade-offs &amp; When to Use Which</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Goal</th><th>Best Primitive</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Fast mutual exclusion, short critical section</td><td><strong>Spinlock</strong></td><td>Avoid kernel syscall, minimal latency.</td></tr>
+          <tr><td>Mutual exclusion with long waits</td><td><strong>Mutex</strong></td><td>Blocks thread, saves CPU.</td></tr>
+          <tr><td>Limit concurrency to N resources</td><td><strong>Semaphore</strong></td><td>Counting control.</td></tr>
+          <tr><td>Object-oriented synchronization</td><td><strong>Monitor</strong></td><td>Encapsulates lock + condition variable.</td></tr>
+          <tr><td>Signaling between threads</td><td><strong>Condition variable</strong> (part of monitor)</td><td>Allows wait + notify pattern.</td></tr>
+        </tbody>
+      </table>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Mechanism</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Protect short shared counters</td><td>Spinlock or atomic CAS</td><td>Avoid syscall cost</td></tr>
+          <tr><td>Protect long shared operations</td><td>Mutex</td><td>Blocks efficiently</td></tr>
+          <tr><td>Limit number of concurrent tasks</td><td>Semaphore</td><td>Resource counter</td></tr>
+          <tr><td>Shared buffer with producers/consumers</td><td>Monitor</td><td>Simpler logic with wait/notify</td></tr>
+          <tr><td>Kernel driver or scheduler queue</td><td>Spinlock</td><td>Short atomic code path</td></tr>
+          <tr><td>Java multithreaded server</td><td>Monitor (synchronized/lock)</td><td>Simpler and safer abstraction</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 8: System Design -->
+    <div class="nc">
+      <div class="section-badge">SECTION 8</div>
+      <div class="nh">System Design Mapping (Where You Use Each)</div>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Mechanism</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Shared in-memory cache (e.g., LRU eviction list)</td><td>Mutex</td><td>One writer at a time.</td></tr>
+          <tr><td>Thread pool queue (bounded capacity)</td><td>Semaphore</td><td>Prevent overflow, coordinate producers/consumers.</td></tr>
+          <tr><td>Shared counter updates (short critical path)</td><td>Spinlock or atomic CAS</td><td>Low latency, no blocking.</td></tr>
+          <tr><td>Message queue consumer/producer model</td><td>Monitor (mutex + condvar)</td><td>Wait/signal on full/empty conditions.</td></tr>
+          <tr><td>High-frequency kernel data structure</td><td>Spinlock</td><td>Kernel-space concurrency (atomic operations only).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-world Analogies -->
+    <div class="nc">
+      <div class="section-badge">SECTION 9</div>
+      <div class="nh">Real-World Analogies</div>
+      <table class="nt">
+        <thead><tr><th>Object</th><th>Real-world Equivalent</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Lock / Spinlock</strong></td><td>Bouncer checking ID but not leaving door — just keeps checking</td></tr>
+          <tr><td><strong>Mutex</strong></td><td>Door with key — only holder can unlock it</td></tr>
+          <tr><td><strong>Semaphore</strong></td><td>Parking lot with limited spots (N permits)</td></tr>
+          <tr><td><strong>Monitor</strong></td><td>Room with guard and bell — only one inside, others wait for a signal</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Soundbite -->
+    <div class="nc">
+      <div class="section-badge">SECTION 10 — STAFF SOUNDBITE</div>
+      <div class="nh">Staff Engineer Interview Soundbite</div>
+      <div class="nq">"Locks and mutexes enforce mutual exclusion using <strong>atomic CPU operations</strong> and <strong>futex-based blocking</strong>; semaphores generalize this with a <strong>counter for resource limits</strong>; and monitors encapsulate both exclusion and signaling into a higher-level abstraction. At OS level, they're all implemented using a combination of <strong>atomic CAS instructions</strong>, <strong>futex wait/wake mechanisms</strong>, and <strong>kernel wait queues</strong> — the right choice depends on contention, wait time, and granularity."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/7418561b-c587-4397-933f-8edee25501a5.png"
+           alt="Locks, Mutexes, Semaphores and Monitors Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

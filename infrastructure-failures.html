@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Infrastructure Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#475569; border-bottom-color:#475569; }
+    .tab-btn:hover:not(.active) { color:#0f172a; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#f8fafc; border:1px solid #cbd5e1; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#475569; margin-bottom:.6rem; }
+    .ncode{ background:#0f172a; color:#94a3b8; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    /* main infra table */
+    .it-wrap { overflow-x:auto; margin-top:.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:900px; }
+    .it th { background:#1e293b; color:#cbd5e1; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.45rem .7rem; border-top:1px solid #e2e8f0;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f1f5f9; }
+    .it td:first-child { font-weight:700; color:#0f172a; white-space:nowrap; font-size:.75rem; }
+    .casc { color:#991b1b; font-size:.71rem; }
+    .troff { color:#5b21b6; font-size:.71rem; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    /* cascading table */
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#1e293b; color:#cbd5e1; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #e2e8f0;
+             color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#0f172a; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-slate-600 hover:text-slate-800 font-semibold
+              bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-semibold">Infrastructure Failures</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M5 12H3l9-9 9 9h-2M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Infrastructure-Level Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 26 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ═══════════ TAB 1 — FAILURE TABLE ═══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Foundation Layer</p>
+      <div class="ncode">Compute + Storage + Network + Power + Region</div>
+      <p class="text-sm text-gray-600 mt-2">Infrastructure failures affect everything above them.
+        Slow failures are often <strong>more dangerous</strong> than hard failures — they trigger
+        retries and create cascading overload before anyone detects them.</p>
+    </div>
+
+    <div class="nc p-0 overflow-hidden">
+      <div class="it-wrap">
+        <table class="it">
+          <thead>
+            <tr>
+              <th>Failure Scenario</th>
+              <th>When It Occurs</th>
+              <th>How To Detect</th>
+              <th>How To Mitigate</th>
+              <th>How To Prevent</th>
+              <th>Cascading Failure Risk</th>
+              <th>Trade-off</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Server Crash / Node Down<span class="badge-crit">Must Know</span></td>
+              <td>HW failure, kernel panic, VM termination</td>
+              <td>Health checks, heartbeat loss, node alerts</td>
+              <td>Remove from LB, auto-restart, failover to replicas</td>
+              <td>Multi-node redundancy, auto-healing infra</td>
+              <td class="casc">Dead node still receives traffic → retries overload healthy nodes</td>
+              <td class="troff">More replicas = higher cost</td>
+            </tr>
+            <tr>
+              <td>CPU Saturation<span class="badge-crit">Must Know</span></td>
+              <td>High traffic, expensive computation, infinite loops</td>
+              <td>CPU &gt;90%, latency spike, queue buildup</td>
+              <td>Horizontal scaling, load shedding, caching</td>
+              <td>Capacity planning, async processing</td>
+              <td class="casc">Slow node causes retry storm → neighbour overload</td>
+              <td class="troff">Over-provisioning raises infra cost</td>
+            </tr>
+            <tr>
+              <td>Memory Exhaustion (OOM)<span class="badge-crit">Must Know</span></td>
+              <td>Memory leak, large payloads, unbounded cache</td>
+              <td>OOM kill logs, memory usage alerts</td>
+              <td>Restart node, autoscale, reduce memory pressure</td>
+              <td>Memory limits, leak detection, bounded caches</td>
+              <td class="casc">Restart loop causes service instability</td>
+              <td class="troff">Memory limits may reject valid workloads</td>
+            </tr>
+            <tr>
+              <td>Disk Full</td>
+              <td>Log buildup, large uploads, failed cleanup jobs</td>
+              <td>Disk usage alerts, write failures</td>
+              <td>Clean logs/data, move to cold storage</td>
+              <td>Log rotation, retention policies</td>
+              <td class="casc">DB cannot write WAL → service outage</td>
+              <td class="troff">Aggressive cleanup risks data loss</td>
+            </tr>
+            <tr>
+              <td>Disk Failure (SSD/HDD)<span class="badge-crit">Must Know</span></td>
+              <td>Hardware degradation, physical failure</td>
+              <td>SMART alerts, IO failures, checksum mismatch</td>
+              <td>Switch to replica, rebuild disk</td>
+              <td>RAID, replication, regular backups</td>
+              <td class="casc">Replica rebuild overloads cluster IO</td>
+              <td class="troff">Replication increases storage cost</td>
+            </tr>
+            <tr>
+              <td>Slow Disk / High IO Wait</td>
+              <td>Heavy reads/writes, degraded SSD wear</td>
+              <td>High disk latency, slow queries, iowait %</td>
+              <td>Cache hot data, throttle writes, read from replica</td>
+              <td>SSD optimisation, IO partitioning</td>
+              <td class="casc">Slow DB → request queue buildup → timeouts</td>
+              <td class="troff">SSDs are expensive at scale</td>
+            </tr>
+            <tr>
+              <td>Filesystem Corruption</td>
+              <td>Abrupt shutdown, bit rot, disk corruption</td>
+              <td>Filesystem errors, checksum failures</td>
+              <td>Restore from backup or snapshot</td>
+              <td>Journaling FS, redundancy, checksums</td>
+              <td class="casc">Corrupted metadata affects entire node</td>
+              <td class="troff">More validation reduces write performance</td>
+            </tr>
+            <tr>
+              <td>NIC Failure</td>
+              <td>Hardware/network adapter failure</td>
+              <td>Packet drops, node unreachable</td>
+              <td>Failover to another node</td>
+              <td>Redundant network interfaces (bonding)</td>
+              <td class="casc">Node partially isolated — silent failures</td>
+              <td class="troff">Extra network hardware cost</td>
+            </tr>
+            <tr>
+              <td>Switch / Router Failure</td>
+              <td>Hardware or network outage at rack level</td>
+              <td>Multiple nodes unreachable simultaneously</td>
+              <td>Reroute traffic, failover network path</td>
+              <td>Redundant network topology (dual-homed)</td>
+              <td class="casc">Entire rack unreachable</td>
+              <td class="troff">Network redundancy adds complexity</td>
+            </tr>
+            <tr>
+              <td>Load Balancer Failure<span class="badge-crit">Must Know</span></td>
+              <td>LB overload, misconfiguration, process crash</td>
+              <td>5xx errors, dropped requests, LB health alerts</td>
+              <td>Secondary LB failover via DNS / anycast</td>
+              <td>HA load balancers, health checks</td>
+              <td class="casc">All traffic blocked at entry point</td>
+              <td class="troff">Multiple LBs increase cost</td>
+            </tr>
+            <tr>
+              <td>Power Outage<span class="badge-crit">Must Know</span></td>
+              <td>Data center power issue, grid failure</td>
+              <td>Sudden node shutdown, UPS alerts</td>
+              <td>Failover to another AZ or region</td>
+              <td>UPS, generators, multi-region deployment</td>
+              <td class="casc">Entire cluster shuts down simultaneously</td>
+              <td class="troff">Multi-region is expensive</td>
+            </tr>
+            <tr>
+              <td>Rack Failure</td>
+              <td>Rack switch or power strip failure</td>
+              <td>Multiple nodes disappear simultaneously</td>
+              <td>Shift traffic to other racks</td>
+              <td>Rack-aware replica placement</td>
+              <td class="casc">Replica loss if all replicas in same rack</td>
+              <td class="troff">Rack awareness complicates placement</td>
+            </tr>
+            <tr>
+              <td>Data Center / AZ Outage<span class="badge-crit">Must Know</span></td>
+              <td>Flooding, cooling failure, provider outage</td>
+              <td>Region-level monitoring, provider status</td>
+              <td>Failover to secondary region</td>
+              <td>Multi-region active-active deployment</td>
+              <td class="casc">Secondary region overloaded by full traffic</td>
+              <td class="troff">Cross-region replication adds latency</td>
+            </tr>
+            <tr>
+              <td>Cloud VM Termination</td>
+              <td>Spot/preemptible eviction, provider issue</td>
+              <td>Termination notice, instance disappears</td>
+              <td>Replace instance automatically via ASG</td>
+              <td>Avoid critical workloads on spot instances</td>
+              <td class="casc">Capacity loss during peak traffic</td>
+              <td class="troff">On-demand instances cost more</td>
+            </tr>
+            <tr>
+              <td>Kubernetes Pod CrashLoop</td>
+              <td>App startup failure, bad config, OOM</td>
+              <td>CrashLoopBackOff alerts, pod restart count</td>
+              <td>Rollback deployment, fix config, restart pod</td>
+              <td>Canary deployments, pre-flight validation</td>
+              <td class="casc">Repeated restarts overload scheduler</td>
+              <td class="troff">Slower deployment with validation gates</td>
+            </tr>
+            <tr>
+              <td>Container Runtime Failure</td>
+              <td>Docker / containerd crash or hang</td>
+              <td>Container orchestration alerts, node NotReady</td>
+              <td>Restart runtime or drain and replace node</td>
+              <td>Runtime version hardening, testing</td>
+              <td class="casc">Node-wide service disruption</td>
+              <td class="troff">Runtime upgrades introduce risk</td>
+            </tr>
+            <tr>
+              <td>Thread Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+              <td>Too many concurrent blocking requests</td>
+              <td>High request wait time, queue depth</td>
+              <td>Queue requests, scale instances, rate limit</td>
+              <td>Async / non-blocking IO, right-sized pools</td>
+              <td class="casc">Requests timeout → retries amplify load</td>
+              <td class="troff">Larger pools increase memory footprint</td>
+            </tr>
+            <tr>
+              <td>File Descriptor Exhaustion</td>
+              <td>Too many open sockets, files, or connections</td>
+              <td>"Too many open files" errors, failed accepts</td>
+              <td>Increase OS limits, restart service</td>
+              <td>Connection pooling, cleanup idle connections</td>
+              <td class="casc">New requests fail — cascades to callers</td>
+              <td class="troff">Higher limits increase kernel overhead</td>
+            </tr>
+            <tr>
+              <td>Network Bandwidth Saturation<span class="badge-crit">Must Know</span></td>
+              <td>Heavy traffic, replication storm, large transfers</td>
+              <td>Packet drops, throughput maxed, latency spike</td>
+              <td>Traffic shaping, compression, CDN offload</td>
+              <td>Capacity planning, CDN for static assets</td>
+              <td class="casc">Replication lag and timeout cascade</td>
+              <td class="troff">More bandwidth capacity costs money</td>
+            </tr>
+            <tr>
+              <td>Hypervisor Failure</td>
+              <td>VM host crashes unexpectedly</td>
+              <td>Multiple VMs disappear at once</td>
+              <td>Migrate workloads to healthy hosts</td>
+              <td>Anti-affinity scheduling across hosts</td>
+              <td class="casc">Many services fail simultaneously</td>
+              <td class="troff">Lower VM packing density</td>
+            </tr>
+            <tr>
+              <td>Cloud Control Plane Failure</td>
+              <td>Cloud provider API outage (AWS/GCP/Azure)</td>
+              <td>Cannot create / modify / delete resources</td>
+              <td>Operate with existing resources, no new deploys</td>
+              <td>Reduce control-plane dependency in critical path</td>
+              <td class="casc">Autoscaling and deployments blocked</td>
+              <td class="troff">Multi-cloud adds significant complexity</td>
+            </tr>
+            <tr>
+              <td>Metadata Server Failure</td>
+              <td>HDFS NameNode or storage metadata crash</td>
+              <td>Storage unavailable though disks are healthy</td>
+              <td>Failover metadata leader</td>
+              <td>Metadata replication, standby NameNode</td>
+              <td class="casc">Entire storage cluster unavailable</td>
+              <td class="troff">Consensus adds write latency</td>
+            </tr>
+            <tr>
+              <td>Shared Storage Failure</td>
+              <td>SAN / NAS outage, network storage path down</td>
+              <td>Multiple services lose storage access</td>
+              <td>Switch to replica or distributed storage</td>
+              <td>Distributed storage systems (no single NAS)</td>
+              <td class="casc">Large-scale multi-service outage</td>
+              <td class="troff">Distributed storage adds complexity</td>
+            </tr>
+            <tr>
+              <td>Cooling Failure / Overheating</td>
+              <td>HVAC failure, ambient temperature spike</td>
+              <td>Temperature alerts, CPU throttling metrics</td>
+              <td>Shut down affected nodes, shift traffic</td>
+              <td>Redundant cooling, temperature monitoring</td>
+              <td class="casc">Thermal shutdown across an entire rack</td>
+              <td class="troff">Redundant cooling raises infra cost</td>
+            </tr>
+            <tr>
+              <td>Hardware Degradation (Silent)</td>
+              <td>Aging disks, CPU, or RAM wearing out slowly</td>
+              <td>Gradual latency increase, occasional errors</td>
+              <td>Replace degraded hardware proactively</td>
+              <td>Predictive monitoring (SMART, hardware metrics)</td>
+              <td class="casc">Hard-to-debug cascading slowness</td>
+              <td class="troff">Aggressive replacement wastes hardware life</td>
+            </tr>
+            <tr>
+              <td>Time Synchronisation Failure</td>
+              <td>NTP issues, clock drift between nodes</td>
+              <td>Timestamp mismatch alerts, skew metrics</td>
+              <td>Resync clocks; use logical clocks for ordering</td>
+              <td>Reliable NTP setup, PTP for precision</td>
+              <td class="casc">Ordering inconsistency in distributed systems</td>
+              <td class="troff">Logical clocks add implementation complexity</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="nc mt-4">
+      <p class="nh">8 Must-Know Infrastructure Failures for Interviews</p>
+      <div class="ncode">1. Node crash              → replicas + auto-restart + LB health checks
+2. CPU / Memory exhaustion → horizontal scale + limits + async
+3. Disk failure            → RAID + replication + backups
+4. Network failure         → redundancy + circuit breaker
+5. Data center outage      → multi-AZ / multi-region active-active
+6. Load balancer failure   → HA LB + health checks
+7. Bandwidth saturation    → CDN + traffic shaping + compression
+8. Replica rebuild overload → throttle rebuild IO + prioritise reads</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- ═══════════ TAB 2 — STAFF INSIGHTS ═══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Infrastructure Thinking — 5 Questions to Ask Always</p>
+      <div class="ncode">1. Is it isolated or widespread?
+   → single node vs rack vs AZ vs region
+
+2. Is it a hard failure or slow failure?
+   → hard: immediate | slow: insidious (triggers retries)
+
+3. Can traffic fail over safely?
+   → is healthy capacity available to absorb it?
+
+4. Can retries overload healthy systems?
+   → are circuit breakers and rate limits in place?
+
+5. How quickly can the system recover?
+   → minutes (restart) vs hours (rebuild replica) vs days (restore backup)</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Slow DB disk</td><td>API latency rises → retries increase → thread pool exhaustion → full service unavailable</td></tr>
+          <tr><td>Node crash</td><td>Traffic shifts to healthy nodes → they overload → cascade to more nodes</td></tr>
+          <tr><td>LB failure</td><td>All traffic blocked at entry point → entire service unreachable</td></tr>
+          <tr><td>Disk full</td><td>WAL write fails → DB unavailable → all dependent services fail</td></tr>
+          <tr><td>Network partition</td><td>Split brain → inconsistent writes → data corruption or blocked writes</td></tr>
+          <tr><td>AZ outage</td><td>Traffic spike in secondary region → secondary overloads → cascades further</td></tr>
+          <tr><td>Bandwidth saturation</td><td>Replication lags → replicas diverge → stale reads → inconsistency</td></tr>
+          <tr><td>Memory leak (slow)</td><td>System degrades gradually → OOM kill → restart loop → instability</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Hard vs Slow Failure — Why Slow Is More Dangerous</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">Hard Failure</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>Node immediately unreachable</li>
+            <li>Health check fails instantly</li>
+            <li>LB removes node quickly</li>
+            <li>Impact: fast and visible</li>
+          </ul>
+        </div>
+        <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-700 mb-2">Slow Failure (More Dangerous)</p>
+          <ul class="text-xs text-orange-800 space-y-1 list-disc pl-4">
+            <li>Node responds but very slowly</li>
+            <li>Health check still passes</li>
+            <li>Callers wait, holding threads</li>
+            <li>Retries amplify the load</li>
+            <li>Impact: slow, insidious, cascading</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Practice Framework — Apply to Any System in Interviews</p>
+      <div class="ncode">For ANY system, walk through these:
+  1. What infra components exist?
+     → servers, LB, DB, cache, queue, network, storage
+
+  2. What if one crashes (hard failure)?
+     → who detects it? where does traffic go? is capacity enough?
+
+  3. What if one becomes slow (soft failure)?
+     → timeouts set? circuit breaker present? retries bounded?
+
+  4. How does traffic fail over?
+     → LB health checks? DNS failover? active-active?
+
+  5. Can retries create a cascade?
+     → backoff + jitter? circuit breaker? rate limit?</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#0f172a;border:1px solid #334155;">
+      <p class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-slate-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-slate-200">Isolated?</p>
+          <p class="text-xs text-slate-400 mt-0.5">Node vs Rack vs AZ vs Region</p>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-slate-200">Hard or Slow?</p>
+          <p class="text-xs text-slate-400 mt-0.5">Slow failures cascade silently</p>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-slate-200">Failover Safe?</p>
+          <p class="text-xs text-slate-400 mt-0.5">Capacity + routing + health checks</p>
+        </div>
+        <div class="bg-slate-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-slate-200">Retry Risk?</p>
+          <p class="text-xs text-slate-400 mt-0.5">Circuit breaker + jitter + cap</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

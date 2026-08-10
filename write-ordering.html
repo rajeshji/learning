@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Write Ordering, Barriers &amp; Durability — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Write Ordering &amp; Durability</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Write Ordering, Barriers &amp; Durability Semantics</h1>
+      <p class="text-xs text-gray-400 mt-0.5">How data safely reaches persistent storage — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq"><strong><code>write()</code> does not save your data.</strong> It only copies data into the kernel page cache. Without proper ordering, a crash can corrupt data even after <code>write()</code> returned success.</p>
+      <div class="nkw mt-3">
+        <span>write()</span>
+        <span>fsync()</span>
+        <span>Barrier</span>
+        <span>Flush</span>
+        <span>FUA</span>
+        <span>Page Cache</span>
+        <span>Journal</span>
+        <span>COW</span>
+        <span>WAL</span>
+        <span>PLP</span>
+      </div>
+      <div class="ncode">Application → write() → Page Cache → Filesystem
+→ Block Layer → Device Cache → Flush → Persistent Media
+
+Each layer buffers, reorders, and batches writes for performance.
+Each layer is a potential crash point.</div>
+    </div>
+
+    <!-- Write Lifecycle -->
+    <div class="nc">
+      <p class="nh">Write Lifecycle — Layer by Layer</p>
+      <table class="nt">
+        <thead><tr><th>Layer</th><th>Purpose</th><th>Durable?</th></tr></thead>
+        <tbody>
+          <tr><td>Application Buffer</td><td>Temporary in-process memory</td><td class="text-red-500 font-medium">❌ No</td></tr>
+          <tr><td>Page Cache</td><td>OS-managed buffered I/O</td><td class="text-red-500 font-medium">❌ No</td></tr>
+          <tr><td>Filesystem Journal</td><td>Crash recovery log</td><td class="text-yellow-600 font-medium">⚠ Partially</td></tr>
+          <tr><td>Device Cache (DRAM)</td><td>Performance buffer in SSD/HDD</td><td class="text-red-500 font-medium">❌ No (unless PLP)</td></tr>
+          <tr><td>Persistent Media</td><td>Flash / magnetic platters</td><td class="text-green-600 font-medium">✅ Yes</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Only persistent media is truly durable. Everything above it is volatile until flushed.</p>
+    </div>
+
+    <!-- Why Ordering Matters -->
+    <div class="nc">
+      <p class="nh">Why Write Ordering Matters</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">Wrong order → corruption</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Write Metadata
+↓ Power Failure
+↓ Data never written
+
+On reboot: metadata
+points to garbage data.</div>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Correct order → safe</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Write Data
+↓ Flush
+↓ Write Metadata
+↓ Commit
+
+Metadata only references
+fully-written data.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Concepts -->
+    <div class="nc">
+      <p class="nh">Core Concepts</p>
+      <table class="nt">
+        <thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Write Ordering</strong></td><td>Sequence in which writes become durable on media</td></tr>
+          <tr><td><strong>Barrier</strong></td><td>Prevents later writes from passing earlier writes</td></tr>
+          <tr><td><strong>Flush</strong></td><td>Forces device cache contents to persistent media</td></tr>
+          <tr><td><strong>FUA</strong></td><td>Force Unit Access — bypasses volatile cache on write</td></tr>
+          <tr><td><strong>Durability</strong></td><td>Data survives crashes and power failures</td></tr>
+          <tr><td><strong>Persistence</strong></td><td>Data physically written to non-volatile media</td></tr>
+          <tr><td><strong>Consistency</strong></td><td>Metadata and data remain logically correct</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Durability APIs -->
+    <div class="nc">
+      <p class="nh">Durability System Calls</p>
+      <table class="nt">
+        <thead><tr><th>API</th><th>Guarantees</th><th>Use When</th></tr></thead>
+        <tbody>
+          <tr><td><code>write()</code></td><td>Copies to page cache only</td><td>Buffered I/O (not durable)</td></tr>
+          <tr><td><code>fsync()</code></td><td>Flushes data + metadata</td><td>Critical data (DB transactions)</td></tr>
+          <tr><td><code>fdatasync()</code></td><td>Flushes file data only</td><td>Avoid metadata flush overhead</td></tr>
+          <tr><td><code>sync()</code></td><td>Flushes entire filesystem</td><td>System-wide flush (rare)</td></tr>
+          <tr><td><code>O_SYNC</code></td><td>Every write is synchronous</td><td>High-integrity sequential writes</td></tr>
+          <tr><td><code>O_DIRECT</code></td><td>Bypasses page cache entirely</td><td>Databases with own caching</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip"><code>fsync()</code> is the most common durability guarantee in databases (PostgreSQL WAL, Kafka log flush).</p>
+    </div>
+
+    <!-- Barriers & Flush -->
+    <div class="nc">
+      <p class="nh">Barriers &amp; Flush Commands</p>
+      <p class="text-sm text-gray-600 mb-2">A barrier ensures Write B cannot become durable before Write A.</p>
+      <div class="ncode">Write A
+↓ Barrier       ← storage cannot reorder past this
+↓ Write B
+
+Without barrier: controller may write B before A → corruption on crash.</div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Hardware flush commands</p>
+      <table class="nt">
+        <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>ATA FLUSH CACHE</code></td><td>HDD: write volatile cache to platters</td></tr>
+          <tr><td><code>NVMe FLUSH</code></td><td>SSD: commit controller cache to flash</td></tr>
+          <tr><td><code>REQ_FLUSH</code></td><td>Linux block layer flush request</td></tr>
+          <tr><td><code>REQ_FUA</code></td><td>Write directly to media, skip volatile cache</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Ordering per filesystem -->
+    <div class="nc">
+      <p class="nh">Write Ordering by Filesystem</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-violet-700">ext4 — Ordered Mode (default)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Data Blocks → Flush → Journal Commit → Metadata Update
+
+Guarantee: metadata never references unwritten data blocks.</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">XFS — Metadata Log</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Metadata Changes → Intent Log → Flush → Commit → FS Updated
+
+Log ensures recovery after crash; data ordering via barriers.</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">ZFS — Copy-on-Write</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Allocate New Blocks → Write Data → Checksum
+→ Atomic Pointer Update → Commit (TXG)
+
+Old data valid until new version safely committed.
+No journal replay required.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COW vs Journaling -->
+    <div class="nc">
+      <p class="nh">COW vs Journaling</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Journaling (ext4/XFS)</th><th>Copy-on-Write (ZFS)</th></tr></thead>
+        <tbody>
+          <tr><td>Update strategy</td><td>In-place + log</td><td>New blocks always</td></tr>
+          <tr><td>Crash recovery</td><td>Journal replay</td><td>Atomic pointer swap</td></tr>
+          <tr><td>Snapshots</td><td>External (LVM)</td><td>Native, instant</td></tr>
+          <tr><td>Write amplification</td><td>Low</td><td>Higher</td></tr>
+          <tr><td>Data integrity</td><td>Good</td><td>Excellent (checksums)</td></tr>
+          <tr><td>Barriers required</td><td>Yes</td><td>Mostly no</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Device Cache & PLP -->
+    <div class="nc">
+      <p class="nh">Device Cache &amp; Power Loss Protection</p>
+      <p class="text-sm text-gray-600 mb-2">Most storage devices buffer writes in volatile DRAM. Without protection, power loss destroys buffered data even after <code>fsync()</code>.</p>
+      <table class="nt">
+        <thead><tr><th>Hardware</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td>Consumer HDD</td><td>Volatile write cache — risky without barriers</td></tr>
+          <tr><td>Consumer SSD</td><td>FTL cache in DRAM — vulnerable to power loss</td></tr>
+          <tr><td>Enterprise SSD (PLP)</td><td>Supercapacitor flushes cache on power loss ✅</td></tr>
+          <tr><td>RAID Controller</td><td>DRAM cache — safe only with battery backup (BBU)</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Durability depends on hardware as much as software. A PLP SSD + correct <code>fsync()</code> = true durability.</p>
+    </div>
+
+    <!-- Database Perspective -->
+    <div class="nc">
+      <p class="nh">Database Perspective</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">PostgreSQL</p>
+          <div class="ncode" style="font-size:.71rem;padding:.45rem .65rem">BEGIN
+↓ Write WAL
+↓ fdatasync()
+↓ Commit
+↓ Update data pages</div>
+        </div>
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Kafka</p>
+          <div class="ncode" style="font-size:.71rem;padding:.45rem .65rem">Append to log
+↓ Flush (acks=all)
+↓ Ack producer
+
+Different ack policies
+trade durability for
+throughput.</div>
+        </div>
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Elasticsearch</p>
+          <div class="ncode" style="font-size:.71rem;padding:.45rem .65rem">Write to Translog
+↓ fsync()
+↓ Segment commit
+
+Ensures index
+consistency on crash.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Trade-offs -->
+    <div class="nc">
+      <p class="nh">Performance vs Durability Trade-offs</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Better Perf</th><th>Better Durability</th></tr></thead>
+        <tbody>
+          <tr><td>Write Cache</td><td>✔ Yes</td><td>❌ Risk on power loss</td></tr>
+          <tr><td>Barriers Disabled</td><td>✔ Higher throughput</td><td>❌ Corruption risk</td></tr>
+          <tr><td>fsync Every Write</td><td>❌ High latency</td><td>✔ Guaranteed safe</td></tr>
+          <tr><td>Batch / Group Commits</td><td>✔ Good balance</td><td>✔ Moderate</td></tr>
+          <tr><td>PLP Enterprise SSD</td><td>✔ Fast + safe</td><td>✔ Hardware guarantee</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Best approach: group commits + PLP SSD = high throughput AND durability.</p>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Does write() save my file?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Should we call fsync()?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Which layer actually guarantees durability?</li>
+            <li>Is the device cache PLP-protected?</li>
+            <li>Are barriers enabled on this volume?</li>
+            <li>Is the filesystem journal sufficient?</li>
+            <li>Does the database also use WAL?</li>
+            <li>Is double journaling increasing latency?</li>
+            <li>Can hardware guarantees replace software barriers?</li>
+            <li>Is throughput more important than durability here?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Data Lost After Crash</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Application relied only on <code>write()</code> &nbsp;·&nbsp; <strong>Fix:</strong> Use <code>fsync()</code> or synchronous commit</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Filesystem Corruption on Reboot</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Write reordering with barriers disabled &nbsp;·&nbsp; <strong>Fix:</strong> Enable barriers, use ordered journaling</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High fsync Latency</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Frequent device cache flushes on consumer SSD &nbsp;·&nbsp; <strong>Fix:</strong> PLP-enabled SSD or batch/group commits</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Database Writes</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Every transaction calls <code>fsync()</code> individually &nbsp;·&nbsp; <strong>Fix:</strong> Group commits or tune commit interval</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Unsafe Performance Optimization</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Write barriers disabled on cheap hardware &nbsp;·&nbsp; <strong>Fix:</strong> Only disable with battery-backed RAID or PLP SSD</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Requirement</th><th>Recommended Approach</th></tr></thead>
+        <tbody>
+          <tr><td>Maximum Durability</td><td><code>fsync()</code> + barriers + PLP SSD</td></tr>
+          <tr><td>Balanced Performance</td><td>ext4 Ordered Mode + group commits</td></tr>
+          <tr><td>Highest Throughput</td><td>Batched/group commits + async flush</td></tr>
+          <tr><td>Enterprise Storage</td><td>PLP SSD + FUA writes</td></tr>
+          <tr><td>Maximum Integrity</td><td>ZFS Copy-on-Write + checksums</td></tr>
+          <tr><td>Database WAL</td><td><code>fdatasync()</code> + ordered filesystem</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Verify write ordering (ordered vs writeback journal)</li>
+        <li class="text-sm text-gray-700">✅ Confirm barriers are enabled: <code>mount | grep barrier</code></li>
+        <li class="text-sm text-gray-700">✅ Inspect device write cache: <code>hdparm -I /dev/sda</code></li>
+        <li class="text-sm text-gray-700">✅ Verify Power Loss Protection (check SSD spec)</li>
+        <li class="text-sm text-gray-700">✅ Measure <code>fsync()</code> latency: <code>fio --fsync=1</code></li>
+        <li class="text-sm text-gray-700">✅ Check database WAL configuration</li>
+        <li class="text-sm text-gray-700">✅ Benchmark with <code>fio</code> before changing durability settings</li>
+        <li class="text-sm text-gray-700">✅ Validate crash recovery behavior in staging</li>
+        <li class="text-sm text-gray-700">✅ Never disable barriers without hardware-level guarantees</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">write() only copies to page cache — NOT durable.
+
+Durability chain:
+write() → fsync() → device flush → persistent media
+
+Write Ordering
+• Data must be durable before metadata references it
+• Barriers prevent storage controllers from reordering
+• Journaling (ext4/XFS) replays intent log after crash
+• COW (ZFS) commits atomically — no replay needed
+
+Key APIs
+• fsync()      → data + metadata to disk
+• fdatasync()  → data only (faster for DBs)
+• O_SYNC       → synchronous every write
+• FUA          → skip volatile cache on write
+
+Hardware matters
+• Consumer SSD: vulnerable to power loss
+• Enterprise SSD + PLP: safe even without fsync barriers
+• RAID + BBU: safe cache
+
+Staff picks: group commits + PLP SSD + ordered FS
+= best balance of throughput, latency, durability</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/cc3670f7-dd03-4322-9577-e496288ea3f1.png"
+        alt="Write Ordering, Barriers &amp; Durability visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

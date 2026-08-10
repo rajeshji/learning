@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>System Design Failure Patterns</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .domain { border-radius:1rem; padding:1.1rem 1.25rem; }
+    .chain { font-size:.72rem; font-family:'Courier New',monospace; font-weight:700;
+             letter-spacing:.03em; opacity:.9; line-height:1.6; }
+    .ask  { font-size:.68rem; color:#94a3b8; line-height:1.7; }
+    .ask li::before { content:"▸ "; opacity:.5; }
+    .mit-block { border-radius:.7rem; padding:.7rem .9rem; margin-top:.6rem; }
+    .mit-item { font-size:.68rem; font-family:'Courier New',monospace; line-height:1.8; }
+    .label { font-size:.58rem; font-weight:800; text-transform:uppercase;
+             letter-spacing:.1em; margin-bottom:.35rem; }
+    .section-hdr { font-size:.62rem; font-weight:800; letter-spacing:.12em;
+                   text-transform:uppercase; color:#475569; margin-bottom:.75rem; }
+    .ptag { display:inline-block; font-size:.62rem; font-weight:700; border-radius:999px;
+            padding:.15em .65em; margin:.1rem .1rem 0 0; }
+  </style>
+</head>
+<body class="bg-slate-950 min-h-screen text-white">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-slate-300 hover:text-white font-semibold
+              bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Failure Hub
+    </a>
+    <svg class="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="interview-cheat-sheet.html" class="text-slate-400 hover:text-slate-200 text-sm">Interview Cheat Sheet</a>
+    <svg class="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-200 font-semibold">Failure Patterns</span>
+    <span class="ml-auto text-xs text-slate-500">7 domains · memory chain → ask → mitigate</span>
+  </div>
+</header>
+
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-20">
+
+  <!-- CORE MODEL + PATTERN 5 -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+
+    <div class="rounded-2xl border border-purple-700 bg-purple-950 px-5 py-4">
+      <p class="label text-purple-400">System Core Model</p>
+      <p class="font-mono text-xs text-purple-200 leading-loose">System = Infra + Network + Service
+       + Data + Load + Dependency</p>
+      <div class="mt-3 h-px bg-purple-800"></div>
+      <p class="label text-purple-400 mt-3">Failure Thinking Loop</p>
+      <p class="font-mono text-xs text-purple-200 leading-loose">Failure → Detection → Mitigation → Prevention</p>
+    </div>
+
+    <div class="rounded-2xl border border-yellow-700 bg-yellow-950 px-5 py-4">
+      <p class="label text-yellow-400">Pattern Memory — 5 That Cover Everything</p>
+      <div class="flex flex-wrap gap-2 mt-1">
+        <span class="ptag bg-yellow-900 text-yellow-200">1 · Retry</span>
+        <span class="ptag bg-yellow-900 text-yellow-200">2 · Replicate</span>
+        <span class="ptag bg-yellow-900 text-yellow-200">3 · Cache</span>
+        <span class="ptag bg-yellow-900 text-yellow-200">4 · Queue</span>
+        <span class="ptag bg-yellow-900 text-yellow-200">5 · Isolate</span>
+      </div>
+      <div class="mt-3 h-px bg-yellow-800"></div>
+      <p class="label text-yellow-400 mt-3">Universal Mitigation Order</p>
+      <p class="font-mono text-xs text-yellow-200 leading-loose">Detect → Retry → Timeout → Circuit Breaker → Cache/Fallback → Scale</p>
+    </div>
+
+  </div>
+
+  <!-- 7 DOMAIN PATTERN CARDS -->
+  <p class="section-hdr">7 Domain Failure Patterns — Memory Chain → Ask → Mitigate</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-10">
+
+    <!-- 1 INFRA -->
+    <div class="domain bg-slate-800 border border-slate-600">
+      <p class="label text-slate-300">1 · Infrastructure</p>
+      <p class="chain text-slate-200">Machine → Disk → Network → Power → Region → Load</p>
+      <p class="text-slate-500 text-xs font-mono mt-1 mb-2">Compute + Storage + Network + Power + Environment</p>
+      <ul class="ask list-none pl-0 mb-2">
+        <li>Is the machine alive?</li>
+        <li>Is disk readable/writable?</li>
+        <li>Is the network reachable?</li>
+        <li>Is power / AZ healthy?</li>
+        <li>Can it handle current load?</li>
+      </ul>
+      <div class="mit-block bg-slate-700">
+        <p class="label text-slate-400">Mitigation Pattern</p>
+        <p class="mit-item text-slate-200">1. Health check + auto-heal (recover)
+2. Replication + failover (survive)
+3. Autoscaling (handle load)
+4. Multi-AZ / multi-region (redundancy)
+5. Backup + restore (last resort)</p>
+      </div>
+    </div>
+
+    <!-- 2 NETWORK -->
+    <div class="domain bg-blue-950 border border-blue-800">
+      <p class="label text-blue-400">2 · Network</p>
+      <p class="chain text-blue-200">Connectivity → Latency → Routing → Resolution → Security</p>
+      <p class="text-blue-500 text-xs font-mono mt-1 mb-2">partition · latency · routing · DNS · TLS</p>
+      <ul class="ask list-none pl-0 mb-2 text-slate-400 text-xs">
+        <li>Can I reach it? (partition / DNS)</li>
+        <li>Is it slow? (latency / packet loss)</li>
+        <li>Am I at the right place? (routing / LB)</li>
+        <li>Can I resolve the name? (DNS)</li>
+        <li>Is something blocking it? (security / TLS)</li>
+      </ul>
+      <div class="mit-block bg-blue-900">
+        <p class="label text-blue-400">Mitigation Pattern</p>
+        <p class="mit-item text-blue-200">1. Retry with backoff (transient)
+2. Timeout + fail fast (latency)
+3. Circuit breaker (persistent)
+4. Cache / fallback (serve something)
+5. Load balance (route properly)</p>
+      </div>
+    </div>
+
+    <!-- 3 APPLICATION -->
+    <div class="domain bg-orange-950 border border-orange-800">
+      <p class="label text-orange-400">3 · Application / Service</p>
+      <p class="chain text-orange-200">Down → Slow → Exhausted → Blocked → Dependency → Deploy</p>
+      <p class="text-orange-600 text-xs font-mono mt-1 mb-2">crash · latency · CPU/mem/threads · deadlock</p>
+      <ul class="ask list-none pl-0 mb-2 text-slate-400 text-xs">
+        <li>Is the service down? (crash)</li>
+        <li>Is it slow? (latency spike)</li>
+        <li>Is it overloaded? (CPU/mem/threads)</li>
+        <li>Is it blocked? (deadlock / lock)</li>
+        <li>Is it broken by dependency?</li>
+        <li>Is it broken by a deploy?</li>
+      </ul>
+      <div class="mit-block bg-orange-900">
+        <p class="label text-orange-400">Mitigation Pattern</p>
+        <p class="mit-item text-orange-200">1. Restart (recover from crash)
+2. Scale (handle load)
+3. Retry (transient failure)
+4. Cache (reduce dependency)
+5. Isolate (circuit breaker / rate limit)</p>
+      </div>
+    </div>
+
+    <!-- 4 DATA CONSISTENCY -->
+    <div class="domain bg-violet-950 border border-violet-800">
+      <p class="label text-violet-400">4 · Data Consistency</p>
+      <p class="chain text-violet-200">Missing → Duplicate → Stale → Out-of-Order → Conflict → Partial</p>
+      <p class="text-violet-600 text-xs font-mono mt-1 mb-2">ordering · duplication · missing · stale · conflicts</p>
+      <ul class="ask list-none pl-0 mb-2 text-slate-400 text-xs">
+        <li>Can data be lost? (durability)</li>
+        <li>Can it be duplicated? (idempotency)</li>
+        <li>Can it be stale? (consistency model)</li>
+        <li>Can it arrive out of order? (ordering)</li>
+        <li>Can it be partially written? (transactions)</li>
+        <li>Can it conflict? (concurrency)</li>
+      </ul>
+      <div class="mit-block bg-violet-900">
+        <p class="label text-violet-400">Mitigation Pattern</p>
+        <p class="mit-item text-violet-200">1. Idempotency → no duplicates
+2. Transactions / Saga → no partial state
+3. Ordering → no out-of-order events
+4. Consistency model → no stale reads
+5. Reconciliation → fix mismatches</p>
+      </div>
+    </div>
+
+    <!-- 5 LOAD/TRAFFIC -->
+    <div class="domain bg-red-950 border border-red-800">
+      <p class="label text-red-400">5 · Load / Traffic</p>
+      <p class="chain text-red-200">Too Much → Uneven → Bursty → Repeated → Slow Processing</p>
+      <p class="text-red-600 text-xs font-mono mt-1 mb-2">spike · hotspot · retry storm · queue backlog · cascade</p>
+      <ul class="ask list-none pl-0 mb-2 text-slate-400 text-xs">
+        <li>Can traffic increase suddenly?</li>
+        <li>Is traffic distributed unevenly?</li>
+        <li>Do retries multiply the load?</li>
+        <li>Does slow processing cause backlog?</li>
+        <li>Can one failure cascade to others?</li>
+      </ul>
+      <div class="mit-block bg-red-900">
+        <p class="label text-red-400">Mitigation Pattern</p>
+        <p class="mit-item text-red-200">1. Scale (autoscale / replicas)
+2. Throttle (rate limit / backpressure)
+3. Buffer (queues / async)
+4. Cache (reduce work per request)
+5. Isolate (circuit breaker / bulkhead)</p>
+      </div>
+    </div>
+
+    <!-- 6 DEPENDENCY -->
+    <div class="domain bg-amber-950 border border-amber-800">
+      <p class="label text-amber-400">6 · Dependency</p>
+      <p class="chain text-amber-200">Down → Slow → Partial → Incorrect → Overloaded → Incompatible</p>
+      <p class="text-amber-600 text-xs font-mono mt-1 mb-2">unavailable · timeout · wrong data · version mismatch</p>
+      <ul class="ask list-none pl-0 mb-2 text-slate-400 text-xs">
+        <li>Is the dependency unavailable?</li>
+        <li>Is it slow / timing out?</li>
+        <li>Is it partially failing?</li>
+        <li>Is it returning wrong data?</li>
+        <li>Is it overloaded / incompatible?</li>
+      </ul>
+      <div class="mit-block bg-amber-900">
+        <p class="label text-amber-400">Mitigation Pattern</p>
+        <p class="mit-item text-amber-200">1. Retry (transient failures)
+2. Timeout (avoid blocking forever)
+3. Circuit breaker (stop bad calls)
+4. Fallback (degraded response)
+5. Decouple (async / caching)</p>
+      </div>
+    </div>
+
+    <!-- 7 DISTRIBUTED -->
+    <div class="domain bg-indigo-950 border border-indigo-800">
+      <p class="label text-indigo-400">7 · Distributed System</p>
+      <p class="chain text-indigo-200">Partition → Coordination → Replication → Ordering → Time → Tx</p>
+      <p class="text-indigo-600 text-xs font-mono mt-1 mb-2">split brain · replica lag · duplicates · clock skew · Saga</p>
+      <ul class="ask list-none pl-0 mb-2 text-slate-400 text-xs">
+        <li>Can nodes communicate? (partition)</li>
+        <li>Can they agree? (consensus)</li>
+        <li>Is data same everywhere? (replication)</li>
+        <li>Are events in order? (ordering)</li>
+        <li>Is time consistent? (clock skew)</li>
+        <li>Is workflow complete? (transaction)</li>
+      </ul>
+      <div class="mit-block bg-indigo-900">
+        <p class="label text-indigo-400">Mitigation Pattern</p>
+        <p class="mit-item text-indigo-200">1. Consensus (Raft/Paxos) → coordinate
+2. Quorum → consistent reads/writes
+3. Idempotency → handle duplicates
+4. Ordering → event correctness
+5. Saga / reconciliation → recovery</p>
+      </div>
+    </div>
+
+  </div><!-- /domain cards -->
+
+  <!-- PATTERN QUICK-FIRE REFERENCE -->
+  <p class="section-hdr">Cross-Domain Pattern Quick Reference</p>
+  <div class="rounded-xl border border-slate-700 bg-slate-900 px-5 py-4 mb-6 overflow-x-auto">
+    <pre class="font-mono text-xs leading-loose">
+<span class="text-yellow-400">PROBLEM                     PATTERN                     TOOL</span>
+─────────────────────────────────────────────────────────────────────
+<span class="text-red-300">Traffic spike          →    Absorb + Throttle      →    autoscale · CDN · rate limit</span>
+<span class="text-red-300">Retry storm            →    Backoff + Isolate      →    exp backoff + jitter · circuit breaker</span>
+<span class="text-red-300">Hot partition          →    Distribute + Cache     →    consistent hash · local cache</span>
+<span class="text-orange-300">Service crash          →    Recover + Replicate    →    health check · restart · replica</span>
+<span class="text-orange-300">Thread exhaustion      →    Isolate + Async        →    bulkhead · non-blocking IO</span>
+<span class="text-blue-300">Network partition      →    Fail closed + Retry    →    circuit breaker · quorum</span>
+<span class="text-blue-300">DNS failure            →    Cache + Fallback       →    DNS TTL · local resolve cache</span>
+<span class="text-violet-300">Lost write             →    Durability + WAL       →    fsync · replicated WAL</span>
+<span class="text-violet-300">Duplicate processing   →    Idempotency            →    idempotency key · dedup store</span>
+<span class="text-violet-300">Stale read             →    Consistency model      →    leader read · quorum read</span>
+<span class="text-violet-300">Partial write          →    Atomicity              →    transaction · Saga + compensation</span>
+<span class="text-amber-300">Dep outage             →    Fallback + Decouple    →    cache · async · circuit breaker</span>
+<span class="text-amber-300">Dep slow               →    Timeout + Fail fast    →    per-dep timeout · bulkhead</span>
+<span class="text-indigo-300">Split brain            →    Consensus + Fence      →    Raft · epoch fencing · STONITH</span>
+<span class="text-indigo-300">Replication lag        →    Quorum + Routing       →    quorum read · route to primary</span>
+<span class="text-indigo-300">Clock skew             →    Logical time           →    Lamport clocks · HLC · fencing token</span>
+    </pre>
+  </div>
+
+  <!-- SUMMARY ONE-CARD -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="rounded-xl border border-green-700 bg-green-950 px-4 py-4">
+      <p class="label text-green-400">Detection Signals — What to Monitor</p>
+      <pre class="font-mono text-xs text-green-200 leading-loose">Latency (P99)    → slow / backpressure
+Error rate       → failure / dependency
+Queue depth      → backlog / consumer lag
+CPU / Memory     → saturation / OOM
+Cache hit ratio  → stampede / cold start
+Replica lag      → consistency risk
+Connection pool  → exhaustion
+Election events  → coordination instability</pre>
+    </div>
+    <div class="rounded-xl border border-cyan-700 bg-cyan-950 px-4 py-4">
+      <p class="label text-cyan-400">Interview Answer Skeleton</p>
+      <pre class="font-mono text-xs text-cyan-200 leading-loose">"First I identify the domain:
+  infra / network / app / data / load / dep / dist
+
+Then I ask my memory chain question for that domain.
+
+Then I apply mitigations in order:
+  detect → retry → timeout → circuit breaker
+  → cache/fallback → scale → isolate
+
+Then I discuss trade-offs."</pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

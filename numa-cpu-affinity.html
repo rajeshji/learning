@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NUMA &amp; CPU Affinity — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d95; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .nt td:last-child { text-align:right; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .nqa dt { font-weight:700; color:#4c1d95; font-size:.8rem; margin-top:.8rem; }
+    .nqa dd { color:#374151; font-size:.79rem; line-height:1.7;
+              margin:0; padding-left:.85rem; border-left:2px solid #c4b5fd; margin-top:.2rem; }
+    .nqa dd ul { margin:.3rem 0 0 1.1rem; list-style:disc; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* tier badge */
+    .tier-badge { display:inline-flex; align-items:center; gap:.4rem;
+                  background:#fef3c7; border:1px solid #fcd34d; color:#92400e;
+                  font-size:.7rem; font-weight:700; padding:.3em .8em;
+                  border-radius:999px; text-transform:uppercase; letter-spacing:.06em; }
+
+    /* scenario cards */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+
+    /* green card */
+    .nc-green { background:#f0fdf4; border:1px solid #bbf7d0;
+                border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-green { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+                text-transform:uppercase; color:#16a34a; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">NUMA &amp; CPU Affinity</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">NUMA &amp; CPU Affinity</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Non-Uniform Memory Access — Staff/Principal Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Tier Badge + Why It Matters -->
+    <div class="nc">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="tier-badge">⭐ Staff / Principal Engineer Topic</span>
+      </div>
+      <p class="nh">Why This Matters</p>
+      <p class="nq">NUMA and CPU Affinity explain why a service at <strong>40% CPU utilization can still have terrible latency</strong> — a gap that separates Senior from Staff Engineers.</p>
+    </div>
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="text-sm text-gray-600 mb-3">Modern high-performance servers contain multiple CPU sockets, multiple NUMA nodes, local memory per CPU, and high-speed interconnects. This is <strong>NUMA — Non-Uniform Memory Access</strong>.</p>
+      <p class="nq"><strong>Memory close to a CPU is fast. Memory attached to another CPU is slower.</strong></p>
+      <p class="text-sm text-gray-600 mt-3">Where a thread runs and where its memory is allocated directly affects application latency.</p>
+      <div class="ncode">Old model:
+CPU → Shared RAM
+
+Modern NUMA model:
+CPU Socket 0 → Local RAM 0
+CPU Socket 1 → Local RAM 1
+Socket 0 ←→ Socket 1 (interconnect)</div>
+    </div>
+
+    <!-- Why NUMA Exists -->
+    <div class="nc">
+      <p class="nh">Why NUMA Exists</p>
+      <p class="text-sm text-gray-600 mb-2">As servers scaled to 32, 64, 128, 256 cores, a single memory controller became the bottleneck. NUMA solves this by dividing hardware into multiple nodes — each CPU owns its own memory controller and RAM.</p>
+    </div>
+
+    <!-- NUMA Node -->
+    <div class="nc">
+      <p class="nh">What is a NUMA Node?</p>
+      <p class="text-sm text-gray-600 mb-2">A NUMA node consists of: CPU cores, Memory Controller, Local RAM, and Shared Last-Level Cache.</p>
+      <div class="ncode">NUMA Node 0          NUMA Node 1
+─────────────        ─────────────
+CPU 0                CPU 2
+CPU 1                CPU 3
+Local Memory         Local Memory
+Memory Controller    Memory Controller</div>
+      <p class="ntip">Each node accesses its own memory much faster than the other node's memory.</p>
+    </div>
+
+    <!-- Local vs Remote Memory -->
+    <div class="nc">
+      <p class="nh">Local Memory vs Remote Memory</p>
+      <div class="ncode">Thread on CPU 0 → Local Memory (Node 0)
+↓
+Fast
+
+Thread on CPU 0 → Remote Memory (Node 1)
+↓
+CPU Interconnect (UPI / Infinity Fabric)
+↓
+Remote Memory Controller
+↓
+Slower</div>
+    </div>
+
+    <!-- Latency Numbers -->
+    <div class="nc">
+      <p class="nh">Memory Latency Numbers</p>
+      <table class="nt">
+        <thead><tr><th>Memory Access</th><th style="text-align:right">Approximate Latency</th></tr></thead>
+        <tbody>
+          <tr><td>L1 Cache</td><td style="text-align:right">~1 ns</td></tr>
+          <tr><td>L2 Cache</td><td style="text-align:right">~4 ns</td></tr>
+          <tr><td>L3 Cache</td><td style="text-align:right">~10–20 ns</td></tr>
+          <tr><td>Local NUMA RAM</td><td style="text-align:right">~80–100 ns</td></tr>
+          <tr><td>Remote NUMA RAM</td><td style="text-align:right">~130–250 ns</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Remote memory can be <strong>1.5–3× slower</strong> than local memory depending on hardware.</p>
+    </div>
+
+    <!-- CPU Affinity -->
+    <div class="nc">
+      <p class="nh">What is CPU Affinity?</p>
+      <p class="text-sm text-gray-600 mb-2">Linux normally migrates threads between cores for load balancing, causing cache misses. CPU Affinity pins a thread to specific cores.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-red-400 uppercase tracking-wide mb-1">Without Affinity</p>
+          <div class="ncode">Thread
+→ CPU 1
+→ CPU 6
+→ CPU 2
+→ CPU 10
+(cache cold each time)</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-1">With Affinity</p>
+          <div class="ncode">Thread
+→ CPU 3
+→ CPU 3
+→ CPU 3
+(cache stays warm)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why CPU Affinity Matters -->
+    <div class="nc">
+      <p class="nh">Why CPU Affinity Matters</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Thread stays on one CPU</p>
+          <ul class="dot-ul">
+            <li>Cache remains warm</li>
+            <li>Fewer cache misses</li>
+            <li>Better NUMA locality</li>
+            <li>Fewer CPU migrations</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-red-400 uppercase tracking-wide mb-1">Thread migrates frequently</p>
+          <ul class="dot-ul">
+            <li>L1/L2/L3 caches lost</li>
+            <li>More remote memory access</li>
+            <li>Higher latency</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- NUMA + Affinity Together -->
+    <div class="nc">
+      <p class="nh">NUMA + CPU Affinity Together</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-1">Ideal</p>
+          <div class="ncode">Thread
+↓
+CPU Core (Node 0)
+↓
+Local NUMA Memory (Node 0)
+↓
+Fast Execution</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-red-400 uppercase tracking-wide mb-1">Bad</p>
+          <div class="ncode">Thread
+↓
+CPU (Node 0)
+↓
+Memory on Node 1
+↓
+Remote Access
+↓
+Higher Latency</div>
+        </div>
+      </div>
+      <p class="ntip">Keep both the <strong>thread</strong> and its <strong>memory</strong> on the same NUMA node.</p>
+    </div>
+
+    <!-- First-Touch Policy -->
+    <div class="nc">
+      <p class="nh">First-Touch Memory Allocation (Linux)</p>
+      <p class="text-sm text-gray-600 mb-2">Linux allocates memory on the NUMA node where it is <strong>first accessed</strong>.</p>
+      <div class="ncode">Thread on NUMA 0
+↓
+malloc()
+↓
+First Write
+↓
+Memory allocated on Node 0</div>
+      <p class="text-sm text-gray-600 mt-2">If another CPU later executes the thread, memory may become remote, increasing latency.</p>
+    </div>
+
+    <!-- Real Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <table class="nt">
+        <thead><tr><th>System</th><th>NUMA Impact</th><th>Optimization</th></tr></thead>
+        <tbody>
+          <tr><td><strong>PostgreSQL</strong></td><td>Buffer cache on wrong NUMA node → every page access crosses interconnect</td><td>Pin workers + memory to same node</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>Thread migration → cache misses, lower throughput</td><td>Pin networking threads to dedicated cores</td></tr>
+          <tr><td><strong>Nginx</strong></td><td>Workers migrating → cache cold</td><td>Pin each worker to a CPU core</td></tr>
+          <tr><td><strong>Kubernetes</strong></td><td>Pod moves between NUMA nodes → latency spikes</td><td>CPU Manager + Topology Manager</td></tr>
+          <tr><td><strong>Elasticsearch</strong></td><td>Heap spread across nodes → GC and access slower</td><td>NUMA-aware JVM settings</td></tr>
+          <tr><td><strong>Redis</strong></td><td>Cache misses from CPU migration</td><td>Dedicated CPU cores via affinity</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Linux Tools -->
+    <div class="nc">
+      <p class="nh">Linux NUMA Tools</p>
+      <div class="ncode">lscpu              # CPU topology + NUMA node info
+numactl --hardware # NUMA nodes, distances, memory
+numastat           # Remote vs local memory usage per node
+taskset -cp &lt;pid&gt;  # Get/set CPU affinity for a process
+numactl            # Run process with NUMA policy
+hwloc              # Detailed hardware topology
+perf stat          # Cache miss rates
+perf sched         # CPU migration stats
+pidstat -w         # Context switch rate per process</div>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">CPU usage is only 40%. Why is the app slow?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Is there lock contention?</p>
+        </div>
+        <div class="space-y-1">
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Are threads migrating between NUMA nodes?</li>
+            <li>Is memory local or remote?</li>
+            <li>How many remote memory accesses occur?</li>
+            <li>Are CPU migrations destroying cache locality?</li>
+            <li>Should latency-sensitive threads be pinned?</li>
+            <li>Should memory allocation follow NUMA topology?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failure Scenarios -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-orange-800">High CPU Migrations</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Scheduler frequently moves threads &nbsp;·&nbsp; <strong>Impact:</strong> Cache misses and higher latency &nbsp;·&nbsp; <strong>Fix:</strong> Pin critical threads using CPU affinity</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">NUMA Imbalance</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Memory on Node 1, threads on Node 0 &nbsp;·&nbsp; <strong>Impact:</strong> Remote memory access increases latency &nbsp;·&nbsp; <strong>Fix:</strong> Use <code>numactl</code> or NUMA-aware allocators</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Kubernetes Latency Spikes</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Pod scheduled across multiple NUMA nodes &nbsp;·&nbsp; <strong>Impact:</strong> Cross-node memory traffic &nbsp;·&nbsp; <strong>Fix:</strong> Enable Topology Manager + CPU Manager</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">JVM Performance Regression</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Large heap spread across NUMA nodes &nbsp;·&nbsp; <strong>Impact:</strong> GC and memory access slower &nbsp;·&nbsp; <strong>Fix:</strong> NUMA-aware JVM settings + aligned thread placement</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Approach</th></tr></thead>
+        <tbody>
+          <tr><td>General web application</td><td>Default Linux scheduling</td></tr>
+          <tr><td>High-throughput database</td><td>NUMA-aware memory allocation</td></tr>
+          <tr><td>Low-latency trading engine</td><td>CPU affinity + NUMA pinning</td></tr>
+          <tr><td>Kafka broker</td><td>Pin network and I/O threads</td></tr>
+          <tr><td>Redis cache</td><td>Dedicated CPU cores</td></tr>
+          <tr><td>Kubernetes latency-sensitive pod</td><td>CPU Manager + Topology Manager</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- NUMA vs CPU Affinity -->
+    <div class="nc">
+      <p class="nh">NUMA vs CPU Affinity</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>NUMA</th><th>CPU Affinity</th></tr></thead>
+        <tbody>
+          <tr><td>Focus</td><td>Memory locality</td><td>CPU execution locality</td></tr>
+          <tr><td>Goal</td><td>Keep memory close to CPU</td><td>Keep thread on same CPU</td></tr>
+          <tr><td>Benefit</td><td>Lower memory latency</td><td>Better cache locality</td></tr>
+          <tr><td>Prevents</td><td>Remote memory access</td><td>CPU migrations</td></tr>
+          <tr><td>Best For</td><td>Databases, JVMs, analytics</td><td>Nginx, Kafka, Redis, trading</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <p class="text-xs text-gray-500 mb-2">When latency increases unexpectedly:</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Check CPU migrations (<code>perf sched</code>, <code>pidstat -w</code>)</li>
+        <li class="text-sm text-gray-700">✅ Inspect NUMA topology (<code>numactl --hardware</code>, <code>lscpu</code>)</li>
+        <li class="text-sm text-gray-700">✅ Measure remote memory usage (<code>numastat</code>)</li>
+        <li class="text-sm text-gray-700">✅ Verify CPU affinity (<code>taskset -cp &lt;pid&gt;</code>)</li>
+        <li class="text-sm text-gray-700">✅ Check cache miss rates (<code>perf stat</code>)</li>
+        <li class="text-sm text-gray-700">✅ Ensure memory and threads are on the same NUMA node</li>
+        <li class="text-sm text-gray-700">✅ Review Kubernetes CPU/Topology Manager settings if in containers</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">NUMA
+• Organizes servers into CPU–memory nodes.
+• Local memory access is significantly faster than remote.
+• Remote memory = 1.5–3× slower latency.
+
+CPU Affinity
+• Pins threads to specific cores.
+• Preserves cache locality across requests.
+• Prevents costly CPU migrations.
+
+Together
+• Keep thread + memory on the same NUMA node.
+• Poor placement causes latency even at 40% CPU.
+• Optimize for: databases, Kafka, JVM, K8s, trading.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/5591a16e-e375-492f-9eac-d9e3e3ec9818.png"
+        alt="NUMA &amp; CPU Affinity visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

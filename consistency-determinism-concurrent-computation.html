@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Consistency &amp; Determinism in Concurrent Computation — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .check-ul { list-style:none; padding-left:4px; }
+    .check-ul li { margin-bottom:6px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Consistency &amp; Determinism in Concurrent Computation</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Consistency &amp; Determinism in Concurrent Computation</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Memory Models, Correctness, Repeatability &amp; Production Design</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- ═══════════════════ TEXT TAB ═══════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">THE BIG PICTURE</div>
+      <div class="nh">🌍 Two Pillars of Correct Concurrent Systems</div>
+      <p class="text-gray-700 mb-3">Concurrency introduces uncertainty because multiple threads execute independently and their operations may interleave differently on every run. A correct concurrent system must ensure:</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+        <div style="background:#ede9fe;border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">🏛️</div>
+          <div class="font-bold text-violet-700 text-lg mb-1">Consistency</div>
+          <div style="background:#7c3aed;color:#fff;border-radius:20px;padding:2px 14px;font-size:0.8rem;font-weight:700;display:inline-block;margin-bottom:8px;">Correct Shared State</div>
+          <p class="text-gray-600 text-sm">Every thread observes a valid and coherent view of shared data — memory never enters an invalid state</p>
+        </div>
+        <div style="background:#ede9fe;border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">🎯</div>
+          <div class="font-bold text-violet-700 text-lg mb-1">Determinism</div>
+          <div style="background:#7c3aed;color:#fff;border-radius:20px;padding:2px 14px;font-size:0.8rem;font-weight:700;display:inline-block;margin-bottom:8px;">Predictable Behaviour</div>
+          <p class="text-gray-600 text-sm">Same input produces the same logical result regardless of thread scheduling or execution timing</p>
+        </div>
+      </div>
+      <table class="nt">
+        <thead><tr><th>Property</th><th>Consistency</th><th>Determinism</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Focus</strong></td><td>Shared state</td><td>Program behaviour</td></tr>
+          <tr><td><strong>Guarantees</strong></td><td>Valid memory state at all times</td><td>Repeatable, predictable results</td></tr>
+          <tr><td><strong>Depends on</strong></td><td>Visibility + ordering</td><td>Race-free execution</td></tr>
+          <tr><td><strong>Achieved by</strong></td><td>Locks, atomics, memory model</td><td>Ordering, idempotency, isolation</td></tr>
+          <tr><td><strong>Can exist alone?</strong></td><td>Yes</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Consistency -->
+    <div class="nc">
+      <div class="section-badge">CONSISTENCY</div>
+      <div class="nh">1️⃣ Consistency — Valid Shared State at All Times</div>
+      <p class="text-gray-700 mb-3">Consistency means <strong>every thread observes a valid and coherent view of shared data</strong>, even while multiple threads access or modify it. It preserves invariants — no thread sees partial writes or invalid intermediate state.</p>
+      <div class="ncode">// Example: Bank account — two concurrent operations
+balance = 100
+
+Thread A: withdraw(50)   → balance = balance - 50
+Thread B: deposit(20)    → balance = balance + 20
+
+WITHOUT synchronization — possible races:
+  Both read balance=100 → A writes 50, B writes 120 → LOST UPDATE
+  Final: 120 ❌ (B's deposit overwrote A's withdrawal)
+
+WITH synchronization:
+  A reads 100, writes 50; B reads 50, writes 70
+  Final: 70 ✅  (100 - 50 + 20 = 70)</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Memory Consistency Models</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Model</th><th>Description</th><th>Performance</th><th>Typical Usage</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Sequential Consistency</strong></td><td>One global execution order — all threads agree on total order of all ops</td><td>Lowest</td><td>Critical correctness; Java volatile default</td></tr>
+          <tr><td><strong>Acquire-Release</strong></td><td>Partial ordering — release synchronizes-with paired acquire</td><td>Medium</td><td>Lock-free algorithms, producer-consumer</td></tr>
+          <tr><td><strong>Relaxed</strong></td><td>Maximum reordering allowed — atomicity only</td><td>Highest</td><td>Statistics, independent counters</td></tr>
+          <tr><td><strong>Eventual Consistency</strong></td><td>Replicas converge over time — temporary divergence allowed</td><td>Highest</td><td>Distributed systems (Cassandra, DynamoDB)</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">Mechanisms That Provide Consistency</p>
+      <table class="nt">
+        <thead><tr><th>Mechanism</th><th>Purpose</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Mutex / Lock</strong></td><td>Mutual exclusion — only one thread in critical section</td><td>High (kernel)</td></tr>
+          <tr><td><strong>RW Lock</strong></td><td>Shared reads, exclusive writes</td><td>Medium</td></tr>
+          <tr><td><strong>Atomic Variables</strong></td><td>Lock-free single-variable updates</td><td>Low</td></tr>
+          <tr><td><strong>Volatile</strong></td><td>Visibility guarantee — latest value always visible</td><td>Low</td></tr>
+          <tr><td><strong>Memory Fence</strong></td><td>Prevent CPU/compiler reordering</td><td>Low–Medium</td></tr>
+          <tr><td><strong>Immutable Objects</strong></td><td>Eliminate shared mutation — no synchronization needed</td><td>Lowest</td></tr>
+          <tr><td><strong>MVCC</strong></td><td>Snapshot isolation — readers don't block writers</td><td>Medium</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Determinism -->
+    <div class="nc">
+      <div class="section-badge">DETERMINISM</div>
+      <div class="nh">2️⃣ Determinism — Same Input, Same Output, Always</div>
+      <p class="text-gray-700 mb-3">Determinism means: <strong>same input → same logical output regardless of thread scheduling or execution timing.</strong> The execution order may differ, but the observable result must remain identical.</p>
+      <div class="ncode">// NON-DETERMINISTIC — result depends on scheduling:
+int counter = 0;
+Thread A: counter++;    // may execute first or second
+Thread B: counter++;    // interleaving determines final value
+
+Possible results: counter=1 (lost update) or counter=2 (correct)
+→ Non-deterministic — different result each run ❌
+
+// DETERMINISTIC — result is always correct regardless of order:
+AtomicInteger counter = new AtomicInteger(0);
+Thread A: counter.incrementAndGet();    // CAS — always atomic
+Thread B: counter.incrementAndGet();    // CAS — always atomic
+
+Result: always 2 ✅ — regardless of which thread runs first</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Why Programs Become Non-Deterministic</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;text-align:center;font-size:0.85rem;"><div style="font-size:1.2rem;">🏁</div><div class="font-semibold text-orange-700 mt-1">Race Conditions</div></div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;text-align:center;font-size:0.85rem;"><div style="font-size:1.2rem;">📅</div><div class="font-semibold text-orange-700 mt-1">OS Scheduling</div></div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;text-align:center;font-size:0.85rem;"><div style="font-size:1.2rem;">🔀</div><div class="font-semibold text-orange-700 mt-1">CPU Reordering</div></div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;text-align:center;font-size:0.85rem;"><div style="font-size:1.2rem;">👁️</div><div class="font-semibold text-orange-700 mt-1">Visibility Issues</div></div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;text-align:center;font-size:0.85rem;"><div style="font-size:1.2rem;">🌐</div><div class="font-semibold text-orange-700 mt-1">Network Timing</div></div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;text-align:center;font-size:0.85rem;"><div style="font-size:1.2rem;">🔁</div><div class="font-semibold text-orange-700 mt-1">Distributed Retries</div></div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;text-align:center;font-size:0.85rem;"><div style="font-size:1.2rem;">⏰</div><div class="font-semibold text-orange-700 mt-1">Clock Differences</div></div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;text-align:center;font-size:0.85rem;"><div style="font-size:1.2rem;">📦</div><div class="font-semibold text-orange-700 mt-1">Partition Ordering</div></div>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-1">Determinism Techniques</p>
+      <table class="nt">
+        <thead><tr><th>Technique</th><th>Benefit</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Atomic Operations</strong></td><td>Predictable single-variable updates</td><td><code>AtomicInteger.incrementAndGet()</code></td></tr>
+          <tr><td><strong>Locks</strong></td><td>Ordered access to critical sections</td><td>Synchronized balance update</td></tr>
+          <tr><td><strong>Message Passing</strong></td><td>No shared state — no races</td><td>Go channels, Kafka events</td></tr>
+          <tr><td><strong>Immutable Data</strong></td><td>No races — data never changes</td><td>Java records, Scala case classes</td></tr>
+          <tr><td><strong>Idempotency</strong></td><td>Safe retries — same result each call</td><td>Payment idempotency key</td></tr>
+          <tr><td><strong>Event Ordering</strong></td><td>Repeatable processing of ordered streams</td><td>Kafka partition ordering</td></tr>
+          <tr><td><strong>Snapshot Isolation</strong></td><td>Stable reads during concurrent writes</td><td>MVCC in PostgreSQL</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World -->
+    <div class="nc">
+      <div class="section-badge">REAL-WORLD EXAMPLES</div>
+      <div class="nh">Production System Mapping</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Consistency Concern</th><th>Determinism Concern</th></tr></thead>
+        <tbody>
+          <tr><td><strong>API Gateway</strong></td><td>Shared rate-limit counters, cache updates</td><td>Idempotent request retries</td></tr>
+          <tr><td><strong>Payment System</strong></td><td>Account balance must be correct</td><td>Same payment never charged twice</td></tr>
+          <tr><td><strong>Kafka Consumer</strong></td><td>Offset commit consistency</td><td>Exactly-once processing</td></tr>
+          <tr><td><strong>Chat System</strong></td><td>User session state</td><td>Message ordering preserved</td></tr>
+          <tr><td><strong>Search Engine</strong></td><td>Index update consistency</td><td>Same query → stable ranking</td></tr>
+          <tr><td><strong>Distributed Cache</strong></td><td>Cache coherence across nodes</td><td>Deterministic invalidation</td></tr>
+          <tr><td><strong>Recommendation Engine</strong></td><td>Feature store consistency</td><td>Stable ranking for same input</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Trade-offs -->
+    <div class="nc">
+      <div class="section-badge">TRADE-OFFS</div>
+      <div class="nh">Consistency &amp; Determinism Trade-offs</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Strong Consistency vs Relaxed</p>
+          <table class="nt">
+            <thead><tr><th>Strong</th><th>Relaxed</th></tr></thead>
+            <tbody>
+              <tr><td>Easier reasoning</td><td>Higher throughput</td></tr>
+              <tr><td>Correct invariants</td><td>Better scalability</td></tr>
+              <tr><td>More synchronization</td><td>Lower latency</td></tr>
+              <tr><td>Lower concurrency</td><td>Higher parallelism</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Deterministic vs Non-Deterministic</p>
+          <table class="nt">
+            <thead><tr><th>Deterministic</th><th>Non-Deterministic</th></tr></thead>
+            <tbody>
+              <tr><td>Easier debugging</td><td>Faster execution</td></tr>
+              <tr><td>Repeatable tests</td><td>Better scalability</td></tr>
+              <tr><td>Safe retries</td><td>More complex debugging</td></tr>
+              <tr><td>More synchronization</td><td>Less coordination</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ntip mt-3"><strong>Staff principle:</strong> Choose the <em>weakest</em> consistency and determinism guarantees that still satisfy your business requirements. Paying for sequential consistency on a metrics counter is waste; paying for eventual consistency on a payment system is a bug.</div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION FAILURES</div>
+      <div class="nh">Common Failure Modes</div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Lost Update — Consistency Violation</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Two threads read same value, both compute new value, last write wins — first write is lost. <strong>Fix:</strong> Atomic CAS (<code>compareAndSet</code>) or database-level optimistic locking with version check.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Duplicate Payment — Determinism Violation</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Retry without idempotency — network timeout causes client to retry, payment charged twice. <strong>Fix:</strong> Idempotency key (UUID per request stored server-side); second call with same key returns first result.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Out-of-Order Messages — Determinism Violation</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Parallel processing consumers on same topic without partition key — messages arrive out of order. <strong>Fix:</strong> Partition by entity key (user ID, order ID) → single consumer per partition → ordered delivery guaranteed.</p>
+      </div>
+      <div class="nc-warn">
+        <div class="nh-warn">Stale Cache — Consistency Violation</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Cache not invalidated after DB write — readers see old data. <strong>Fix:</strong> Write-through cache (update cache + DB atomically), versioned cache keys, or cache-aside with TTL.</p>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Questions Staff Engineers Ask</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">About Consistency</p>
+          <ul class="dot-ul text-sm">
+            <li>Is shared state mutable?</li>
+            <li>Who owns the data — which service/thread?</li>
+            <li>Are concurrent writes possible?</li>
+            <li>What consistency level is required?</li>
+            <li>Can eventual consistency be accepted here?</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">About Determinism</p>
+          <ul class="dot-ul text-sm">
+            <li>Can retries occur (network failures)?</li>
+            <li>Can events arrive out of order?</li>
+            <li>Are operations idempotent?</li>
+            <li>Will same request always produce same result?</li>
+            <li>Can execution timing change the outcome?</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="nh mt-3">Production Readiness Checklist</div>
+      <ul class="check-ul mt-2">
+        <li>✅ Identify all shared mutable state</li>
+        <li>✅ Choose the required consistency model (strong vs eventual)</li>
+        <li>✅ Eliminate data races using synchronization or immutability</li>
+        <li>✅ Use atomic operations where a single variable needs protection</li>
+        <li>✅ Ensure all retryable operations are idempotent</li>
+        <li>✅ Maintain deterministic ordering for critical workflows (payments, messaging)</li>
+        <li>✅ Test under high concurrency and across different scheduling scenarios</li>
+        <li>✅ Validate behavior on both x86 and ARM (different memory models)</li>
+        <li>✅ Monitor contention, retry rates, and stale read frequency</li>
+      </ul>
+
+      <div class="nq mt-4">"Consistency guarantees that all threads or services observe a coherent and valid state of shared data, while determinism guarantees that identical inputs always produce the same logical outcome regardless of scheduling, retries, or execution timing. I use synchronization primitives and memory ordering for consistency, and combine idempotency, ordered event processing, and immutable data for determinism. The right design balances consistency, determinism, throughput, and scalability according to business needs."</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">What to Remember</div>
+      <ul class="dot-ul">
+        <li><strong>Consistency</strong> ensures that <strong>shared state remains correct and coherent</strong>, even when multiple threads or services access it concurrently — no partial writes, no invalid intermediates.</li>
+        <li><strong>Determinism</strong> ensures that <strong>the same input always produces the same logical result</strong>, regardless of thread scheduling, retries, or execution timing.</li>
+        <li>Use <strong>locks, atomic operations, memory fences, and well-defined memory models</strong> to maintain consistency in concurrent programs.</li>
+        <li>Use <strong>idempotent operations, ordered event processing, immutable data, and message passing</strong> to preserve deterministic behavior in distributed and concurrent systems.</li>
+        <li>Staff Engineers deliberately balance <strong>correctness, performance, scalability, and operational complexity</strong>, selecting the weakest guarantees that still satisfy business requirements.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════════════ ORIGINAL NOTES TAB ═══════════════════ -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — IMPLEMENTATION REFERENCE</div>
+      <div class="nh">Consistency &amp; Determinism — Code &amp; Systems Reference</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Sequential Consistency vs Acquire-Release — Code</p>
+      <div class="ncode">// Sequential Consistency (Java volatile / C++ seq_cst):
+// All operations appear in a single global total order
+// Every thread agrees on the same interleaving
+
+// Java volatile — sequentially consistent:
+volatile boolean flag = false;
+volatile int data = 0;
+
+// Thread 1:
+data = 42;       // visible before flag
+flag = true;     // volatile write = full fence
+
+// Thread 2:
+if (flag) {      // volatile read
+    assert data == 42;  // ALWAYS guaranteed ✅
+}
+
+// C++ seq_cst (default atomic):
+std::atomic&lt;bool&gt; flag{false};
+std::atomic&lt;int&gt; data{0};
+data.store(42, std::memory_order_seq_cst);
+flag.store(true, std::memory_order_seq_cst);
+
+// CHEAPER — Acquire/Release (correct but not seq_cst):
+data.store(42, std::memory_order_relaxed);    // no fence
+flag.store(true, std::memory_order_release);  // release fence
+
+// Thread 2:
+while (!flag.load(std::memory_order_acquire));// acquire fence
+int v = data.load(std::memory_order_relaxed); // guaranteed: 42 ✅
+// Acquire-release is correct AND cheaper than seq_cst on ARM</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Idempotency — Determinism in Distributed Systems</p>
+      <div class="ncode">// Idempotency key pattern — payments, APIs, Kafka consumers
+
+// Client generates UUID per logical operation:
+String idempotencyKey = UUID.randomUUID().toString();
+
+// First call:
+POST /payments
+  X-Idempotency-Key: abc-123-def
+  { amount: 100, currency: USD }
+→ Server: check idempotency_keys table for abc-123-def
+  Not found → process payment → store (abc-123-def, result)
+  Response: { status: SUCCESS, payment_id: p_001 }
+
+// Retry (network timeout):
+POST /payments
+  X-Idempotency-Key: abc-123-def  ← same key
+  { amount: 100, currency: USD }
+→ Server: check idempotency_keys table for abc-123-def
+  FOUND → return stored result immediately
+  Response: { status: SUCCESS, payment_id: p_001 } ← same result ✅
+  // Payment charged ONCE regardless of retry count → DETERMINISTIC
+
+// Implementation:
+CREATE TABLE idempotency_keys (
+    key         VARCHAR(36) PRIMARY KEY,
+    result      JSONB,
+    created_at  TIMESTAMP DEFAULT NOW(),
+    expires_at  TIMESTAMP            -- clean up after 24h
+);</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Kafka — Ordered Deterministic Event Processing</p>
+      <div class="ncode">// Kafka guarantees ORDER within a partition
+// Key insight: same key → same partition → ordered processing
+
+// Ordering by user_id ensures deterministic state machine:
+producer.send(new ProducerRecord&lt;&gt;(
+    "orders",
+    user_id,           // partition key — same user always same partition
+    orderEvent         // value
+));
+
+// Consumer processes events for one user in order:
+// CREATED → PAYMENT_CONFIRMED → SHIPPED → DELIVERED
+// Never in wrong order within a partition ✅
+
+// Exactly-once semantics (Kafka 0.11+):
+producer.initTransactions();
+try {
+    producer.beginTransaction();
+    producer.send(record);
+    consumer.commitSync(offsets);  // commit offset atomically with produce
+    producer.commitTransaction();
+} catch (Exception e) {
+    producer.abortTransaction();   // rollback both produce + offset
+}
+// Exactly-once = consistent offsets + deterministic processing</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">MVCC — Snapshot Isolation for Consistent Reads</p>
+      <div class="ncode">// MVCC (Multi-Version Concurrency Control) in PostgreSQL:
+// Readers never block writers; writers never block readers
+// Each transaction sees a snapshot of the DB at its start time
+
+-- Transaction 1 starts at T=100
+BEGIN;
+SELECT balance FROM accounts WHERE id=1;  -- sees balance at T=100
+
+-- Meanwhile, Transaction 2 commits at T=101:
+UPDATE accounts SET balance = balance - 50 WHERE id=1;
+COMMIT;
+
+-- Transaction 1 still sees the OLD balance (T=100 snapshot):
+SELECT balance FROM accounts WHERE id=1;  -- still old value!
+-- No locks, no blocking — snapshot isolation ✅
+
+-- Read Committed (PostgreSQL default): each statement sees latest committed
+-- Repeatable Read: transaction sees snapshot from its own start
+-- Serializable: full isolation, as if transactions ran serially
+
+-- MVCC implementation:
+-- Each row has xmin (created by txn) and xmax (deleted by txn)
+-- Readers skip rows where xmax is committed before their snapshot</div>
+
+      <div class="nq mt-3">"Consistency and determinism are orthogonal properties. A system can be consistent but non-deterministic (shared state is always valid, but results vary across runs), or deterministic but inconsistent (results are repeatable but shared state can be corrupted). Staff Engineers ensure both: consistency through synchronization and memory ordering, determinism through idempotency, ordered processing, and isolation."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- ═══════════════════ VISUAL GUIDE TAB ═══════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <img src="images/foundation/l1/OS/36108589-51bb-4d7b-94a5-917d0a86cb3d.png" class="w-full rounded-lg shadow-md" alt="Consistency and Determinism in Concurrent Computation Visual Guide"/>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

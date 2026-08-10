@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Processes vs Threads</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Processes vs Threads</span>
+  </div>
+</header>
+
+<!-- PAGE TITLE -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Processes vs Threads</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Memory Isolation &bull; Scheduling &bull; Context Switching &bull; Fault Isolation &bull; IPC</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TEXT TAB ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">Modern apps need concurrency — a web server handles thousands of users, a DB runs queries in parallel, a browser loads pages while downloading files. The OS provides two execution models to achieve this.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-1">Process</p>
+          <p class="text-xs text-gray-600">An independent program in execution. Owns its own memory, file descriptors, and security context. Like an <strong>independent restaurant</strong> — its own kitchen, staff, and inventory.</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3">
+          <p class="text-xs font-black text-green-700 mb-1">Thread</p>
+          <p class="text-xs text-gray-600">A lightweight execution unit inside a process. Shares code, heap, and files with siblings. Like <strong>chefs in the same restaurant</strong> — shared kitchen &amp; inventory, but working different dishes.</p>
+        </div>
+      </div>
+      <p class="ntip mt-3">The trade-off is always <strong>Isolation vs Performance</strong>. Processes give you safety. Threads give you speed.</p>
+    </div>
+
+    <!-- What Each Owns -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">What a Process Owns</p>
+        <div class="ncode">Process A              Process B
+  Code (text)            Code (text)
+  Data (heap)            Data (heap)
+  Stack                  Stack
+  Global Variables       Global Variables
+  File Descriptors       File Descriptors
+  PID / Security Ctx     PID / Security Ctx
+  Virtual Address Space  Virtual Address Space</div>
+        <p class="ntip mt-2">Completely separate memory spaces. Process A cannot read or write Process B's memory. Period.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">What a Thread Shares vs Owns</p>
+        <div class="ncode">Process (shared by all threads)
+  Code (text)
+  Heap
+  Global Variables
+  File Descriptors
+  Shared Libraries
+─────────────────────────────
+Thread 1     Thread 2     Thread 3
+  Stack        Stack        Stack
+  Registers    Registers    Registers
+  Program Ctr  Program Ctr  Program Ctr</div>
+        <p class="ntip mt-2">Same address space = fast communication, but also shared fate. One thread's bug can corrupt everyone's heap.</p>
+      </div>
+    </div>
+
+    <!-- Memory Isolation -->
+    <div class="nc">
+      <p class="nh">Memory Isolation — The Biggest Architectural Difference</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-2">Process Memory — Strong Isolation</p>
+          <ul class="dot-ul">
+            <li class="text-green-700">One process cannot corrupt another's memory</li>
+            <li class="text-green-700">Crash stays contained to that process</li>
+            <li class="text-green-700">Better security (separate address space)</li>
+            <li class="text-red-600">Communication requires IPC (pipes, sockets, shared memory)</li>
+          </ul>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3">
+          <p class="text-xs font-black text-green-700 mb-2">Thread Memory — Shared Address Space</p>
+          <ul class="dot-ul">
+            <li class="text-green-700">Extremely fast communication via shared variables</li>
+            <li class="text-green-700">Lower memory usage (no duplicated address space)</li>
+            <li class="text-red-600">Race conditions if synchronization is missing</li>
+            <li class="text-red-600">One thread crash can kill the entire process</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scheduling + Context Switching -->
+    <div class="nc">
+      <p class="nh">Scheduling &amp; Context Switching</p>
+      <p class="text-xs text-gray-600 mb-2">The CPU cannot run every task simultaneously. The <strong>kernel scheduler</strong> decides who runs next by assigning each thread a time slice (quantum), priority, and CPU affinity. In Linux, threads are the actual scheduling entities — a process with 4 threads gets 4 scheduler entries.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <p class="sub-h text-red-600">Process Context Switch — High Cost (~1–5 µs)</p>
+          <div class="ncode" style="font-size:.72rem">Process A running
+  ↓ Save registers + stack ptr
+  ↓ Switch page tables (new addr space)
+  ↓ Flush TLB (translation lookaside buffer)
+  ↓ Load Process B context
+  ↓ Cache warm-up needed
+  ↓ Resume Process B
+
+Cost drivers: TLB flush, page table swap,
+              cache pollution</div>
+        </div>
+        <div>
+          <p class="sub-h text-green-600">Thread Context Switch — Low Cost (~0.3–1 µs)</p>
+          <div class="ncode" style="font-size:.72rem">Thread 1 running
+  ↓ Save registers + stack ptr
+  ↓ Load Thread 2 registers + stack ptr
+  ↓ Resume Thread 2
+
+No page table change.
+No TLB flush.
+Same address space throughout.
+
+Cost drivers: Only registers + stack ptr</div>
+        </div>
+      </div>
+      <p class="ntip mt-2">Context switching is <strong>pure overhead</strong> — no business logic executes during a switch. Excessive context switches = high CPU, high latency. Monitor with <code>vmstat</code>, <code>perf</code>, or <code>htop</code>.</p>
+    </div>
+
+    <!-- Communication + Failure Isolation -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Communication</p>
+        <p class="sub-h">Between Processes (IPC)</p>
+        <ul class="dot-ul">
+          <li>Pipes (unidirectional byte streams)</li>
+          <li>Unix sockets / TCP sockets</li>
+          <li>Shared memory + semaphores</li>
+          <li>Message queues</li>
+        </ul>
+        <p class="ntip mt-2">Safe but involves kernel crossings. Slower than thread communication by orders of magnitude.</p>
+        <p class="sub-h">Between Threads</p>
+        <ul class="dot-ul">
+          <li>Shared variables (instant, no kernel)</li>
+          <li>Mutex / Read-Write Lock</li>
+          <li>Semaphore / Condition variable</li>
+          <li>Atomic operations (lock-free)</li>
+        </ul>
+        <p class="ntip mt-2">Extremely fast — but you <strong>must</strong> synchronize. No sync = race conditions.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Failure Isolation</p>
+        <p class="sub-h">Process Failure</p>
+        <div class="ncode" style="font-size:.72rem">Process A  -- crash -->  dies alone
+Process B              still running
+Process C              still running
+
+OS and other processes: unaffected</div>
+        <p class="ntip mt-1">Chrome uses this — a crashed tab kills that process only.</p>
+        <p class="sub-h mt-3">Thread Failure</p>
+        <div class="ncode" style="font-size:.72rem">Process
+  Thread A  running
+  Thread B  -- crash -->
+  Thread C  running
+       |
+       v
+  Entire process dies (SIGSEGV / OOM)
+
+All threads lose their work.</div>
+        <p class="ntip mt-1">A segfault in any thread brings down the JVM. Design carefully.</p>
+      </div>
+    </div>
+
+    <!-- Real World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Architecture Choices</p>
+      <table class="nt mt-1">
+        <thead><tr><th>System</th><th>Model</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Chrome / Firefox</td><td>Multi-process (per tab)</td><td>One crashed tab must not crash the browser</td></tr>
+          <tr><td>JVM / Java Apps</td><td>Single process + many threads</td><td>Threads share heap; cheaper than spawning JVMs</td></tr>
+          <tr><td>Nginx</td><td>Multi-process workers</td><td>Fault isolation; each worker handles many connections</td></tr>
+          <tr><td>PostgreSQL</td><td>Multi-process per connection</td><td>Security isolation between DB sessions</td></tr>
+          <tr><td>Kafka Broker</td><td>Single process + many threads</td><td>Shared memory gives higher I/O throughput</td></tr>
+          <tr><td>Redis</td><td>Single process, event loop</td><td>Single-threaded for simplicity; no lock contention</td></tr>
+          <tr><td>Node.js</td><td>Single process + libuv threads</td><td>Async I/O via event loop; worker threads for CPU</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Decision Framework + Performance Comparison -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Staff Engineer Decision Framework</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Need</th><th>Choose</th></tr></thead>
+          <tbody>
+            <tr><td>Strong isolation</td><td class="text-blue-600 font-semibold">Process</td></tr>
+            <tr><td>Better security / multi-tenant</td><td class="text-blue-600 font-semibold">Process</td></tr>
+            <tr><td>Crash containment</td><td class="text-blue-600 font-semibold">Process</td></tr>
+            <tr><td>Fast shared-memory communication</td><td class="text-green-600 font-semibold">Thread</td></tr>
+            <tr><td>High concurrency, low overhead</td><td class="text-green-600 font-semibold">Thread</td></tr>
+            <tr><td>Shared computation / caches</td><td class="text-green-600 font-semibold">Thread</td></tr>
+            <tr><td>Low memory usage</td><td class="text-green-600 font-semibold">Thread</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Performance Comparison</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Feature</th><th>Process</th><th>Thread</th></tr></thead>
+          <tbody>
+            <tr><td>Address space</td><td>Separate</td><td>Shared</td></tr>
+            <tr><td>Memory isolation</td><td class="text-green-600">High</td><td class="text-red-500">Low</td></tr>
+            <tr><td>Context switch cost</td><td class="text-red-500">~1–5 µs</td><td class="text-green-600">~0.3–1 µs</td></tr>
+            <tr><td>Startup time</td><td class="text-red-500">Slow (ms)</td><td class="text-green-600">Fast (µs)</td></tr>
+            <tr><td>Memory usage</td><td class="text-red-500">High</td><td class="text-green-600">Low</td></tr>
+            <tr><td>Communication</td><td>IPC (kernel)</td><td>Shared mem</td></tr>
+            <tr><td>Crash impact</td><td class="text-green-600">Local only</td><td class="text-red-500">Entire process</td></tr>
+            <tr><td>Synchronization</td><td>Not needed</td><td class="text-red-500">Required</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Staff Engineer Thinking + Production Issues -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Engineer Progression</p>
+        <div class="space-y-2">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <p class="text-xs font-bold text-gray-500 mb-0.5">Junior</p>
+            <p class="text-xs text-gray-600">"I need concurrency."</p>
+          </div>
+          <div class="bg-blue-50 border border-blue-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-blue-700 mb-0.5">Senior</p>
+            <p class="text-xs text-gray-600">"Should I use multiple threads or processes?"</p>
+          </div>
+          <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-violet-700 mb-0.5">Staff</p>
+            <p class="text-xs text-gray-600">"Do I optimize for isolation or throughput? What fails if a thread crashes? How many context switches happen per request?"</p>
+          </div>
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+            <p class="text-xs font-bold text-purple-700 mb-0.5">Principal</p>
+            <p class="text-xs text-gray-600">"Can I redesign to reduce synchronization entirely? Can async I/O eliminate the thread-per-connection model?"</p>
+          </div>
+        </div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Common Production Fixes</p>
+        <div class="space-y-2">
+          <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-red-700">High CPU — Excessive Context Switching</p>
+            <p class="text-xs text-gray-600 mt-0.5">Reduce thread count. Use async I/O. Batch work. Target threads = CPU cores for CPU-bound work.</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-orange-700">Shared Variable Corruption / Race Condition</p>
+            <p class="text-xs text-gray-600 mt-0.5">Introduce mutex or use atomic operations. Prefer lock-free structures for hot paths.</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-amber-700">Worker Crashes Killing the App</p>
+            <p class="text-xs text-gray-600 mt-0.5">Move unreliable workloads into separate processes. Use supervisors (systemd, PM2) for restart.</p>
+          </div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-green-700">Observability Tools</p>
+            <p class="text-xs text-gray-600 mt-0.5"><code>vmstat</code> — context switches/sec &bull; <code>perf</code> — CPU time per thread &bull; <code>htop</code> — thread view &bull; <code>strace -p</code> — syscalls per thread</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">Process  vs  Thread
+  Separate address space  |  Shared address space
+  Strong fault isolation  |  One crash = all die
+  IPC for communication   |  Shared variables (need sync)
+  Slow context switch     |  Fast context switch
+  High memory usage       |  Low memory usage
+
+Context Switch
+  Process: save regs + switch page tables + flush TLB  (~1–5 µs)
+  Thread:  save regs only, same address space           (~0.3–1 µs)
+
+Scheduling
+  Linux schedules THREADS (not processes) — each thread = scheduling entity
+  Threads get: time slice + priority + CPU affinity
+
+Golden Rules
+  Choose Process  → when isolation, security, crash containment matter
+  Choose Thread   → when throughput, shared data, low overhead matter
+  Minimize context switches → profile with vmstat / perf
+  Always synchronize shared thread state → mutex / atomic / lock-free</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Processes</strong> — strong isolation, separate memory, local crash impact</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Threads</strong> — shared address space, fast comms, lightweight switches</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Scheduler</strong> — allocates CPU time to threads via time slices and priority</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Trade-off</strong> — Isolation vs Performance. There is no universally correct answer.</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">The core architectural trade-off is Isolation vs Performance: choose Processes when safety and reliability matter, and Threads when throughput, shared memory, and low overhead are more important. The kernel scheduler sees threads — design your concurrency model around minimizing context switches and synchronization overhead.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== IMAGE TAB ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/ProcessesThreads/processes-threads.png"
+           alt="Processes vs Threads visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

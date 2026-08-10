@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Storage Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#15803d; border-bottom-color:#15803d; }
+    .tab-btn:hover:not(.active) { color:#052e16; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#f0fdf4; border:1px solid #86efac; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#15803d; margin-bottom:.6rem; }
+    .ncode{ background:#052e16; color:#86efac; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #86efac; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#166534; color:#86efac; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #dcfce7;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f0fdf4; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#15803d; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#166534; color:#86efac; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #dcfce7; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-green-700 hover:text-green-900 font-semibold
+              bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-green-800 font-semibold">Storage Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M5 12H3a2 2 0 00-2 2v4a2 2 0 002 2h18a2 2 0 002-2v-4a2 2 0 00-2-2h-2M9 5l3-3 3 3M12 2v13"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Storage Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 10 categories · 38 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why Storage Failures Are the Durability Failures of Distributed Systems</p>
+      <div class="ncode">Storage provides: persistence + durability + retrieval + replication + recovery
+Storage failure: data unavailable, corrupted, inconsistent, or permanently lost
+
+8 root failure classes:
+  hardware | performance | capacity | replication | consistency
+  distributed coordination | object storage | erasure/RAID | backup/recovery | multi-region</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Physical Storage and Hardware Failures</td></tr>
+          <tr>
+            <td>Disk Failure<span class="badge-crit">Must Know</span></td>
+            <td>SSD/HDD hardware crash — controller error, media failure, or wear-out</td>
+            <td>SMART alerts, IO errors, disk offline events</td>
+            <td>Failover to replica disk, begin data rebuild on spare</td>
+            <td>RAID / replication factor ≥ 3, hot-spare disks, SMART monitoring</td>
+            <td class="casc">Replication factor drops → single remaining replica is now risk of data loss</td>
+            <td class="troff">More replicas multiply storage cost and replication write amplification</td>
+          </tr>
+          <tr>
+            <td>SSD Wear-Out</td>
+            <td>Write-intensive workloads exhaust SSD write endurance (TBW exceeded)</td>
+            <td>SSD wear-level metrics, increased read-retry counts</td>
+            <td>Replace SSD proactively on wear threshold alert</td>
+            <td>Monitor TBW, use enterprise SSDs with higher endurance ratings</td>
+            <td class="casc">Sudden storage node failure with no advance warning if unmonitored</td>
+            <td class="troff">Enterprise SSDs with high TBW are significantly more expensive</td>
+          </tr>
+          <tr>
+            <td>Storage Node Failure<span class="badge-crit">Must Know</span></td>
+            <td>Host OS crash, power failure, or kernel panic on storage node</td>
+            <td>Node heartbeat failure, data unavailable on that node's key range</td>
+            <td>Reroute requests to replica node, begin background re-replication</td>
+            <td>Multi-node replication across AZs, node health monitoring</td>
+            <td class="casc">Reduced redundancy — remaining replicas are now the last copies</td>
+            <td class="troff">Re-replication generates substantial network and disk IO on healthy nodes</td>
+          </tr>
+          <tr>
+            <td>Filesystem Corruption<span class="badge-crit">Must Know</span></td>
+            <td>Improper shutdown, kernel bug, or power loss during write — FS metadata corrupt</td>
+            <td>fsck errors, file not found for existing objects, mount failures</td>
+            <td>Run fsck, restore from snapshot if beyond repair</td>
+            <td>Journaling filesystems (ext4/XFS), UPS for graceful shutdown</td>
+            <td class="casc">Node cannot start → capacity lost → higher load on remaining nodes</td>
+            <td class="troff">Journaling adds small write overhead on every filesystem operation</td>
+          </tr>
+          <tr>
+            <td>Bit Rot / Silent Corruption<span class="badge-crit">Must Know</span></td>
+            <td>Long-term cosmic ray / media degradation silently flips bits on disk</td>
+            <td>Checksum mismatch on read — detectable only if you check</td>
+            <td>Recover block from healthy replica, scrub all replicas</td>
+            <td>End-to-end checksums (ZFS/Ceph), regular scrubbing, replicated storage</td>
+            <td class="casc">Corrupted data served silently — downstream processing produces wrong results</td>
+            <td class="troff">Checksum computation and regular scrubbing add CPU and IO overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Storage Performance Failures</td></tr>
+          <tr>
+            <td>Disk IO Saturation<span class="badge-crit">Must Know</span></td>
+            <td>Read/write throughput maxes disk IOPS — queue builds up behind saturated IO</td>
+            <td>IO wait spike, %iowait high, storage latency increasing</td>
+            <td>Add more disks, route to less-loaded replicas, add read cache</td>
+            <td>Better data distribution, tiered storage, capacity planning</td>
+            <td class="casc">IO queue backlog → request timeouts → upstream services see latency spikes</td>
+            <td class="troff">More disks add cost; read cache adds memory pressure</td>
+          </tr>
+          <tr>
+            <td>Storage Hotspot<span class="badge-crit">Must Know</span></td>
+            <td>Uneven access pattern — all traffic concentrating on one node or disk</td>
+            <td>One disk/node IO 100% while others idle, uneven storage metrics</td>
+            <td>Rebalance hot data, add local cache in front of hot node</td>
+            <td>Better partitioning/sharding key, consistent hashing with virtual nodes</td>
+            <td class="casc">Localised collapse — hot node fails under load, requests fail for its key range</td>
+            <td class="troff">Rebalancing generates heavy IO; virtual nodes add routing complexity</td>
+          </tr>
+          <tr>
+            <td>High Write Latency</td>
+            <td>Sync replication or fsync wait holds write thread — large batches or slow replicas</td>
+            <td>Write latency P99 spike, storage write queue growing</td>
+            <td>Batch writes, reduce fsync frequency for non-critical data</td>
+            <td>Async writes where durability allows, write buffer tuning</td>
+            <td class="casc">Write queue buildup → upstream backpressure → service request failures</td>
+            <td class="troff">Async writes risk data loss on crash before flush</td>
+          </tr>
+          <tr>
+            <td>Metadata IO Bottleneck</td>
+            <td>Massive number of small files or excessive inode operations saturate FS metadata</td>
+            <td>Metadata operation latency spike, directory listing hangs</td>
+            <td>Metadata caching, reduce metadata operation frequency</td>
+            <td>Distributed metadata service, avoid millions of small files per directory</td>
+            <td class="casc">Cluster-wide slowdown — all operations waiting on metadata layer</td>
+            <td class="troff">Distributed metadata adds coordination complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Capacity and Space Exhaustion Failures</td></tr>
+          <tr>
+            <td>Disk Full<span class="badge-crit">Must Know</span></td>
+            <td>Storage exceeds capacity — all new write operations start failing</td>
+            <td>Disk usage alerts (&gt;85% = warning, &gt;95% = critical)</td>
+            <td>Emergency cleanup, archive cold data, expand volume</td>
+            <td>Capacity planning, automated tiering, lifecycle policies</td>
+            <td class="casc">Writes fail globally — databases, logs, uploads all fail simultaneously</td>
+            <td class="troff">Aggressive cleanup policies risk deleting data still needed for recovery</td>
+          </tr>
+          <tr>
+            <td>WAL / Log Growth Explosion</td>
+            <td>Consumer lag or cleanup failure — WAL/log segments accumulate unbounded</td>
+            <td>Log size growing, disk usage spike from log directory</td>
+            <td>Force log compaction, increase consumer throughput</td>
+            <td>Retention policies, log size alerts, consumer lag monitoring</td>
+            <td class="casc">Storage exhaustion → writes fail → DB/Kafka crash or reject all traffic</td>
+            <td class="troff">Short retention windows reduce recovery options after failure</td>
+          </tr>
+          <tr>
+            <td>Snapshot Storage Explosion</td>
+            <td>Snapshot retention not enforced — old snapshots accumulate indefinitely</td>
+            <td>Snapshot storage usage growing, disk usage alerts</td>
+            <td>Clean up expired snapshots, apply retention policy immediately</td>
+            <td>Automated snapshot retention policy (keep N latest, delete older)</td>
+            <td class="casc">Storage node saturation → node fails → reduced replication factor</td>
+            <td class="troff">Fewer retained snapshots reduce recovery point options</td>
+          </tr>
+          <tr>
+            <td>Small File Problem</td>
+            <td>Millions of tiny files overwhelm filesystem metadata layer and FS namespace</td>
+            <td>Directory listing slow, inode exhaustion, metadata performance degradation</td>
+            <td>File compaction — merge small files into larger containers (Parquet, ORC)</td>
+            <td>Better storage format design, compact on write, avoid small writes</td>
+            <td class="casc">Metadata bottleneck → cluster-wide IO slowdown → cascading timeouts</td>
+            <td class="troff">Compaction adds processing complexity and CPU overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Replication and Redundancy Failures</td></tr>
+          <tr>
+            <td>Replication Lag<span class="badge-crit">Must Know</span></td>
+            <td>Slow network or overloaded replica — replica falls behind primary</td>
+            <td>Replica lag metrics, replication offset difference growing</td>
+            <td>Read from primary for consistency-sensitive operations</td>
+            <td>Faster replication pipeline, dedicated replication bandwidth</td>
+            <td class="casc">Stale reads from lagging replica → incorrect business decisions</td>
+            <td class="troff">Sync replication (zero lag) adds write latency and reduces throughput</td>
+          </tr>
+          <tr>
+            <td>Replica Divergence<span class="badge-crit">Must Know</span></td>
+            <td>Missed or out-of-order updates — replicas have different content for same key</td>
+            <td>Checksum mismatch, anti-entropy scan finds replica inconsistency</td>
+            <td>Re-sync replica from authoritative primary</td>
+            <td>Quorum replication with ordering guarantees, anti-entropy background repair</td>
+            <td class="casc">Inconsistent reads — different replicas serve different answers for same key</td>
+            <td class="troff">Anti-entropy background repair adds ongoing IO overhead to the cluster</td>
+          </tr>
+          <tr>
+            <td>Under-Replicated Data</td>
+            <td>Multiple replica failures — fewer copies than required replication factor</td>
+            <td>Under-replication alerts, RF &lt; target for affected partitions</td>
+            <td>Create new replicas on healthy nodes immediately</td>
+            <td>Multi-AZ replica placement, monitor replication factor continuously</td>
+            <td class="casc">Increased data loss risk — one more node failure causes permanent loss</td>
+            <td class="troff">Cross-AZ replicas add cross-zone network cost and latency</td>
+          </tr>
+          <tr>
+            <td>Replication Storm</td>
+            <td>Node failure triggers massive re-replication — all data must copy to new node</td>
+            <td>Network and disk IO spike across cluster during recovery</td>
+            <td>Throttle replication bandwidth, prioritise live traffic over repair</td>
+            <td>Controlled repair scheduling, rate limiting on replication bandwidth</td>
+            <td class="casc">Network saturation during rebuild → live request latency degrades cluster-wide</td>
+            <td class="troff">Throttling extends repair window — stays under-replicated longer</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Data Consistency and Integrity Failures</td></tr>
+          <tr>
+            <td>Lost Write<span class="badge-crit">Must Know</span></td>
+            <td>Crash before write durably persisted — data acknowledged then lost on restart</td>
+            <td>Audit mismatch, expected data missing after recovery</td>
+            <td>Replay WAL to recover unflushed writes</td>
+            <td>Durable commits (fsync before ACK), write-ahead logging</td>
+            <td class="casc">Missing business data — financial transaction, user data, or event silently gone</td>
+            <td class="troff">fsync before ACK adds significant write latency</td>
+          </tr>
+          <tr>
+            <td>Partial / Torn Write<span class="badge-crit">Must Know</span></td>
+            <td>Crash mid-write — only part of a block or record is written to disk</td>
+            <td>Checksum or version mismatch on object/block read after recovery</td>
+            <td>Rewrite block from replica or WAL</td>
+            <td>Atomic write protocol, WAL, copy-on-write (ZFS, Btrfs)</td>
+            <td class="casc">Corrupted objects/files used by downstream processes → wrong outputs</td>
+            <td class="troff">Copy-on-write adds space and IO overhead per write</td>
+          </tr>
+          <tr>
+            <td>Stale Read</td>
+            <td>Client reads from lagging replica — gets old value after recent write</td>
+            <td>Version mismatch detected in application logic, stale data observed</td>
+            <td>Read from primary / leader for consistency-sensitive operations</td>
+            <td>Session consistency, monotonic reads, bounded staleness settings</td>
+            <td class="casc">Incorrect business logic — overwriting new data with old, or showing stale state</td>
+            <td class="troff">Always reading from primary removes read scalability from replica fleet</td>
+          </tr>
+          <tr>
+            <td>Corrupted Object / File</td>
+            <td>Bit flip in storage media or network — object bytes silently changed</td>
+            <td>Checksum validation failure on read, object hash mismatch</td>
+            <td>Restore from healthy replica, run storage scrub</td>
+            <td>End-to-end checksums on every object, regular scrubbing jobs</td>
+            <td class="casc">Broken downstream processing — corrupted file causes application errors</td>
+            <td class="troff">Per-object checksum computation adds CPU overhead on every read</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Distributed Storage Coordination Failures</td></tr>
+          <tr>
+            <td>Metadata Service Failure<span class="badge-crit">Must Know</span></td>
+            <td>Coordinator / NameNode / etcd down — storage lookup routing fails</td>
+            <td>All storage lookup operations failing, data locations unknown</td>
+            <td>Use cached metadata, operate in degraded mode</td>
+            <td>HA metadata cluster (3-node ensemble), client-side metadata caching</td>
+            <td class="casc">Entire storage cluster inaccessible — all reads and writes fail</td>
+            <td class="troff">HA metadata cluster adds operational complexity and consensus overhead</td>
+          </tr>
+          <tr>
+            <td>Split Brain Storage Cluster<span class="badge-crit">Must Know</span></td>
+            <td>Network partition — both halves of cluster accept writes as primary</td>
+            <td>Diverging replica versions, conflicting object states detected on heal</td>
+            <td>Fence minority cluster, reject writes from minority partition</td>
+            <td>Consensus protocol for primary election, majority quorum requirement</td>
+            <td class="casc">Silent data corruption — conflicting writes produce irreconcilable state</td>
+            <td class="troff">Majority quorum means minority partition is unavailable during split</td>
+          </tr>
+          <tr>
+            <td>Stale Metadata Mapping</td>
+            <td>Delayed metadata propagation — storage clients route to old or moved data location</td>
+            <td>Wrong storage routing, objects not found at cached location</td>
+            <td>Force metadata refresh, retry with fresh lookup</td>
+            <td>Faster metadata propagation, versioned routing with client refresh</td>
+            <td class="casc">Request failures cascade — multiple callers hit stale routing simultaneously</td>
+            <td class="troff">Frequent refresh increases metadata service load</td>
+          </tr>
+          <tr>
+            <td>Distributed Lock Failure</td>
+            <td>Multiple writers obtain concurrent access to same object — no mutual exclusion</td>
+            <td>Concurrent modification detected, version conflict on write</td>
+            <td>Fencing tokens / version control to reject stale writers</td>
+            <td>Lease-based distributed locks, optimistic concurrency control</td>
+            <td class="casc">Data corruption — both writers' data partially applied to object</td>
+            <td class="troff">Distributed locks add coordination latency to every write operation</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Object Storage and Blob Storage Failures</td></tr>
+          <tr>
+            <td>Multipart Upload Failure</td>
+            <td>Network interruption mid-upload — parts uploaded but final composition not called</td>
+            <td>Incomplete upload state, orphaned part objects in bucket</td>
+            <td>Resume multipart upload from last successful part checkpoint</td>
+            <td>Client-side retry with chunk checksums, lifecycle rule to expire stale parts</td>
+            <td class="casc">Orphaned storage accumulates — bucket fills with incomplete upload parts</td>
+            <td class="troff">Chunked upload adds complexity to client and storage accounting</td>
+          </tr>
+          <tr>
+            <td>Blob / Object Corruption<span class="badge-crit">Must Know</span></td>
+            <td>Network corruption or storage media error — object bytes change in transit/at rest</td>
+            <td>Checksum mismatch (MD5/SHA256 header vs actual), validation failure</td>
+            <td>Restore from replica or versioned backup</td>
+            <td>Erasure coding, end-to-end checksums, multi-region replication</td>
+            <td class="casc">Media delivery failure — corrupted image/video/asset served to all users</td>
+            <td class="troff">Erasure coding adds compute overhead for encoding and reconstruction</td>
+          </tr>
+          <tr>
+            <td>Object Version Conflict</td>
+            <td>Concurrent writes to same object key — last-writer-wins overwrites a valid write</td>
+            <td>Version mismatch, missing expected version in object history</td>
+            <td>Conflict resolution via versioning, conditional PUT with If-Match header</td>
+            <td>Object versioning enabled, conditional writes, optimistic concurrency</td>
+            <td class="casc">Incorrect object state — downstream consumers use wrong version</td>
+            <td class="troff">Object versioning multiplies storage usage; many old versions accumulate</td>
+          </tr>
+          <tr>
+            <td>Cold Storage Retrieval Delay</td>
+            <td>Object archived to cold/glacier tier — restore takes hours before access</td>
+            <td>Long restore latency, restore-in-progress status blocking read</td>
+            <td>Initiate async restore ahead of need, async restore pattern</td>
+            <td>Tiered access planning — keep hot objects in standard, archive only truly cold</td>
+            <td class="casc">Slow disaster recovery — archived backups not accessible for hours during incident</td>
+            <td class="troff">Keeping objects in standard tier costs more; cold tier is cheaper but slow</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Erasure Coding and RAID Failures</td></tr>
+          <tr>
+            <td>RAID Rebuild Failure<span class="badge-crit">Must Know</span></td>
+            <td>Second disk fails during RAID rebuild — array loses too many members</td>
+            <td>RAID degraded alert, second disk failure during rebuild window</td>
+            <td>Restore from backup immediately</td>
+            <td>Hot-spare disks, short rebuild windows, faster rebuild drives</td>
+            <td class="casc">Permanent data loss — two simultaneous failures exhaust RAID tolerance</td>
+            <td class="troff">Rebuild IO competes with live traffic; rebuild window is highest-risk period</td>
+          </tr>
+          <tr>
+            <td>Erasure Coding Reconstruction Failure</td>
+            <td>Too many shard losses exceed parity tolerance — object unrecoverable</td>
+            <td>Reconstruction failure alert, object marked unrecoverable</td>
+            <td>Restore from separate backup or cross-region replica</td>
+            <td>More parity shards (higher k+m overhead), multi-region erasure coding</td>
+            <td class="casc">Permanent object loss — no replica or parity left to reconstruct</td>
+            <td class="troff">More parity shards increase storage overhead (e.g. RS 6+3 = 50% overhead)</td>
+          </tr>
+          <tr>
+            <td>Slow RAID Rebuild</td>
+            <td>Large modern disks take hours to rebuild — window of vulnerability extended</td>
+            <td>Rebuild progress metric, extended degraded array state</td>
+            <td>Prioritise rebuild IO, temporarily reduce other storage load</td>
+            <td>NVMe SSDs for faster rebuild, smaller RAID sets, choose RAID architecture wisely</td>
+            <td class="casc">Increased failure risk — another disk failure during slow rebuild = data loss</td>
+            <td class="troff">Faster rebuild prioritisation competes with live traffic IO budget</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Backup and Recovery Failures</td></tr>
+          <tr>
+            <td>Backup Job Failure<span class="badge-crit">Must Know</span></td>
+            <td>Network issue, storage error, or backup agent crash — backup not created</td>
+            <td>Missing backup alert, backup job exit code ≠ 0</td>
+            <td>Retry backup immediately, validate last successful backup age</td>
+            <td>Backup monitoring with alerting, automated retry, backup SLA enforcement</td>
+            <td class="casc">No disaster recovery — next incident has no recent backup to restore from</td>
+            <td class="troff">Backup infrastructure adds cost; backup IO competes with live workload</td>
+          </tr>
+          <tr>
+            <td>Snapshot Corruption<span class="badge-crit">Must Know</span></td>
+            <td>Interrupted snapshot — snapshot metadata inconsistent or data partially captured</td>
+            <td>Snapshot validation failure, checksum mismatch on snapshot files</td>
+            <td>Fall back to older clean snapshot, or rebuild from WAL</td>
+            <td>Snapshot checksums, atomic snapshot creation, validate after each snapshot</td>
+            <td class="casc">Recovery impossible from this snapshot — must use older, potentially stale backup</td>
+            <td class="troff">Snapshot validation adds time and storage overhead per backup cycle</td>
+          </tr>
+          <tr>
+            <td>Restore Failure<span class="badge-crit">Must Know</span></td>
+            <td>Backup corrupted, incomplete, or incompatible version — cannot restore successfully</td>
+            <td>Restore validation mismatch, restore process exits with error</td>
+            <td>Try alternate backup generation, rebuild from WAL if available</td>
+            <td>Periodic restore testing in staging, restore drills, backup validation</td>
+            <td class="casc">Extended outage — every failed restore attempt costs hours during an incident</td>
+            <td class="troff">Regular restore testing consumes staging resources and engineering time</td>
+          </tr>
+          <tr>
+            <td>Slow Recovery</td>
+            <td>Large dataset replay — restoring TB-scale data takes hours or days</td>
+            <td>Long restore duration metric, RTO SLA at risk</td>
+            <td>Parallel restore from multiple sources, staged partial restore</td>
+            <td>Incremental checkpoints, more frequent snapshots, partial restore capability</td>
+            <td class="casc">Long downtime — services unavailable until restore completes</td>
+            <td class="troff">More frequent checkpoints increase snapshot storage cost and overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">10 — Multi-Region Storage Failures</td></tr>
+          <tr>
+            <td>Cross-Region Replication Delay<span class="badge-crit">Must Know</span></td>
+            <td>WAN latency — writes in primary region not yet visible in secondary region</td>
+            <td>Geo replication lag metric, stale reads observed in secondary region</td>
+            <td>Route reads to primary region for consistency-sensitive operations</td>
+            <td>Geo-aware replication with bounded staleness SLA monitoring</td>
+            <td class="casc">Stale global reads — users in remote region see outdated data</td>
+            <td class="troff">Reading from primary region adds cross-region latency for remote users</td>
+          </tr>
+          <tr>
+            <td>Region Storage Isolation</td>
+            <td>WAN or DC outage — entire region's storage cut off from other regions</td>
+            <td>Region unreachable, replication heartbeat failure for that region</td>
+            <td>Failover to secondary region storage, activate DR plan</td>
+            <td>Multi-region replication with ≥ 2 copies outside primary region</td>
+            <td class="casc">Regional outage — all users in that region lose access to storage</td>
+            <td class="troff">Multi-region storage multiplies cost; cross-region replication adds bandwidth cost</td>
+          </tr>
+          <tr>
+            <td>Cross-Region Recovery Conflict</td>
+            <td>Both regions fail simultaneously — each recovers independently and diverges</td>
+            <td>Diverging object versions, conflicting state after both regions recover</td>
+            <td>Manual reconciliation, apply conflict resolution rules</td>
+            <td>Controlled DR process with designated authoritative region</td>
+            <td class="casc">Silent corruption — both regions write conflicting data, one overwrites the other</td>
+            <td class="troff">Designating one authoritative region means the other region's writes may be lost</td>
+          </tr>
+          <tr>
+            <td>Global Metadata Drift</td>
+            <td>Regional storage metadata nodes diverge — different regions route to different locations</td>
+            <td>Metadata mismatch, object routing errors in secondary region</td>
+            <td>Metadata reconciliation from authoritative global source</td>
+            <td>Consensus-backed global metadata, GitOps propagation with validation</td>
+            <td class="casc">Wrong object routing globally — users cannot find or access their data</td>
+            <td class="troff">Global metadata consensus adds cross-region latency to every metadata operation</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Storage Failures for Interviews</p>
+      <div class="ncode"> 1. Disk failure          → RAID + RF≥3 + hot-spare + SMART monitoring
+ 2. Bit rot              → end-to-end checksums + regular scrubbing + replicated storage
+ 3. Disk full            → capacity planning + lifecycle policies + 85%+ alert
+ 4. Replication lag      → lag monitoring + read from primary when consistent
+ 5. Lost write           → WAL + fsync before ACK + durable commits
+ 6. Partial/torn write   → atomic write + WAL + copy-on-write FS
+ 7. Metadata service     → HA coordinator + client-side cache + degraded mode
+ 8. Split brain storage  → majority quorum + fencing + consensus primary
+ 9. Snapshot/backup fail → validate + restore test + backup monitoring
+10. Replication storm    → throttle rebuild + prioritise live traffic</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failures</a> &nbsp;|&nbsp;
+      <a href="replication-failures-table.html" class="text-lime-700 font-semibold hover:underline">Replication Failures</a> &nbsp;|&nbsp;
+      <a href="distributed-failures-table.html" class="text-indigo-600 font-semibold hover:underline">Distributed Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Storage Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Data permanently lost?       → RF≥3 + checksums + backup + WAL
+2. Storage bottleneck?         → IO saturation + hotspot + metadata IO
+3. Replicas diverge?           → quorum + anti-entropy + checksums
+4. Metadata fail independently? → HA coordinator + client cache + degraded mode
+5. Rebuild overloads healthy?  → throttle + hot-spare + controlled scheduling
+6. Corruption silent?          → end-to-end checksums + scrubbing + no silent drop
+7. Recovery itself fail?       → restore testing + backup validation + incremental CP</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Storage Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Storage Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Disk failure</td><td>RF drops → rebuild storm → live IO degraded → another disk fails → data loss</td></tr>
+          <tr><td>Disk full</td><td>All writes fail → DB/logs/uploads fail simultaneously</td></tr>
+          <tr><td>Metadata service down</td><td>All storage locations unknown → entire cluster inaccessible</td></tr>
+          <tr><td>Replication storm</td><td>Network saturated during rebuild → live traffic latency degrades</td></tr>
+          <tr><td>Snapshot corruption</td><td>Recovery impossible from latest backup → extended outage</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Storage Failures Reduce to 5 States</p>
+      <div class="ncode">1. Unavailable  → disk fail / node fail / metadata down / full
+2. Slow         → IO saturation / hotspot / replication lag / high write latency
+3. Corrupted    → bit rot / torn write / lost write / object corruption
+4. Inconsistent → replica diverge / stale read / split brain / version conflict
+5. Unrecoverable → backup fail / snapshot corrupt / RAID double fail / cold storage
+
+Most dangerous: silent corruption + unrecoverable backup
+  corruption spreads silently to backups → recovery impossible → permanent data loss</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#052e16;border:1px solid #166534;">
+      <p class="text-xs font-bold text-green-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">Durable?</p>
+          <p class="text-xs text-green-400 mt-0.5">WAL + fsync + RF≥3</p>
+        </div>
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">Integrity?</p>
+          <p class="text-xs text-green-400 mt-0.5">Checksums + scrubbing</p>
+        </div>
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">Recoverable?</p>
+          <p class="text-xs text-green-400 mt-0.5">Tested backups + DR drills</p>
+        </div>
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">Consistent?</p>
+          <p class="text-xs text-green-400 mt-0.5">Quorum + anti-entropy</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Load / Traffic Failures in System Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#0d9488; border-bottom-color:#0d9488; }
+    .tab-btn:hover:not(.active) { color:#134e4a; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .tc { background:#fff; border:1px solid #99f6e4; border-radius:1rem; padding:1rem 1.25rem; }
+    .tc-num { display:inline-flex; align-items:center; justify-content:center;
+              width:1.5rem; height:1.5rem; border-radius:999px; background:#0d9488;
+              color:#fff; font-size:.65rem; font-weight:800; margin-bottom:.5rem; }
+    .tc-title { font-weight:700; font-size:.85rem; color:#1e293b; }
+    .tc-badge { font-size:.62rem; font-weight:700; border-radius:999px;
+                padding:.15em .6em; margin-left:.4rem;
+                background:#ccfbf1; color:#115e59; }
+    .tc-badge-red { background:#fee2e2; color:#991b1b; }
+    .tc-row { display:flex; gap:.5rem; margin-top:.45rem; align-items:flex-start; }
+    .tc-lbl { font-size:.6rem; font-weight:800; text-transform:uppercase;
+              letter-spacing:.07em; min-width:3rem; padding-top:.1rem; }
+    .lbl-what { color:#dc2626; }
+    .lbl-eg   { color:#0369a1; }
+    .tc-val   { font-size:.77rem; color:#374151; line-height:1.55; }
+    .tc-think { background:#022c22; color:#6ee7b7; font-family:'Courier New',monospace;
+                font-size:.74rem; border-radius:.5rem; padding:.55rem .8rem;
+                white-space:pre; margin-top:.6rem; line-height:1.7; }
+
+    .mc { background:#fff; border:1px solid #99f6e4; border-radius:1rem; padding:1rem 1.25rem; }
+    .mc-title { font-weight:700; font-size:.83rem; color:#1e293b; margin-bottom:.5rem; }
+    .mc-say { background:#022c22; color:#6ee7b7; font-family:'Courier New',monospace;
+              font-size:.74rem; border-radius:.55rem; padding:.65rem .9rem;
+              white-space:pre-wrap; line-height:1.8; }
+
+    .nc   { background:#f0fdfa; border:1px solid #99f6e4; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#0d9488; margin-bottom:.6rem; }
+    .ncode{ background:#022c22; color:#6ee7b7; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.77rem; }
+    .nt th{ background:#ccfbf1; color:#134e4a; font-weight:700; font-size:.63rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .7rem; text-align:left; }
+    .nt td{ padding:.38rem .7rem; border-top:1px solid #ccfbf1;
+            color:#374151; vertical-align:top; line-height:1.5; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-teal-600 hover:text-teal-800 font-semibold
+              bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-teal-700 font-semibold">Load / Traffic Failures</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Load / Traffic Failures</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Interview-focused · 12 failure types · autoscaling / rate limiting / backpressure · staff patterns</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-6xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('types',this)">Failure Types</button>
+    <button class="tab-btn"        onclick="switchTab('mit',this)">Mitigations</button>
+    <button class="tab-btn"        onclick="switchTab('cheat',this)">Cheat Sheet</button>
+  </div>
+
+  <!-- ════════════ TAB 1 — FAILURE TYPES ════════════ -->
+  <div id="tab-types" class="tab-pane active pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Core Mental Model — Generate Any Load Failure From This</p>
+      <div class="ncode">Too many requests   → surge / overload / herd
+Uneven requests     → hotspot / hot partition
+Bursty requests     → spiky load / retry amplification
+Slow consumers      → queue backlog / backpressure</div>
+      <p class="text-sm text-gray-700 mt-3">Most real outages are <strong>load/traffic problems</strong>, not code bugs.
+        A small set with clear reasoning covers everything.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">1</span>
+          <span class="tc-title">Traffic Spike / Sudden Surge</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Sudden increase in requests — viral event, flash sale, breaking news</span></div>
+        <pre class="tc-think">System capacity &lt; incoming traffic</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">2</span>
+          <span class="tc-title">Sustained High Load (Overload)</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Continuous traffic that exceeds system capacity for an extended period</span></div>
+        <pre class="tc-think">System cannot keep up for long duration</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">3</span>
+          <span class="tc-title">Thundering Herd</span>
+          <span class="tc-badge tc-badge-red">Classic</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Many clients hit the system at the same instant — typically post-cache-expiry or post-outage</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Cache TTL expires — all requests simultaneously hit the DB</span></div>
+        <pre class="tc-think">Sudden synchronized traffic burst
+→ DB or origin overwhelmed</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">4</span>
+          <span class="tc-title">Hotspot / Hot Key / Hot Partition</span>
+          <span class="tc-badge tc-badge-red">Classic</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Uneven traffic — one entity attracts massively disproportionate load</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">One celebrity post / product / DB shard gets all the traffic</span></div>
+        <pre class="tc-think">One node overloaded, others idle
+→ horizontal scale doesn't help</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">5</span>
+          <span class="tc-title">Cache Stampede</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Cache miss causes many concurrent requests to all hit the backend simultaneously</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Popular cache key expires — 10,000 threads race to rebuild it from DB</span></div>
+        <pre class="tc-think">Cache failure → DB overload</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">6</span>
+          <span class="tc-title">Queue Overload / Backlog</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Producers enqueue faster than consumers can process</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Order events pile up while payment service is slow</span></div>
+        <pre class="tc-think">Queue grows uncontrollably
+→ memory exhaustion or data loss</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">7</span>
+          <span class="tc-title">Retry Amplification</span>
+          <span class="tc-badge tc-badge-red">Dangerous</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Failed requests trigger retries — retries multiply the traffic load</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">10k clients each retry 3 times — 30k requests hit a struggling service</span></div>
+        <pre class="tc-think">Retries multiply traffic
+→ small failure becomes cascade</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">8</span>
+          <span class="tc-title">Thread / Connection Exhaustion</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Too many concurrent requests consume all available threads or connections</span></div>
+        <pre class="tc-think">No capacity to serve new requests
+→ queue or reject</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">9</span>
+          <span class="tc-title">Load Balancer Overload</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">LB tier itself becomes the bottleneck and drops connections</span></div>
+        <pre class="tc-think">Entry point becomes the bottleneck
+→ traffic never reaches services</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">10</span>
+          <span class="tc-title">Slow Consumer / Backpressure Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Downstream is slower than upstream — pressure builds upstream</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">DB writes slow down → API layer accumulates open connections</span></div>
+        <pre class="tc-think">Processing rate &lt; arrival rate
+→ upstream overloads</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">11</span>
+          <span class="tc-title">Burst Traffic (Spiky Load)</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Short, sharp traffic spikes — system unstable between bursts and idle</span></div>
+        <pre class="tc-think">System thrashes between
+overload and underuse</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">12</span>
+          <span class="tc-title">Cascading Load Failure</span>
+          <span class="tc-badge tc-badge-red">Most Dangerous</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">One overloaded service slows others — failure propagates through the system</span></div>
+        <pre class="tc-think">Failure spreads across system
+→ full outage from one overloaded node</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-5">
+      <p class="nh">5-Bucket Memory Model — Use This in Interviews</p>
+      <div class="ncode">Load failures =
+  1. Too much traffic   → spike / sustained overload
+  2. Uneven traffic     → hotspot / hot partition
+  3. Sudden traffic     → thundering herd / cache stampede
+  4. Repeated traffic   → retry amplification
+  5. Slow processing    → queue backlog / backpressure</div>
+      <p class="text-sm text-gray-700 mt-3">
+        Final truth: <strong>incoming rate &gt; processing capacity</strong>.
+        Your job is to either increase capacity or reduce / shape traffic.
+      </p>
+    </div>
+
+  </div><!-- /tab-types -->
+
+  <!-- ════════════ TAB 2 — MITIGATIONS ════════════ -->
+  <div id="tab-mit" class="tab-pane pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Staff Pattern — Use Every Time</p>
+      <div class="flex flex-wrap gap-2 text-xs font-semibold items-center">
+        <span class="bg-blue-600 text-white px-3 py-1.5 rounded-lg">Detect</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-teal-600 text-white px-3 py-1.5 rounded-lg">Mitigate</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-green-600 text-white px-3 py-1.5 rounded-lg">Prevent</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="mc">
+        <p class="mc-title">1. Traffic Spike / Sudden Surge</p>
+        <pre class="mc-say">Detect via RPS spike / queue depth / error rate
+→ autoscaling + CDN for static reads
+→ pre-scale for known events (sales, launches)
+→ Prevent with capacity planning + load testing</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">2. Sustained High Load (Overload)</p>
+        <pre class="mc-say">Detect via sustained high CPU / latency / queue
+→ scale horizontally + offload to async workers
+→ separate read and write paths
+→ Prevent via capacity planning + load testing</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">3. Thundering Herd</p>
+        <pre class="mc-say">Detect via synchronized spike after cache expiry
+→ request coalescing (single-flight pattern)
+  + jittered retries to desynchronise clients
+→ Prevent with staggered TTLs + cache locking</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">4. Hotspot / Hot Key / Hot Partition</p>
+        <pre class="mc-say">Detect via uneven shard / node metrics
+→ spread load: consistent hashing with
+  virtual nodes, or local caching of hot keys
+→ Prevent with better shard keys
+  or dynamic rebalancing</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">5. Cache Stampede</p>
+        <pre class="mc-say">Detect via cache miss spike + DB QPS surge
+→ cache-aside with mutex / single-flight lock
+  (only one thread rebuilds, others wait)
+→ Prevent with pre-warming + staggered TTLs
+  + soft expiry / probabilistic refresh</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">6. Queue Overload / Backlog</p>
+        <pre class="mc-say">Detect via queue lag / growing backlog metrics
+→ scale consumers + prioritise critical jobs
+  + dead-letter queue for overflow
+→ Prevent with backpressure on producers
+  and consumer autoscaling</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">7. Retry Amplification</p>
+        <pre class="mc-say">Detect via surge in retry traffic / error rate
+→ circuit breaker to stop retries when open
+  + exponential backoff with jitter
+  + cap max retries
+→ Prevent with idempotent APIs + retry budgets</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">8. Thread / Connection Exhaustion</p>
+        <pre class="mc-say">Detect via pool exhaustion / high wait time
+→ rate limiting + request queuing
+  + increase pool size cautiously
+→ Prevent with async / non-blocking IO
+  and connection pooling</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">9. Load Balancer Overload</p>
+        <pre class="mc-say">Detect via LB saturation / dropped connections
+→ multiple LBs + anycast / DNS load spreading
+  + health-check backends + remove sick nodes
+→ Prevent by scaling LB tier ahead of demand</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">10. Slow Consumer / Backpressure Failure</p>
+        <pre class="mc-say">Detect via queue lag + increasing upstream latency
+→ backpressure: throttle producers to match
+  consumer rate + buffer with bounded queues
+→ Prevent with consumer autoscaling
+  and isolating slow processing paths</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">11. Burst Traffic (Spiky Load)</p>
+        <pre class="mc-say">Detect via short-lived RPS spikes
+→ buffering with queues + token buckets
+  + burst-friendly autoscaling policies
+→ Prevent with request smoothing:
+  rate limiting + traffic shaping</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">12. Cascading Load Failure</p>
+        <pre class="mc-say">Detect via multi-service latency / error spikes
+→ circuit breakers + bulkheads to contain blast
+  + load shedding (drop non-critical traffic)
+→ Prevent by isolating services with
+  timeouts + bulkheads + async decoupling</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-5">
+      <p class="nh">5 Core Load Mitigation Patterns — Everything Maps Here</p>
+      <div class="ncode">1. Scale     → autoscale, add replicas, shard better
+2. Throttle  → rate limit, backpressure, token bucket
+3. Buffer    → queues, bounded buffers, async decoupling
+4. Cache     → CDN, local cache, pre-warm, single-flight
+5. Isolate   → circuit breaker, bulkhead, load shedding</div>
+    </div>
+
+    <div class="rounded-2xl p-5 mt-4" style="background:#022c22;border:1px solid #065f46;">
+      <p class="text-xs font-bold text-teal-300 uppercase tracking-widest mb-2">Staff-Level One-Liner</p>
+      <p class="text-sm text-white leading-relaxed font-medium">
+        "I would detect load issues via RPS and latency metrics, scale horizontally, throttle excess
+        traffic using rate limiting and backpressure, buffer with queues, cache hot paths using CDN
+        and single-flight, and isolate failures using circuit breakers and load shedding."
+      </p>
+    </div>
+
+  </div><!-- /tab-mit -->
+
+  <!-- ════════════ TAB 3 — CHEAT SHEET ════════════ -->
+  <div id="tab-cheat" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">All 12 — Type + Instant Mitigation Side by Side</p>
+      <div class="overflow-x-auto mt-1">
+        <table class="nt">
+          <thead>
+            <tr><th>#</th><th>Failure</th><th>Think</th><th>Detect</th><th>Mitigate</th><th>Prevent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="font-semibold">Traffic Spike</td><td>Capacity exceeded</td><td>RPS / queue depth</td><td>Autoscale + CDN</td><td>Pre-scale, capacity plan</td></tr>
+            <tr><td>2</td><td class="font-semibold">Sustained Overload</td><td>Long-term cap exceeded</td><td>CPU / latency sustained</td><td>Scale out, async workers</td><td>Load test, read/write split</td></tr>
+            <tr><td>3</td><td class="font-semibold">Thundering Herd</td><td>Synchronized burst</td><td>Sync spike post-expiry</td><td>Single-flight + jitter</td><td>Staggered TTLs, cache lock</td></tr>
+            <tr><td>4</td><td class="font-semibold">Hotspot / Hot Key</td><td>One node overloaded</td><td>Uneven shard metrics</td><td>Virtual nodes, local cache</td><td>Better shard keys</td></tr>
+            <tr><td>5</td><td class="font-semibold">Cache Stampede</td><td>Cache miss → DB crush</td><td>Miss spike + DB QPS</td><td>Mutex / single-flight</td><td>Pre-warm, soft TTL</td></tr>
+            <tr><td>6</td><td class="font-semibold">Queue Overload</td><td>Queue grows unbounded</td><td>Queue lag / backlog</td><td>Scale consumers, DLQ</td><td>Backpressure on producers</td></tr>
+            <tr><td>7</td><td class="font-semibold">Retry Amplification</td><td>Retries multiply load</td><td>Retry traffic surge</td><td>Circuit breaker + jitter</td><td>Idempotency + retry budget</td></tr>
+            <tr><td>8</td><td class="font-semibold">Thread Exhaustion</td><td>No capacity left</td><td>Pool wait / queue time</td><td>Rate limit + increase pool</td><td>Async IO, connection pool</td></tr>
+            <tr><td>9</td><td class="font-semibold">LB Overload</td><td>Entry point fails</td><td>LB saturation / drops</td><td>Multiple LBs, anycast</td><td>Scale LB tier proactively</td></tr>
+            <tr><td>10</td><td class="font-semibold">Slow Consumer</td><td>Upstream backs up</td><td>Queue lag + latency</td><td>Backpressure, bounded buf</td><td>Consumer autoscale, isolate</td></tr>
+            <tr><td>11</td><td class="font-semibold">Burst / Spiky Load</td><td>System thrashes</td><td>Short RPS spikes</td><td>Queue + token bucket</td><td>Rate limit, traffic shaping</td></tr>
+            <tr><td>12</td><td class="font-semibold">Cascading Failure</td><td>Failure spreads</td><td>Multi-svc error spike</td><td>Circuit breaker + shedding</td><td>Timeouts + bulkheads</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Ultra-Compact Playbook — Say This When You Freeze</p>
+      <div class="ncode">Detect via RPS / latency / queue metrics
+→ scale horizontally (more capacity)
+→ rate limit / backpressure (shape traffic)
+→ cache + CDN (reduce work)
+→ circuit breaker + load shedding (contain blast)</div>
+    </div>
+
+    <a href="data-consistency-failures.html"
+       class="flex items-center justify-between bg-white border border-violet-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-violet-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-violet-600 mb-1">Related</p>
+        <p class="font-bold text-gray-800 text-base">Data Consistency Failures</p>
+        <p class="text-sm text-gray-500 mt-0.5">Lost updates, stale reads, partial writes, idempotency, Saga — same format</p>
+      </div>
+      <svg class="w-6 h-6 text-violet-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+    <a href="load-traffic-failures-table.html"
+       class="flex items-center justify-between bg-white border border-teal-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-teal-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-teal-600 mb-1">Deep Dive Table</p>
+        <p class="font-bold text-gray-800 text-base">Load &amp; Traffic — Full Scenario Table</p>
+        <p class="text-sm text-gray-500 mt-0.5">7 categories, 29 scenarios — detect / mitigate / prevent / cascading / trade-off</p>
+      </div>
+      <svg class="w-6 h-6 text-teal-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-cheat -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

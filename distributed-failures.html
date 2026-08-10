@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Distributed System Failures in System Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#4338ca; border-bottom-color:#4338ca; }
+    .tab-btn:hover:not(.active) { color:#1e1b4b; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .tc { background:#fff; border:1px solid #c7d2fe; border-radius:1rem; padding:1rem 1.25rem; }
+    .tc-num { display:inline-flex; align-items:center; justify-content:center;
+              width:1.5rem; height:1.5rem; border-radius:999px; background:#4338ca;
+              color:#fff; font-size:.65rem; font-weight:800; margin-bottom:.5rem; }
+    .tc-title { font-weight:700; font-size:.85rem; color:#1e293b; }
+    .tc-badge     { font-size:.62rem; font-weight:700; border-radius:999px;
+                    padding:.15em .6em; margin-left:.4rem;
+                    background:#e0e7ff; color:#3730a3; }
+    .tc-badge-red { background:#fee2e2; color:#991b1b; }
+    .tc-row { display:flex; gap:.5rem; margin-top:.4rem; align-items:flex-start; }
+    .tc-lbl { font-size:.6rem; font-weight:800; text-transform:uppercase;
+              letter-spacing:.07em; min-width:2.8rem; padding-top:.1rem; }
+    .lbl-what { color:#dc2626; }
+    .lbl-why  { color:#d97706; }
+    .tc-val   { font-size:.77rem; color:#374151; line-height:1.5; }
+    .tc-think { background:#1e1b4b; color:#a5b4fc; font-family:'Courier New',monospace;
+                font-size:.74rem; border-radius:.5rem; padding:.5rem .8rem;
+                white-space:pre; margin-top:.55rem; line-height:1.65; }
+
+    .mc { background:#fff; border:1px solid #c7d2fe; border-radius:1rem; padding:.95rem 1.2rem; }
+    .mc-title { font-weight:700; font-size:.82rem; color:#1e293b; margin-bottom:.45rem; }
+    .mc-say { background:#1e1b4b; color:#a5b4fc; font-family:'Courier New',monospace;
+              font-size:.73rem; border-radius:.5rem; padding:.6rem .9rem;
+              white-space:pre-wrap; line-height:1.75; }
+
+    .nc   { background:#eef2ff; border:1px solid #c7d2fe; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#4338ca; margin-bottom:.6rem; }
+    .ncode{ background:#1e1b4b; color:#a5b4fc; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.76rem; }
+    .nt th{ background:#e0e7ff; color:#3730a3; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.38rem .65rem; text-align:left; }
+    .nt td{ padding:.35rem .65rem; border-top:1px solid #e0e7ff;
+            color:#374151; vertical-align:top; line-height:1.45; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-semibold
+              bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-indigo-700 font-semibold">Distributed System Failures</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-indigo-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Distributed System Failures</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Interview-focused · 14 types · consensus / quorum / idempotency / saga · staff patterns</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-6xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('types',this)">Failure Types</button>
+    <button class="tab-btn"        onclick="switchTab('mit',this)">Mitigations</button>
+    <button class="tab-btn"        onclick="switchTab('cheat',this)">Cheat Sheet</button>
+  </div>
+
+  <!-- ════════════ TAB 1 — TYPES ════════════ -->
+  <div id="tab-types" class="tab-pane active pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Core Mental Model — All Distributed Failures Come From</p>
+      <div class="ncode">coordination + ordering + replication + time + partitions</div>
+      <p class="text-sm text-gray-700 mt-3">
+        Key insight: <strong>multiple machines = multiple truths.</strong>
+        Your job is to coordinate, order, and reconcile those truths.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">1</span>
+          <span class="tc-title">Network Partition (Split Brain)</span>
+          <span class="tc-badge tc-badge-red">Most Important</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Cluster splits — nodes cannot communicate with each other</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Multiple leaders elected / inconsistent writes on both sides</span></div>
+        <pre class="tc-think">System sees multiple truths</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">2</span>
+          <span class="tc-title">Leader Election Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">No leader elected, OR multiple leaders simultaneously</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Writes fail or conflict — no single coordination authority</span></div>
+        <pre class="tc-think">No coordination authority</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">3</span>
+          <span class="tc-title">Replica Inconsistency</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Different replicas hold different versions of the same data</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Reads on different replicas return different values for same key</span></div>
+        <pre class="tc-think">Same data, different answers</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">4</span>
+          <span class="tc-title">Replication Lag</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Followers fall behind leader — writes not yet propagated</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Stale reads — user reads old data right after a write</span></div>
+        <pre class="tc-think">Writes not yet propagated
+→ reads return stale data</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">5</span>
+          <span class="tc-title">Quorum Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Not enough nodes available to reach consensus threshold</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Cannot safely read or write — system stalls</span></div>
+        <pre class="tc-think">System cannot make a decision</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">6</span>
+          <span class="tc-title">Duplicate Event Processing</span>
+          <span class="tc-badge tc-badge-red">Critical</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Same event delivered and processed more than once</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">At-least-once delivery → double payments, double actions</span></div>
+        <pre class="tc-think">At-least-once → duplicate execution</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">7</span>
+          <span class="tc-title">Missing Event / Data Loss</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Event never delivered or silently dropped in transit</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Lost updates — downstream never processes the event</span></div>
+        <pre class="tc-think">Event disappeared</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">8</span>
+          <span class="tc-title">Out-of-Order Event Processing</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Events processed in the wrong sequence</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">"Cancel order" processed before "Create order" — wrong final state</span></div>
+        <pre class="tc-think">Sequence broken → wrong state</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">9</span>
+          <span class="tc-title">Clock Skew / Time Drift</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Different nodes have different wall clock time</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Ordering, TTL, and scheduling produce incorrect results</span></div>
+        <pre class="tc-think">Time is inconsistent across nodes
+→ ordering breaks</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">10</span>
+          <span class="tc-title">Consensus Failure (Raft / Paxos)</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Consensus algorithm fails to reach agreement among nodes</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Writes blocked or state diverges — system stalls under contention</span></div>
+        <pre class="tc-think">Nodes cannot agree on state</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">11</span>
+          <span class="tc-title">Distributed Transaction Failure</span>
+          <span class="tc-badge tc-badge-red">Critical</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Multi-service operation partially completes</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Inconsistent global state — payment deducted, order not created</span></div>
+        <pre class="tc-think">Half-completed workflow
+→ inconsistent global state</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">12</span>
+          <span class="tc-title">Conflict (Concurrent Updates)</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Multiple nodes update the same data simultaneously</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Diverging versions with no clear winner</span></div>
+        <pre class="tc-think">Concurrent writes → conflict
+→ no single truth</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">13</span>
+          <span class="tc-title">Service Discovery Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Services cannot locate each other via the registry</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">System appears completely down even though services are running</span></div>
+        <pre class="tc-think">Nodes exist but cannot connect</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">14</span>
+          <span class="tc-title">Partition Healing Conflict</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">After partition resolves, both sides made divergent writes</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-why">Why</span><span class="tc-val">Two histories need merging — reconciliation required</span></div>
+        <pre class="tc-think">Two divergent histories
+→ must merge or pick winner</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-5">
+      <p class="nh">6-Bucket Memory Model — Use This in Interviews</p>
+      <div class="ncode">Distributed failures =
+  1. Partition     → nodes can't communicate (split brain)
+  2. Coordination  → leader / quorum / consensus fails
+  3. Replication   → lag / inconsistency across replicas
+  4. Ordering      → duplicate / missing / out-of-order events
+  5. Time          → clock skew breaks ordering and TTLs
+  6. Transactions  → partial completion / conflict</div>
+    </div>
+
+  </div><!-- /tab-types -->
+
+  <!-- ════════════ TAB 2 — MITIGATIONS ════════════ -->
+  <div id="tab-mit" class="tab-pane pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Staff Pattern — Use Every Time</p>
+      <div class="flex flex-wrap gap-2 text-xs font-semibold items-center">
+        <span class="bg-blue-600 text-white px-3 py-1.5 rounded-lg">Detect</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg">Mitigate</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-green-600 text-white px-3 py-1.5 rounded-lg">Prevent</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+      <div class="mc">
+        <p class="mc-title">1. Network Partition (Split Brain)</p>
+        <pre class="mc-say">Detect via heartbeat failures / cluster split alerts
+→ quorum-based writes (majority must acknowledge)
+  + leader election via Raft / Paxos
+→ Prevent: minority partition stops accepting writes
+  reconcile data after partition heals</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">2. Leader Election Failure</p>
+        <pre class="mc-say">Detect via missing heartbeat / multiple-leader signals
+→ re-run leader election via Raft consensus
+  + fencing tokens to reject stale leader writes
+→ Prevent with stable election timeouts
+  and reliable heartbeat intervals</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">3. Replica Inconsistency</p>
+        <pre class="mc-say">Detect via checksum comparison / divergence monitoring
+→ read repair: sync lagging replica from leader
+→ Prevent with quorum reads/writes
+  or synchronous replication on critical paths</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">4. Replication Lag</p>
+        <pre class="mc-say">Detect via replica lag metrics (seconds behind leader)
+→ route critical reads to leader
+→ Prevent by tuning replication settings
+  and using bounded staleness where tolerable</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">5. Quorum Failure</p>
+        <pre class="mc-say">Detect via insufficient nodes for quorum threshold
+→ switch to degraded read-only mode
+  (serve stale reads, block writes)
+→ Prevent by distributing nodes across
+  multiple zones / regions</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">6. Duplicate Event Processing</p>
+        <pre class="mc-say">Detect via duplicate event IDs / repeated actions
+→ idempotency keys on every consumer
+  + deduplication store (Redis / DB unique key)
+→ Prevent with exactly-once semantics
+  where critical (Kafka transactions)</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">7. Missing Event / Data Loss</p>
+        <pre class="mc-say">Detect via audit logs / missing sequence numbers
+→ replay events from durable log (Kafka)
+→ Prevent with persistent queues,
+  acks=all, and consumer offset commits</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">8. Out-of-Order Event Processing</p>
+        <pre class="mc-say">Detect via sequence number mismatch
+→ buffer and reorder using sequence numbers
+  or partition by key to guarantee order
+→ Prevent: enforce per-key ordering
+  in partitioned message queues</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">9. Clock Skew / Time Drift</p>
+        <pre class="mc-say">Detect via time-sync monitoring / NTP drift alerts
+→ use logical clocks (Lamport) or vector clocks
+  instead of wall clock for ordering
+→ Prevent with NTP synchronisation
+  and avoiding time-based ordering</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">10. Consensus Failure (Raft / Paxos)</p>
+        <pre class="mc-say">Detect via inability to elect leader / commit log
+→ retry consensus round / re-elect leader
+→ Prevent by maintaining stable quorum
+  and ensuring reliable network between nodes</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">11. Distributed Transaction Failure</p>
+        <pre class="mc-say">Detect via partial state across services
+→ Saga pattern with compensating actions
+  to undo partial work
+→ Prevent by avoiding 2PC; design
+  idempotent, retryable workflow steps</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">12. Conflict (Concurrent Updates)</p>
+        <pre class="mc-say">Detect via version conflicts / merge failures
+→ conflict resolution: last-write-wins,
+  application-level merge, or CRDT
+→ Prevent with optimistic locking
+  or serializable transactions</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">13. Service Discovery Failure</p>
+        <pre class="mc-say">Detect via lookup failures / connection errors
+→ use cached service registry entries
+  + fallback to hardcoded endpoints
+→ Prevent by replicating service registry
+  and health-checking all registered endpoints</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">14. Partition Healing Conflict</p>
+        <pre class="mc-say">Detect via divergent states after partition recovery
+→ reconciliation job: merge or pick winner
+  using CRDT, LWW, or business logic
+→ Prevent with strong consistency on
+  critical paths (avoid split-write design)</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-5">
+      <p class="nh">5 Core Distributed System Patterns — Everything Reduces to These</p>
+      <div class="ncode">1. Consensus (Raft/Paxos) → coordination + leader election
+2. Quorum               → consistent reads and writes
+3. Idempotency          → handle duplicates safely
+4. Ordering             → event correctness (partitioned logs)
+5. Saga / reconciliation → distributed transaction recovery</div>
+    </div>
+
+    <div class="rounded-2xl p-5 mt-4" style="background:#1e1b4b;border:1px solid #3730a3;">
+      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Staff-Level One-Liner</p>
+      <p class="text-sm text-white leading-relaxed font-medium">
+        "I would use quorum-based consensus for coordination, ensure idempotent processing to handle
+        duplicates, enforce ordering via partitioned logs, use Saga for distributed transactions,
+        and apply reconciliation to guarantee eventual correctness."
+      </p>
+    </div>
+
+  </div><!-- /tab-mit -->
+
+  <!-- ════════════ TAB 3 — CHEAT SHEET ════════════ -->
+  <div id="tab-cheat" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">All 14 — Type + Mitigation at a Glance</p>
+      <div class="overflow-x-auto mt-1">
+        <table class="nt">
+          <thead>
+            <tr><th>#</th><th>Failure</th><th>Think</th><th>Detect</th><th>Mitigate</th><th>Prevent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="font-semibold">Split Brain</td><td>Multiple truths</td><td>Heartbeat failure</td><td>Quorum + leader election</td><td>Minority stops writes</td></tr>
+            <tr><td>2</td><td class="font-semibold">Leader Fail</td><td>No authority</td><td>Missing heartbeat</td><td>Re-elect via Raft</td><td>Fencing tokens</td></tr>
+            <tr><td>3</td><td class="font-semibold">Replica Inconsistency</td><td>Different answers</td><td>Checksum diff</td><td>Read repair</td><td>Quorum reads/writes</td></tr>
+            <tr><td>4</td><td class="font-semibold">Replication Lag</td><td>Stale reads</td><td>Lag metrics</td><td>Read from leader</td><td>Sync replication</td></tr>
+            <tr><td>5</td><td class="font-semibold">Quorum Failure</td><td>Can't decide</td><td>Node count alert</td><td>Read-only mode</td><td>Multi-zone nodes</td></tr>
+            <tr><td>6</td><td class="font-semibold">Duplicate Event</td><td>Double action</td><td>Duplicate IDs</td><td>Idempotency keys</td><td>Exactly-once semantics</td></tr>
+            <tr><td>7</td><td class="font-semibold">Missing Event</td><td>Lost update</td><td>Seq number gaps</td><td>Replay from log</td><td>acks=all, offsets</td></tr>
+            <tr><td>8</td><td class="font-semibold">Out-of-Order</td><td>Wrong state</td><td>Seq mismatch</td><td>Buffer + reorder</td><td>Per-key partitioning</td></tr>
+            <tr><td>9</td><td class="font-semibold">Clock Skew</td><td>Ordering breaks</td><td>NTP drift alert</td><td>Logical / vector clocks</td><td>NTP sync, avoid time order</td></tr>
+            <tr><td>10</td><td class="font-semibold">Consensus Fail</td><td>Nodes disagree</td><td>No commit progress</td><td>Retry consensus</td><td>Stable quorum + network</td></tr>
+            <tr><td>11</td><td class="font-semibold">Distributed Tx Fail</td><td>Half-done workflow</td><td>Cross-svc state diff</td><td>Saga + compensate</td><td>Idempotent steps, no 2PC</td></tr>
+            <tr><td>12</td><td class="font-semibold">Conflict</td><td>No clear winner</td><td>Version conflict</td><td>LWW / CRDT / merge</td><td>Optimistic locking</td></tr>
+            <tr><td>13</td><td class="font-semibold">Discovery Fail</td><td>Can't connect</td><td>Lookup failures</td><td>Cached registry</td><td>Replicated registry</td></tr>
+            <tr><td>14</td><td class="font-semibold">Healing Conflict</td><td>Two histories</td><td>Post-heal divergence</td><td>Reconciliation job</td><td>Strong consistency on writes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Ultra-Compact Playbook — Say This When You Freeze</p>
+      <div class="ncode">1. Quorum + consensus  → coordination (partition / leader)
+2. Idempotency         → duplicates
+3. Per-key ordering    → out-of-order events
+4. Saga + compensate   → distributed transactions
+5. Reconciliation      → healing conflicts + stale state</div>
+    </div>
+
+    <a href="dependency-failures.html"
+       class="flex items-center justify-between bg-white border border-amber-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-amber-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-amber-700 mb-1">Related</p>
+        <p class="font-bold text-gray-800 text-base">Dependency Failures</p>
+        <p class="text-sm text-gray-500 mt-0.5">Circuit breaker, fallback, retry, decouple — when your dependencies fail</p>
+      </div>
+      <svg class="w-6 h-6 text-amber-600 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+    <a href="distributed-failures-table.html"
+       class="flex items-center justify-between bg-white border border-indigo-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-indigo-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-1">Deep Dive Table</p>
+        <p class="font-bold text-gray-800 text-base">Distributed Failures — Full Scenario Table</p>
+        <p class="text-sm text-gray-500 mt-0.5">9 categories, 38 scenarios — detect / mitigate / prevent / cascading / trade-off</p>
+      </div>
+      <svg class="w-6 h-6 text-indigo-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-cheat -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Application Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#c2410c; border-bottom-color:#c2410c; }
+    .tab-btn:hover:not(.active) { color:#7c2d12; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fff7ed; border:1px solid #fed7aa; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+    .ncode{ background:#1c0a00; color:#fdba74; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fed7aa; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#7c2d12; color:#fed7aa; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #ffedd5;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fff7ed; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#5b21b6; font-size:.71rem; }
+    .cat-hdr td { background:#c2410c; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#7c2d12; color:#fed7aa; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #ffedd5; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-orange-700 hover:text-orange-900 font-semibold
+              bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-orange-800 font-semibold">Application Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-orange-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Application-Level Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 7 categories · 33 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ══════════ TAB 1 — FAILURE TABLE ══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Application Failures Are the Most Common</p>
+      <div class="ncode">Application layer contains: business logic + runtime + threads + memory + dependencies
+
+Unlike infra failures, application failures are often:
+  logic-related       → bugs, incorrect state, wrong assumptions
+  runtime-related     → OOM, GC, crash, hang
+  concurrency-related → deadlock, race, lost update
+  dependency-triggered → slow DB, unavailable cache, contract mismatch</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Runtime and Process Failures</td></tr>
+          <tr>
+            <td>Service Crash / Process Down<span class="badge-crit">Must Know</span></td>
+            <td>Unhandled exception, segfault, fatal error, OOM kill</td>
+            <td>Health check failure, process exit alerts, restart count</td>
+            <td>Restart service, failover traffic to healthy replicas</td>
+            <td>Defensive exception handling, multiple replicas</td>
+            <td class="casc">Traffic rerouted → healthy nodes overload → cascade</td>
+            <td class="troff">More replicas increase infra cost</td>
+          </tr>
+          <tr>
+            <td>Application Hang / Freeze</td>
+            <td>Deadlock, blocking IO, infinite wait on external resource</td>
+            <td>Process alive but no response to health checks / traffic</td>
+            <td>Kill and restart stuck instance, failover</td>
+            <td>Timeouts on all calls, watchdog monitoring</td>
+            <td class="casc">Thread pool exhaustion → all requests queue/fail</td>
+            <td class="troff">Aggressive timeouts may terminate valid slow operations</td>
+          </tr>
+          <tr>
+            <td>Runtime Panic / Fatal Error</td>
+            <td>JVM panic, nil pointer, runtime corruption, stack overflow</td>
+            <td>Crash dumps, fatal error logs, process exit code</td>
+            <td>Restart instance, isolate to single replica initially</td>
+            <td>Runtime isolation, input validation, bounds checking</td>
+            <td class="casc">Repeated crash loop overloads scheduler and neighbours</td>
+            <td class="troff">Strict validation adds runtime overhead</td>
+          </tr>
+          <tr>
+            <td>Container CrashLoop (K8s)</td>
+            <td>Startup failure, bad config, runtime error, OOM</td>
+            <td>CrashLoopBackOff alerts, pod restart count metric</td>
+            <td>Rollback deployment, fix config, check logs</td>
+            <td>Canary deployments, readiness/liveness probes</td>
+            <td class="casc">Repeated restarts overload cluster scheduler and DNS</td>
+            <td class="troff">More validation gates slow deployment velocity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Memory and Resource Exhaustion</td></tr>
+          <tr>
+            <td>Out Of Memory (OOM)<span class="badge-crit">Must Know</span></td>
+            <td>Memory leak, huge payload, unbounded cache growth</td>
+            <td>OOM kill logs, memory usage trending upward</td>
+            <td>Restart process, autoscale, reduce memory pressure</td>
+            <td>Heap limits, memory profiling, bounded caches</td>
+            <td class="casc">Restart storm → service unavailable during recovery</td>
+            <td class="troff">Strict limits may reject valid large workloads</td>
+          </tr>
+          <tr>
+            <td>Memory Leak<span class="badge-crit">Must Know</span></td>
+            <td>Objects not GC'd, listeners not removed, connection not closed</td>
+            <td>Gradual memory growth over hours/days</td>
+            <td>Restart service on schedule as short-term fix</td>
+            <td>Heap profiling, leak detection tools, code review</td>
+            <td class="casc">Slow degradation → OOM → crash → restart storm</td>
+            <td class="troff">Frequent restarts reduce service stability</td>
+          </tr>
+          <tr>
+            <td>CPU Saturation<span class="badge-crit">Must Know</span></td>
+            <td>Expensive computation, high traffic, inefficient algorithms</td>
+            <td>CPU &gt;90%, latency spike, request queue buildup</td>
+            <td>Horizontal scaling, caching, load shedding</td>
+            <td>Async processing, profiling, algorithm optimisation</td>
+            <td class="casc">Latency spike → caller timeouts → retry storm → overload</td>
+            <td class="troff">Over-provisioning raises costs significantly</td>
+          </tr>
+          <tr>
+            <td>File Descriptor Exhaustion</td>
+            <td>Too many open sockets, files, or pipes — connections not closed</td>
+            <td>"Too many open files" errors, failed socket accepts</td>
+            <td>Increase OS FD limits, restart service to clear leaks</td>
+            <td>Connection pooling, explicit resource cleanup, monitoring</td>
+            <td class="casc">All new connections/requests fail → cascades to callers</td>
+            <td class="troff">Higher FD limits increase kernel memory overhead</td>
+          </tr>
+          <tr>
+            <td>Connection Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>More concurrent requests than DB/cache connections in pool</td>
+            <td>Pool wait time increase, request timeout spikes</td>
+            <td>Queue/rate-limit requests, scale instances</td>
+            <td>Right-size pool, async IO, connection reuse</td>
+            <td class="casc">Requests timeout → retries → DB further overloaded</td>
+            <td class="troff">Larger pools overload downstream DB with connections</td>
+          </tr>
+          <tr>
+            <td>Thread Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>Blocking operations hold threads, too many concurrent requests</td>
+            <td>Queue buildup, task rejection, high thread wait time</td>
+            <td>Backpressure, async processing, rate limiting</td>
+            <td>Non-blocking IO, right-sized pools, async patterns</td>
+            <td class="casc">Requests timeout → retry storm → amplified load</td>
+            <td class="troff">Async architectures increase code complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Concurrency and Synchronization Failures</td></tr>
+          <tr>
+            <td>Deadlock<span class="badge-crit">Must Know</span></td>
+            <td>Threads wait on each other in circular dependency</td>
+            <td>Thread dump shows BLOCKED threads, no progress</td>
+            <td>Restart affected service, kill deadlocked threads</td>
+            <td>Lock ordering rules, timeout on lock acquisition</td>
+            <td class="casc">Entire service freezes → all requests fail</td>
+            <td class="troff">Less locking reduces safety guarantees</td>
+          </tr>
+          <tr>
+            <td>Race Condition</td>
+            <td>Concurrent updates to shared state without proper synchronization</td>
+            <td>Inconsistent or incorrect data in production logs</td>
+            <td>Add synchronisation/locking around shared state</td>
+            <td>Immutable state, atomic operations, actor model</td>
+            <td class="casc">Corrupted state propagates to downstream systems</td>
+            <td class="troff">Locks reduce throughput under contention</td>
+          </tr>
+          <tr>
+            <td>Lost Update</td>
+            <td>Two concurrent writes — last one silently overwrites first</td>
+            <td>Version mismatch detection, data anomaly alerts</td>
+            <td>Optimistic locking (CAS / version field)</td>
+            <td>Serializable transactions, proper isolation level</td>
+            <td class="casc">Data inconsistency spreads to all readers</td>
+            <td class="troff">Strong isolation reduces concurrent throughput</td>
+          </tr>
+          <tr>
+            <td>Duplicate Processing</td>
+            <td>Retry or at-least-once delivery re-executes same operation</td>
+            <td>Duplicate records, double charges, repeated side effects</td>
+            <td>Idempotency keys, deduplication layer</td>
+            <td>Idempotent API design, exactly-once semantics</td>
+            <td class="casc">Double payment, double order → business and data corruption</td>
+            <td class="troff">Deduplication adds storage and lookup cost</td>
+          </tr>
+          <tr>
+            <td>Thread Starvation</td>
+            <td>High-priority tasks dominate thread pool, low-priority never run</td>
+            <td>Some request types always have high queue wait time</td>
+            <td>Prioritise/rebalance tasks, separate thread pools per priority</td>
+            <td>Fair scheduling, bulkhead thread pool isolation</td>
+            <td class="casc">Low-priority requests cascade into timeouts and retries</td>
+            <td class="troff">Separate pools increase memory footprint</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Dependency-Induced Failures</td></tr>
+          <tr>
+            <td>Dependency Timeout<span class="badge-crit">Must Know</span></td>
+            <td>Slow DB, API, cache — response exceeds timeout threshold</td>
+            <td>Timeout metric spikes, P99 latency increase</td>
+            <td>Timeout + retry with backoff + circuit breaker</td>
+            <td>Caching, async processing, query optimisation</td>
+            <td class="casc">Threads held open → pool exhaustion → full service fails</td>
+            <td class="troff">Short timeouts may abort valid slow-but-correct requests</td>
+          </tr>
+          <tr>
+            <td>Dependency Unavailable<span class="badge-crit">Must Know</span></td>
+            <td>DB, cache, or third-party API is completely down</td>
+            <td>Error spike, health check failure on dependency</td>
+            <td>Circuit breaker + fallback to cached/default response</td>
+            <td>Redundancy, failover, decouple critical path</td>
+            <td class="casc">Service becomes entirely unavailable if dep is hard dependency</td>
+            <td class="troff">Fallback may return stale or incorrect data</td>
+          </tr>
+          <tr>
+            <td>Slow Dependency</td>
+            <td>DB latency spike, network issue, dep under load</td>
+            <td>P95/P99 latency increase on dep calls</td>
+            <td>Cache responses, reduce sync calls, async pattern</td>
+            <td>Query optimisation, indexing, connection pooling</td>
+            <td class="casc">Retry amplification → dep further overloaded → collapse</td>
+            <td class="troff">More caching introduces staleness risk</td>
+          </tr>
+          <tr>
+            <td>Dependency Overload</td>
+            <td>Service sends too many requests to DB/API — overwhelms it</td>
+            <td>Throttle errors (429), dep error rate spike</td>
+            <td>Rate limiting on outgoing calls, request queueing</td>
+            <td>Backpressure, caching, request batching</td>
+            <td class="casc">Dep collapse affects all services sharing it</td>
+            <td class="troff">Throttling drops requests — user-visible errors</td>
+          </tr>
+          <tr>
+            <td>Version / Contract Mismatch</td>
+            <td>API or schema change breaks backward compatibility</td>
+            <td>Serialization errors, unexpected null fields, API errors</td>
+            <td>Rollback to compatible version, version routing</td>
+            <td>Backward-compatible API design, contract testing</td>
+            <td class="casc">Cross-service failures as all callers get bad responses</td>
+            <td class="troff">Multi-version support adds significant complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Performance and Latency Failures</td></tr>
+          <tr>
+            <td>High Latency / Slow Response<span class="badge-crit">Must Know</span></td>
+            <td>Slow code path, DB query, or dependency under load</td>
+            <td>P95/P99 latency metrics, user-visible slowness</td>
+            <td>Cache hot paths, optimise queries, scale horizontally</td>
+            <td>Load testing, profiling, latency budgets</td>
+            <td class="casc">Caller timeouts → retries → retry storm → overload</td>
+            <td class="troff">More caching risks stale reads</td>
+          </tr>
+          <tr>
+            <td>GC Pause (JVM / Runtime)<span class="badge-crit">Must Know</span></td>
+            <td>Full GC on large heap — STW pause stops all threads</td>
+            <td>GC pause metrics, P99 latency spikes at regular intervals</td>
+            <td>Tune GC settings, reduce heap pressure, use G1/ZGC</td>
+            <td>Efficient object allocation, smaller working sets</td>
+            <td class="casc">Timeout spike during pause → caller retries → amplified load</td>
+            <td class="troff">Smaller heaps increase GC frequency</td>
+          </tr>
+          <tr>
+            <td>Hotspot Service / Instance</td>
+            <td>Uneven traffic routing — one instance gets all load</td>
+            <td>One instance at 100% CPU, others idle</td>
+            <td>Rebalance traffic, dynamic routing</td>
+            <td>Better partitioning, consistent hashing</td>
+            <td class="casc">Overloaded instance → slow → callers timeout → retry storm</td>
+            <td class="troff">Rebalancing adds routing overhead</td>
+          </tr>
+          <tr>
+            <td>Queue Backlog</td>
+            <td>Consumers slower than producers — queue grows unbounded</td>
+            <td>Queue lag metrics, consumer throughput drop</td>
+            <td>Scale consumers, prioritise critical jobs, DLQ</td>
+            <td>Backpressure on producers, consumer autoscaling</td>
+            <td class="casc">Growing lag → delayed processing → timeout chain → retries</td>
+            <td class="troff">Larger queues consume memory and storage</td>
+          </tr>
+          <tr>
+            <td>Cache Stampede</td>
+            <td>Cache expiry under high load — all requests hit backend</td>
+            <td>DB QPS spike coinciding with cache miss spike</td>
+            <td>Cache locking (single-flight), mutex on rebuild</td>
+            <td>Staggered TTL, probabilistic refresh, pre-warming</td>
+            <td class="casc">DB overload → slowdown → request timeout cascade</td>
+            <td class="troff">Cache coordination adds implementation complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Deployment and Configuration Failures</td></tr>
+          <tr>
+            <td>Bad Deployment<span class="badge-crit">Must Know</span></td>
+            <td>Faulty release pushed — code bug, breaking change</td>
+            <td>Error rate spike immediately after deployment</td>
+            <td>Rollback to previous version immediately</td>
+            <td>Canary / blue-green deployments, feature flags</td>
+            <td class="casc">Large-scale outage if deployed to all instances at once</td>
+            <td class="troff">Slower deployment velocity with canary gates</td>
+          </tr>
+          <tr>
+            <td>Configuration Error<span class="badge-crit">Must Know</span></td>
+            <td>Wrong env values, bad DB URL, incorrect timeout values</td>
+            <td>Unexpected runtime behaviour, errors after config change</td>
+            <td>Rollback config, hot-reload if possible</td>
+            <td>Config validation in CI, typed config schemas</td>
+            <td class="casc">Service-wide failure if bad config affects core component</td>
+            <td class="troff">Validation overhead slows config rollout</td>
+          </tr>
+          <tr>
+            <td>Feature Flag Failure</td>
+            <td>Wrong flag enabled, flag service unavailable, stale evaluation</td>
+            <td>Traffic anomaly, error rate change after flag toggle</td>
+            <td>Disable/rollback feature flag immediately</td>
+            <td>Safe defaults (flag off = safe), gradual rollout</td>
+            <td class="casc">Hidden production issue enabled globally by mistake</td>
+            <td class="troff">More flag management adds operational overhead</td>
+          </tr>
+          <tr>
+            <td>Schema Mismatch</td>
+            <td>App expects different DB schema — column removed/renamed</td>
+            <td>Serialisation errors, unexpected null fields, query failures</td>
+            <td>Compatibility fallback, rollback migration</td>
+            <td>Expand-contract migrations, backward-compatible schema changes</td>
+            <td class="casc">Multiple services fail simultaneously if schema is shared</td>
+            <td class="troff">Longer expand-contract migrations slow feature delivery</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Business Logic and State Failures</td></tr>
+          <tr>
+            <td>Partial Workflow Execution<span class="badge-crit">Must Know</span></td>
+            <td>Multi-step process partially completes — crash or failure mid-flow</td>
+            <td>Inconsistent business state, orphaned records</td>
+            <td>Saga pattern with compensating transactions</td>
+            <td>Atomic workflow design, idempotent steps</td>
+            <td class="casc">Cross-service inconsistency — payment done, order not created</td>
+            <td class="troff">Saga complexity adds significant design overhead</td>
+          </tr>
+          <tr>
+            <td>State Corruption</td>
+            <td>Logic or concurrency bug puts entity into invalid state</td>
+            <td>Invalid state assertions, anomalous data in DB</td>
+            <td>Restore from checkpoint or event log</td>
+            <td>State machine validation, invariant checks</td>
+            <td class="casc">Corruption propagates to all downstream consumers</td>
+            <td class="troff">Validation and assertions add runtime overhead</td>
+          </tr>
+          <tr>
+            <td>Duplicate Side Effects</td>
+            <td>Retry without idempotency — same request causes double action</td>
+            <td>Duplicate records, double charges detected in reconciliation</td>
+            <td>Deduplicate using idempotency key lookup</td>
+            <td>Idempotent API design from the start</td>
+            <td class="casc">Financial or business data corruption — very hard to undo</td>
+            <td class="troff">Idempotency store adds storage and lookup latency</td>
+          </tr>
+          <tr>
+            <td>Ordering Violation</td>
+            <td>Events processed out of sequence — no ordering guarantee</td>
+            <td>Sequence mismatch, logically invalid state transitions</td>
+            <td>Reorder and replay events from durable log</td>
+            <td>Per-key ordered queues (Kafka partitions), sequence numbers</td>
+            <td class="casc">Incorrect downstream state — cancel before create processed</td>
+            <td class="troff">Ordering constraints reduce parallelism and throughput</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div><!-- /it-wrap -->
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Application Failures for Interviews</p>
+      <div class="ncode"> 1. Service crash          → replicas + health checks + auto-restart
+ 2. OOM / memory leak      → limits + profiling + bounded caches
+ 3. Thread pool exhaustion → async IO + backpressure + rate limit
+ 4. Connection pool exhaust → pool sizing + async + timeout
+ 5. Dependency timeout     → timeout + circuit breaker + fallback
+ 6. Deadlock               → lock ordering + timeout on locks
+ 7. Duplicate processing   → idempotency keys + exactly-once
+ 8. Bad deployment         → canary + rollback + feature flags
+ 9. GC pause               → GC tuning + smaller heaps + ZGC
+10. Partial workflow        → Saga pattern + compensating actions</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- ══════════ TAB 2 — STAFF INSIGHTS ══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Application Thinking — 5 Questions to Ask Always</p>
+      <div class="ncode">1. Is the service DOWN or just SLOW?
+   → down: restart / failover / replicas
+   → slow: timeouts / caching / scaling / async
+
+2. Is resource exhaustion causing backpressure?
+   → CPU / memory / threads / connections → scale or shed load
+
+3. Will retries amplify the failure?
+   → circuit breaker? jitter? retry cap? idempotency?
+
+4. Is the failure isolated or spreading?
+   → one instance → add replicas
+   → spreading → circuit breaker, load shedding, bulkhead
+
+5. Can degraded mode preserve core functionality?
+   → fallback response? cached data? disable non-critical features?</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Application Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Slow dependency</td><td>Threads held open → thread pool exhaustion → all requests fail</td></tr>
+          <tr><td>OOM / memory leak</td><td>Service crashes → restart storm → instability during recovery</td></tr>
+          <tr><td>Queue backlog</td><td>Processing delayed → callers timeout → retry → backlog grows faster</td></tr>
+          <tr><td>GC pause</td><td>STW pause → P99 spike → caller timeouts → retry amplification</td></tr>
+          <tr><td>Dependency timeout</td><td>Threads block → pool exhausts → new requests rejected → callers fail</td></tr>
+          <tr><td>Connection pool exhaustion</td><td>All requests queue → timeouts → retries → DB overloaded</td></tr>
+          <tr><td>Bad deployment</td><td>Error rate spikes → alerts → rollback → traffic dip during rollback</td></tr>
+          <tr><td>Cache stampede</td><td>Cache miss → all requests hit DB → DB overload → slowdown cascade</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Hard Crash vs Slow Degradation — Know the Difference</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-700 mb-2">Hard Crash (Obvious)</p>
+          <ul class="text-xs text-orange-800 space-y-1 list-disc pl-4">
+            <li>Process exits immediately</li>
+            <li>Health check fails right away</li>
+            <li>LB removes node quickly</li>
+            <li>Alerts fire promptly</li>
+            <li>Impact: fast and contained</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">Slow Degradation (More Dangerous)</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>Service alive but slow (GC, leak, dep)</li>
+            <li>Health check still passes</li>
+            <li>Callers accumulate and wait</li>
+            <li>Thread pool quietly fills up</li>
+            <li>Retries amplify the problem silently</li>
+            <li>Detected only when fully broken</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Application Failures Reduce to 6 States</p>
+      <div class="ncode">1. Crash           → unhandled exception / OOM / panic
+2. Slowdown        → GC / dep latency / hotspot
+3. Exhaustion      → CPU / memory / threads / connections
+4. Concurrency     → deadlock / race / lost update / duplicate
+5. Dependency      → timeout / unavailable / slow / mismatch
+6. Bad rollout     → config error / bad deploy / schema mismatch
+
+Slow failures are most dangerous because they trigger:
+  retries → queue buildup → thread exhaustion → cascading overload</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#1c0a00;border:1px solid #7c2d12;">
+      <p class="text-xs font-bold text-orange-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-orange-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-200">Down or Slow?</p>
+          <p class="text-xs text-orange-400 mt-0.5">Different recovery path for each</p>
+        </div>
+        <div class="bg-orange-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-200">Resource Exhausted?</p>
+          <p class="text-xs text-orange-400 mt-0.5">Scale, shed load, or backpressure</p>
+        </div>
+        <div class="bg-orange-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-200">Retry Risk?</p>
+          <p class="text-xs text-orange-400 mt-0.5">Circuit breaker + jitter + cap</p>
+        </div>
+        <div class="bg-orange-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-orange-200">Degraded Mode?</p>
+          <p class="text-xs text-orange-400 mt-0.5">Fallback, cache, or disable feature</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

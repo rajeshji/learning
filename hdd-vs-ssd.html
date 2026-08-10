@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HDD vs SSD — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* warn card */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">HDD vs SSD</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">HDD vs SSD</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Seek time, throughput, IOPS &amp; latency distribution — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq"><strong>Every application eventually reads or writes data.</strong> The storage device determines latency, throughput, IOPS, scalability, tail latency (P99), and user experience.</p>
+      <div class="nkw mt-3">
+        <span>HDD</span>
+        <span>SSD</span>
+        <span>NVMe</span>
+        <span>IOPS</span>
+        <span>Seek Time</span>
+        <span>Throughput</span>
+        <span>Latency</span>
+        <span>P99</span>
+      </div>
+      <div class="ncode">Application → File System → OS Page Cache → Storage Driver → Disk → Data Returned
+
+If storage is slow, everything above it becomes slow.</div>
+    </div>
+
+    <!-- Architecture Comparison -->
+    <div class="nc">
+      <p class="nh">Architecture</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">HDD — Mechanical</p>
+          <div class="ncode" style="font-size:.75rem;padding:.6rem .8rem">Spinning Platters
+↓ Actuator Arm
+↓ Read/Write Head
+↓ Magnetic Sectors
+
+Before reading:
+1. Move head (Seek)
+2. Wait for rotation
+3. Read data</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">SSD — Electronic</p>
+          <div class="ncode" style="font-size:.75rem;padding:.6rem .8rem">SSD Controller
+↓ Flash Translation Layer (FTL)
+↓ NAND Flash Chips
+↓ Parallel Channels
+
+No moving parts.
+Accessed electronically.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HDD vs SSD Comparison Table -->
+    <div class="nc">
+      <p class="nh">HDD vs SSD — Full Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>HDD</th><th>SSD</th></tr></thead>
+        <tbody>
+          <tr><td>Storage Medium</td><td>Magnetic Platters</td><td>NAND Flash</td></tr>
+          <tr><td>Moving Parts</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Seek Time</td><td>2–10 ms</td><td>20–100 µs</td></tr>
+          <tr><td>Rotational Delay</td><td>Yes (~4 ms @ 7200 RPM)</td><td>None</td></tr>
+          <tr><td>Random I/O</td><td>Poor</td><td>Excellent</td></tr>
+          <tr><td>Sequential I/O</td><td>Good</td><td>Excellent</td></tr>
+          <tr><td>Power Usage</td><td>Higher</td><td>Lower</td></tr>
+          <tr><td>Cost/GB</td><td>Low</td><td>Higher</td></tr>
+          <tr><td>Noise</td><td>Audible</td><td>Silent</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Seek Time -->
+    <div class="nc">
+      <p class="nh">Seek Time</p>
+      <p class="text-sm text-gray-600 mb-2">Time to move the read/write head to the correct track.</p>
+      <table class="nt">
+        <thead><tr><th>Device</th><th>Seek Time</th></tr></thead>
+        <tbody>
+          <tr><td>HDD</td><td>2–10 ms</td></tr>
+          <tr><td>SATA SSD</td><td>~0.1 ms</td></tr>
+          <tr><td>NVMe SSD</td><td>20–50 µs</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Seek time dominates HDD random I/O. SSDs effectively eliminate this cost.</p>
+    </div>
+
+    <!-- Rotational Latency -->
+    <div class="nc">
+      <p class="nh">Rotational Latency (HDD Only)</p>
+      <p class="text-sm text-gray-600 mb-2">After seeking, HDD waits for the platter to rotate to the correct sector.</p>
+      <table class="nt">
+        <thead><tr><th>RPM</th><th>Average Delay</th></tr></thead>
+        <tbody>
+          <tr><td>7200 RPM</td><td>~4.2 ms</td></tr>
+          <tr><td>10K RPM</td><td>~3 ms</td></tr>
+          <tr><td>15K RPM</td><td>~2 ms</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">SSD has <strong>zero rotational latency</strong> — no platters, no waiting.</p>
+    </div>
+
+    <!-- Throughput -->
+    <div class="nc">
+      <p class="nh">Throughput — Data Transfer Rate</p>
+      <table class="nt">
+        <thead><tr><th>Device</th><th>Sequential Throughput</th></tr></thead>
+        <tbody>
+          <tr><td>HDD</td><td>150–250 MB/s</td></tr>
+          <tr><td>SATA SSD</td><td>500–600 MB/s</td></tr>
+          <tr><td>NVMe Gen3</td><td>3 GB/s</td></tr>
+          <tr><td>NVMe Gen4</td><td>7 GB/s</td></tr>
+          <tr><td>NVMe Gen5</td><td>10–14 GB/s</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Sequential workloads: video streaming, backup, log replication benefit most from throughput.</p>
+    </div>
+
+    <!-- IOPS -->
+    <div class="nc">
+      <p class="nh">IOPS — I/O Operations Per Second</p>
+      <p class="text-sm text-gray-600 mb-2">Random 4 KB reads — how many operations per second:</p>
+      <table class="nt">
+        <thead><tr><th>Device</th><th>Typical IOPS</th></tr></thead>
+        <tbody>
+          <tr><td>HDD</td><td>100–200</td></tr>
+          <tr><td>SATA SSD</td><td>70K–100K</td></tr>
+          <tr><td>NVMe SSD</td><td>500K–1M+</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Random workloads: OLTP databases, search indexes, key-value stores — IOPS is the bottleneck.</p>
+    </div>
+
+    <!-- Latency -->
+    <div class="nc">
+      <p class="nh">Read Latency</p>
+      <table class="nt">
+        <thead><tr><th>Device</th><th>Read Latency</th></tr></thead>
+        <tbody>
+          <tr><td>HDD</td><td>8–20 ms</td></tr>
+          <tr><td>SATA SSD</td><td>100–200 µs</td></tr>
+          <tr><td>NVMe SSD</td><td>20–80 µs</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip">Lower latency → faster queries → lower API response time → better user experience.</div>
+    </div>
+
+    <!-- Latency Distribution -->
+    <div class="nc">
+      <p class="nh">Latency Distribution — P99 Matters</p>
+      <p class="text-sm text-gray-600 mb-3">Average latency is not enough. Production systems care about P95, P99, P99.9.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-red-700 uppercase tracking-wide mb-2">HDD — Wide Tail</p>
+          <div class="ncode" style="font-size:.7rem;padding:.5rem .7rem;margin-top:.3rem">Most Requests  ██████████
+Long Tail      ████████████████████
+
+P50:  10 ms
+P99:  50–100 ms
+P99.9: &gt;200 ms</div>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-2">SSD — Tight Distribution</p>
+          <div class="ncode" style="font-size:.7rem;padding:.5rem .7rem;margin-top:.3rem">██████████████████████
+Nearly Uniform
+
+P50:  50 µs
+P99:  200 µs
+P99.9: &lt;1 ms</div>
+        </div>
+      </div>
+      <p class="ntip">SSD's predictable tail latency makes it ideal for SLA-sensitive services.</p>
+    </div>
+
+    <!-- Random vs Sequential -->
+    <div class="nc">
+      <p class="nh">Random vs Sequential Access</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">HDD Sequential</p>
+          <p class="text-xs text-gray-500 mb-1">Very efficient — head stays on track</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Track ██████████████
+Read → Read → Read</div>
+          <p class="text-xs font-bold text-red-600 uppercase tracking-wide mt-2 mb-1">HDD Random</p>
+          <p class="text-xs text-gray-500 mb-1">Head movement causes delays</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Track A → Track Z
+→ Track B → Track Y
+(head moves each time)</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">SSD — Both Fast</p>
+          <p class="text-xs text-gray-500 mb-1">No physical movement — all access is equal</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Random:    ~50 µs
+Sequential: ~50 µs
+
+Controller handles
+parallelism internally.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SSD Internals -->
+    <div class="nc">
+      <p class="nh">SSD Internals</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-violet-700">Write Amplification</p>
+          <p class="text-xs text-gray-600 mt-0.5">Flash cannot overwrite directly. New page → mark old invalid → erase block later. More physical writes than logical writes.</p>
+          <div class="ncode" style="font-size:.74rem;padding:.5rem .8rem;margin-top:.4rem">Write New Page → Mark Old Invalid
+↓ Garbage Collection → Erase Block</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Wear Leveling</p>
+          <p class="text-xs text-gray-600 mt-0.5">Controller distributes writes across all blocks evenly. Each NAND cell has limited write cycles — spreading writes extends SSD lifespan.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">NVMe Queue Depth &amp; Parallelism</p>
+          <p class="text-xs text-gray-600 mt-0.5">NVMe supports up to 64K queues × 64K entries. HDDs cannot parallelize physical head movement.</p>
+          <div class="ncode" style="font-size:.74rem;padding:.5rem .8rem;margin-top:.4rem">Queue 1 ─┐
+Queue 2 ─┤→ Parallel Flash Channels
+Queue 3 ─┤
+Queue 4 ─┘</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Workload</th><th>HDD</th><th>SSD</th></tr></thead>
+        <tbody>
+          <tr><td><strong>PostgreSQL</strong></td><td>Random index lookups</td><td>High seek latency</td><td>Near-instant reads, better TPS</td></tr>
+          <tr><td><strong>Elasticsearch</strong></td><td>Thousands of random reads</td><td>Query latency ↑↑</td><td>Excellent IOPS, low latency</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>Sequential log writes</td><td>Acceptable for logs</td><td>Faster recovery, compaction</td></tr>
+          <tr><td><strong>Object Storage</strong></td><td>Cold objects + metadata</td><td>Cold objects (cheap)</td><td>Metadata (hot path)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Which disk is faster?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Do we need SSD?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is the workload random or sequential?</li>
+            <li>Is latency or throughput the bottleneck?</li>
+            <li>Are P99 latencies violating SLA?</li>
+            <li>Can page cache reduce disk reads?</li>
+            <li>Should hot data remain on SSD only?</li>
+            <li>Is hybrid storage more cost-effective?</li>
+            <li>Will NVMe improve business metrics?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Database Queries</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Random I/O on HDD &nbsp;·&nbsp; <strong>Fix:</strong> Move indexes and hot tables to SSD</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High API Latency</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Disk seek delays &nbsp;·&nbsp; <strong>Fix:</strong> Use SSD or improve page cache hit ratio</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Backup</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Limited sequential throughput &nbsp;·&nbsp; <strong>Fix:</strong> Parallelize I/O or use faster storage</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">SSD Performance Drop</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> GC and write amplification &nbsp;·&nbsp; <strong>Fix:</strong> Enable TRIM, leave free space for over-provisioning</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Storage</th></tr></thead>
+        <tbody>
+          <tr><td>OLTP Database</td><td>NVMe SSD</td></tr>
+          <tr><td>Search Engine (Elasticsearch)</td><td>NVMe SSD</td></tr>
+          <tr><td>Kafka Log Storage</td><td>SSD preferred; HDD acceptable for sequential logs</td></tr>
+          <tr><td>Video Streaming</td><td>HDD or SSD depending on throughput needs</td></tr>
+          <tr><td>Cold Archive</td><td>HDD</td></tr>
+          <tr><td>Metadata Store</td><td>SSD</td></tr>
+          <tr><td>Backup Storage</td><td>HDD</td></tr>
+          <tr><td>High-Frequency Trading</td><td>NVMe SSD</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Measure disk latency (iostat, iotop)</li>
+        <li class="text-sm text-gray-700">✅ Check IOPS utilization</li>
+        <li class="text-sm text-gray-700">✅ Compare sequential vs random workload</li>
+        <li class="text-sm text-gray-700">✅ Monitor I/O queue depth</li>
+        <li class="text-sm text-gray-700">✅ Review page cache hit ratio</li>
+        <li class="text-sm text-gray-700">✅ Check SSD health (SMART data)</li>
+        <li class="text-sm text-gray-700">✅ Monitor write amplification factor</li>
+        <li class="text-sm text-gray-700">✅ Verify filesystem alignment and TRIM enabled</li>
+        <li class="text-sm text-gray-700">✅ Benchmark before hardware upgrades</li>
+      </ul>
+    </div>
+
+    <!-- Storage Request Lifecycle -->
+    <div class="nc">
+      <p class="nh">Storage Request Lifecycle</p>
+      <div class="ncode">Application
+↓ Read / Write Request
+↓ Operating System
+↓ Page Cache Check      ← cache hit = no disk I/O
+↓ Storage Driver
+↓ HDD / SSD
+↓ Data Returned
+↓ Application Continues</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">HDDs
+• Mechanical movement → seek + rotational latency dominate
+• Cost-effective for large sequential workloads and archival
+• HDD random I/O: 100–200 IOPS @ 8–20 ms latency
+
+SSDs
+• NAND flash + parallel controllers → microsecond latency
+• High IOPS (500K–1M+), predictable tail latency (P99)
+• Ideal: databases, search engines, real-time systems
+
+Four Key Metrics
+1. Seek Time    — random I/O access speed
+2. Throughput   — sequential transfer rate
+3. IOPS         — random operations per second
+4. Latency Dist — P99/P99.9 predictability
+
+Staff Engineer Approach
+• Page cache + SSD tiering + batching = best price-perf ratio
+• Hot data on NVMe SSD, cold data on HDD
+• Benchmark with production workload before deciding</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/b98b1d28-9e21-48b6-bb5c-5b3e9cb0f083.png"
+        alt="HDD vs SSD visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

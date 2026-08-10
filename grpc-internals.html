@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>gRPC Internals: Flow Control, Deadlines &amp; Retries — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.93rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+
+    .flow-box { background:#ede9fe; border:2px solid #7c3aed; border-radius:8px; padding:8px 18px; text-align:center; font-weight:700; color:#4c1d94; font-size:0.95rem; }
+    .flow-arrow { text-align:center; color:#7c3aed; font-size:1.3rem; margin:2px 0; }
+
+    .window-card { background:#faf5ff; border:1px solid #ede9fe; border-radius:8px; padding:14px 18px; border-left:4px solid #7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">gRPC Internals: Flow Control, Deadlines &amp; Retries</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">gRPC Internals: Flow Control, Deadlines &amp; Retries</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Distributed Systems &amp; Networking</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Why Care -->
+    <div class="nc">
+      <div class="section-badge">WHY IT MATTERS</div>
+      <div class="nh">Why Should a Staff Engineer Care?</div>
+      <p class="text-gray-700 mb-3">Modern microservices make <strong>thousands of RPC calls per second</strong>. At this scale, performance is determined not just by business logic, but by how efficiently the RPC framework manages:</p>
+      <ul class="dot-ul mb-3">
+        <li>Network connections</li>
+        <li>Backpressure (flow control)</li>
+        <li>Latency budgets (deadlines)</li>
+        <li>Retries and failure resilience</li>
+        <li>Resource utilization</li>
+      </ul>
+      <div class="ntip">gRPC builds these capabilities directly into its transport layer using <strong>HTTP/2</strong>, making it the preferred protocol for high-performance service-to-service communication.</div>
+    </div>
+
+    <!-- Architecture -->
+    <div class="nc">
+      <div class="section-badge">ARCHITECTURE</div>
+      <div class="nh">gRPC Stack &amp; HTTP/2 Frame Types</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">gRPC Stack</p>
+          <div class="ncode">Application
+  → Generated Client/Server Stub
+  → Protocol Buffers (serialization)
+  → gRPC Runtime
+  → HTTP/2 (transport)
+  → TCP
+  → IP</div>
+          <p class="text-gray-600 text-sm mt-2">Unlike REST/HTTP 1.1, gRPC uses <strong>persistent HTTP/2 connections</strong> with binary framing — no text overhead, multiplexed streams.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">HTTP/2 Frame Types Used by gRPC</p>
+          <table class="nt">
+            <thead><tr><th>Frame</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>HEADERS</code></td><td>Start request/response, carry metadata</td></tr>
+              <tr><td><code>DATA</code></td><td>Protobuf message payload</td></tr>
+              <tr><td><code>WINDOW_UPDATE</code></td><td>Expand flow-control window</td></tr>
+              <tr><td><code>PING</code></td><td>Keep-alive + RTT measurement</td></tr>
+              <tr><td><code>RST_STREAM</code></td><td>Cancel a stream</td></tr>
+              <tr><td><code>GOAWAY</code></td><td>Graceful connection shutdown</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ncode mt-3">Full RPC lifecycle:
+  Client: Set Deadline (e.g. 500 ms)
+    → HTTP/2 HEADERS frame (grpc-timeout header)
+    → DATA frames (Protobuf payload)
+    → HTTP/2 flow control (per-stream + per-connection)
+  Server: Process → response DATA frames
+  Client: Receive response
+
+  If deadline expires mid-flight:
+    Client → RST_STREAM → DEADLINE_EXCEEDED</div>
+    </div>
+
+    <!-- Flow Control -->
+    <div class="nc">
+      <div class="section-badge">FLOW CONTROL</div>
+      <div class="nh">1. Flow Control</div>
+      <p class="text-gray-700 mb-3">Without flow control, a fast producer overwhelms a slow consumer, exhausting memory and crashing the server. Flow control acts as <strong>transport-level backpressure</strong>.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="window-card">
+          <p class="font-semibold text-violet-700 mb-2">Connection-Level Window</p>
+          <p class="text-gray-600 text-sm mb-2">Limits total bytes in flight across <em>all</em> streams on a connection.</p>
+          <div class="ncode" style="font-size:0.85rem;">Default: 65,535 bytes
+Tunable up to: 2^31 - 1
+Typical production: 4–16 MB</div>
+        </div>
+        <div class="window-card">
+          <p class="font-semibold text-violet-700 mb-2">Stream-Level Window</p>
+          <p class="text-gray-600 text-sm mb-2">Each RPC stream has its own independent window — one slow stream pauses without blocking others.</p>
+          <div class="ncode" style="font-size:0.85rem;">Stream A: Window = 1 MB
+Stream B: Window = 1 MB
+Stream C: Window = 1 MB
+(independent per stream)</div>
+        </div>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-2">Flow Control Lifecycle</p>
+      <div class="ncode">Client Sends DATA
+  → Stream window decreases
+  → Server reads data, processes
+  → Server sends WINDOW_UPDATE
+  → Client window increases
+  → Client can send more DATA
+
+(Loop continues until RPC completes)</div>
+
+      <table class="nt mt-4">
+        <thead><tr><th>TCP Flow Control</th><th>HTTP/2 Flow Control</th></tr></thead>
+        <tbody>
+          <tr><td>Per connection only</td><td>Per stream + per connection</td></tr>
+          <tr><td>Managed by kernel</td><td>Managed by gRPC/HTTP2 runtime</td></tr>
+          <tr><td>Prevents receiver overload</td><td>Prevents stream starvation + HOL blocking</td></tr>
+        </tbody>
+      </table>
+
+      <table class="nt mt-3">
+        <thead><tr><th>Small Window</th><th>Large Window</th></tr></thead>
+        <tbody>
+          <tr><td>Low memory usage</td><td>Higher memory usage</td></tr>
+          <tr><td>Lower throughput</td><td>Higher throughput</td></tr>
+          <tr><td>More WINDOW_UPDATE frames</td><td>Fewer updates</td></tr>
+          <tr><td>Better for constrained devices</td><td>Better for backend servers</td></tr>
+        </tbody>
+      </table>
+
+      <div class="ntip mt-3">Tune flow-control windows based on <strong>BDP = Bandwidth × RTT</strong>. For cross-region links (e.g. 100 ms RTT, 1 Gbps), BDP ≈ 12.5 MB — set windows ≥ BDP for full utilization.</div>
+    </div>
+
+    <!-- Deadlines -->
+    <div class="nc">
+      <div class="section-badge">DEADLINES</div>
+      <div class="nh">2. Deadlines</div>
+      <p class="text-gray-700 mb-3">A deadline is the <strong>absolute time limit</strong> for completing an RPC — the client sets it before calling, and it flows through the system as the <code>grpc-timeout</code> header.</p>
+
+      <div class="ncode">Client sets deadline = 500 ms
+  → grpc-timeout: 500m (header)
+  → Server must respond within 500 ms
+  → If expires: RST_STREAM + DEADLINE_EXCEEDED</div>
+
+      <p class="font-semibold text-violet-700 mb-2 mt-4">Deadline Propagation — The Key Staff Engineer Concept</p>
+      <div class="ncode">Client budget: 500 ms
+  → Service A: 150 ms used
+  → Remaining: 350 ms forwarded to Service B
+  → Service B: 100 ms used
+  → Remaining: 250 ms forwarded to Database
+  → Database query must complete in ≤ 250 ms
+
+Each service inherits only the REMAINING time — not the original budget.</div>
+
+      <p class="font-semibold text-violet-700 mb-2 mt-4">What Happens on Expiry</p>
+      <div class="ncode">Deadline Expires
+  → Client sends RST_STREAM
+  → Server stops processing (checks ctx.Done())
+  → Resources released immediately
+  → DEADLINE_EXCEEDED returned to client
+  → No wasted work downstream</div>
+
+      <table class="nt mt-4">
+        <thead><tr><th></th><th>Deadline</th><th>Timeout</th></tr></thead>
+        <tbody>
+          <tr><td>Scope</td><td>End-to-end latency budget</td><td>Local wait limit</td></tr>
+          <tr><td>Propagation</td><td>Automatic via grpc-timeout header</td><td>Local only</td></tr>
+          <tr><td>Shared</td><td>Across all services in call chain</td><td>Independent per client</td></tr>
+          <tr><td>Preferred in gRPC</td><td>✅ Yes</td><td>Fallback</td></tr>
+        </tbody>
+      </table>
+
+      <div class="ntip mt-3">
+        <strong>Best Practices:</strong>
+        <ul class="dot-ul mt-1">
+          <li>Always set deadlines — never let RPCs run indefinitely</li>
+          <li>Base deadlines on <strong>P99 latency + safety margin</strong>, not guesses</li>
+          <li>Propagate remaining deadline, not the original, to downstream services</li>
+          <li>Check <code>ctx.Done()</code> in server handlers to cancel work early</li>
+          <li>Use expired deadline rates as signals for overload detection</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Retries -->
+    <div class="nc">
+      <div class="section-badge">RETRIES</div>
+      <div class="nh">3. Retries</div>
+      <p class="text-gray-700 mb-3">Failures are often transient (network blip, server restart, LB failover). Retries improve resilience — but only when used carefully.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Retry Policy</p>
+          <div class="ncode" style="font-size:0.85rem;">maxAttempts: 4
+initialBackoff: 100ms
+backoffMultiplier: 2.0
+maxBackoff: 2s
+retryableStatusCodes:
+  - UNAVAILABLE
+  - DEADLINE_EXCEEDED
+
+Backoff schedule:
+  100ms → 200ms → 400ms → 800ms
+  (+ random jitter each step)</div>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Retryable Status Codes</p>
+          <table class="nt">
+            <thead><tr><th>Status</th><th>Retry?</th></tr></thead>
+            <tbody>
+              <tr><td>UNAVAILABLE</td><td>✅ Yes — temporary outage</td></tr>
+              <tr><td>DEADLINE_EXCEEDED</td><td>⚠️ Only if budget allows</td></tr>
+              <tr><td>ABORTED</td><td>✅ Transaction conflict</td></tr>
+              <tr><td>RESOURCE_EXHAUSTED</td><td>⚠️ Sometimes, after delay</td></tr>
+              <tr><td>INVALID_ARGUMENT</td><td>❌ No — permanent</td></tr>
+              <tr><td>PERMISSION_DENIED</td><td>❌ No — permanent</td></tr>
+              <tr><td>INTERNAL</td><td>❌ No — unexpected</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-2">Idempotency — Required for Safe Retries</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Safe to Retry</th><th>Avoid Retrying</th></tr></thead>
+        <tbody>
+          <tr><td>Read RPCs</td><td>Payment processing</td></tr>
+          <tr><td>Metadata lookups</td><td>Inventory deduction</td></tr>
+          <tr><td>Configuration fetches</td><td>Order creation</td></tr>
+          <tr><td>Search queries</td><td>Account creation</td></tr>
+        </tbody>
+      </table>
+      <p class="text-gray-600 text-sm mb-3">For non-idempotent writes that require retries: use <strong>idempotency keys</strong> so duplicate requests are deduplicated server-side.</p>
+
+      <div class="nc-warn">
+        <div class="nh-warn">⚠️ Retry Storm Pattern</div>
+        <div class="ncode" style="font-size:0.85rem;">Failure spike
+  → All clients retry immediately (no jitter)
+  → 10× traffic surge on recovering server
+  → Server re-fails
+  → More retries
+  → Cascading outage</div>
+        <p class="text-gray-700 text-sm mt-2"><strong>Prevention:</strong> Exponential backoff + jitter, retry budgets (max % of RPCs retried), circuit breakers, deadline-aware retries (stop if overall budget exceeded).</p>
+      </div>
+    </div>
+
+    <!-- Connection Reuse & Multiplexing -->
+    <div class="nc">
+      <div class="section-badge">CONNECTION MANAGEMENT</div>
+      <div class="nh">Connection Reuse, Multiplexing &amp; Keep-Alive</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <p class="font-semibold text-red-700 mb-2">❌ Without gRPC (per-request connection)</p>
+          <div class="ncode" style="font-size:0.84rem;">Request 1 → New TCP → TLS → RPC → Close
+Request 2 → New TCP → TLS → RPC → Close
+Request 3 → New TCP → TLS → RPC → Close
+
+Every request pays full handshake cost.</div>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">✅ With gRPC (persistent HTTP/2)</p>
+          <div class="ncode" style="font-size:0.84rem;">Persistent Connection (1 TCP + 1 TLS)
+  ├── Stream 1: RPC A
+  ├── Stream 2: RPC B
+  ├── Stream 3: RPC C
+  └── Stream 4: RPC D
+
+All concurrent, all on same connection.</div>
+        </div>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-2">HTTP/2 PING Keep-Alive</p>
+      <p class="text-gray-700 mb-2">PING frames periodically verify the connection is alive, detect broken peers, prevent stale NAT mappings, and measure RTT.</p>
+      <table class="nt">
+        <thead><tr><th>Parameter</th><th>Typical Value</th></tr></thead>
+        <tbody>
+          <tr><td>Keep-Alive Interval</td><td>30–60 s</td></tr>
+          <tr><td>Keep-Alive Timeout</td><td>10 s</td></tr>
+          <tr><td>Idle Timeout</td><td>60–120 s</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Error Model -->
+    <div class="nc">
+      <div class="section-badge">ERROR MODEL</div>
+      <div class="nh">gRPC Standard Status Codes</div>
+      <table class="nt">
+        <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>OK</code></td><td>Success</td></tr>
+          <tr><td><code>CANCELLED</code></td><td>Client cancelled the request</td></tr>
+          <tr><td><code>DEADLINE_EXCEEDED</code></td><td>Deadline expired before completion</td></tr>
+          <tr><td><code>UNAVAILABLE</code></td><td>Temporary service outage — retry</td></tr>
+          <tr><td><code>RESOURCE_EXHAUSTED</code></td><td>Capacity exceeded (rate limit, quota)</td></tr>
+          <tr><td><code>ABORTED</code></td><td>Concurrency conflict (transaction)</td></tr>
+          <tr><td><code>INTERNAL</code></td><td>Unexpected server error</td></tr>
+          <tr><td><code>UNAUTHENTICATED</code></td><td>Authentication required</td></tr>
+          <tr><td><code>PERMISSION_DENIED</code></td><td>Authorized but not allowed — do not retry</td></tr>
+          <tr><td><code>INVALID_ARGUMENT</code></td><td>Bad request — do not retry</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Key Metrics &amp; Production Tuning</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Metrics to Monitor</p>
+          <table class="nt">
+            <thead><tr><th>Metric</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td>RPC latency P50/P95/P99</td><td>SLO tracking</td></tr>
+              <tr><td>DEADLINE_EXCEEDED rate</td><td>Overload detection</td></tr>
+              <tr><td>Retry count / retry rate</td><td>Detect retry amplification</td></tr>
+              <tr><td>Active streams</td><td>Connection utilization</td></tr>
+              <tr><td>Flow-control stalls</td><td>Window tuning signal</td></tr>
+              <tr><td>Keep-alive RTT</td><td>Network health</td></tr>
+              <tr><td>Error code distribution</td><td>Failure classification</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Production Tuning Parameters</p>
+          <table class="nt">
+            <thead><tr><th>Parameter</th><th>Typical Range</th></tr></thead>
+            <tbody>
+              <tr><td>Max Concurrent Streams</td><td>100–500</td></tr>
+              <tr><td>Flow Control Window</td><td>1–16 MB</td></tr>
+              <tr><td>Keep-Alive Interval</td><td>30–60 s</td></tr>
+              <tr><td>Idle Timeout</td><td>60–120 s</td></tr>
+              <tr><td>Max Message Size</td><td>4–32 MB</td></tr>
+              <tr><td>Max Retry Attempts</td><td>3–4</td></tr>
+              <tr><td>Initial Backoff</td><td>100–500 ms</td></tr>
+              <tr><td>Deadline</td><td>P99 latency + safety margin</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Design -->
+    <div class="nc">
+      <div class="section-badge">SYSTEM DESIGN</div>
+      <div class="nh">System Design Applications</div>
+      <table class="nt">
+        <thead><tr><th>Use Case</th><th>Recommended Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>Microservices</td><td>Long-lived HTTP/2 connections + deadline propagation</td></tr>
+          <tr><td>API Gateway</td><td>Deadline propagation + retry with budgets</td></tr>
+          <tr><td>Streaming Logs</td><td>Bidirectional streaming + tuned flow control</td></tr>
+          <tr><td>Cross-Region RPC</td><td>Larger flow-control windows (BDP-aware)</td></tr>
+          <tr><td>Kubernetes Control Plane</td><td>Deadlines + keep-alive + retries</td></tr>
+          <tr><td>Service Mesh (Envoy/Istio)</td><td>xDS load balancing + retry budgets</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Interview Questions -->
+    <div class="nc">
+      <div class="section-badge">INTERVIEW PREP</div>
+      <div class="nh">Common Interview Questions</div>
+      <ol class="list-decimal pl-5 space-y-2 text-gray-700">
+        <li>Why does gRPC use HTTP/2 instead of HTTP/1.1?</li>
+        <li>What is the difference between TCP flow control and HTTP/2 flow control?</li>
+        <li>Why are there separate stream-level and connection-level windows?</li>
+        <li>What is the purpose of a gRPC deadline?</li>
+        <li>How are deadlines propagated across microservices?</li>
+        <li>When should retries be enabled?</li>
+        <li>Why must retries respect idempotency?</li>
+        <li>What causes retry storms and how do you prevent them?</li>
+        <li>How does gRPC multiplex multiple RPCs on one connection?</li>
+        <li>How would you tune gRPC for high-latency cross-region communication?</li>
+      </ol>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt">
+        <thead><tr><th>Level</th><th>Thinking Pattern</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Junior</strong></td>
+            <td>"gRPC is like REST but faster. I'll set a 30s timeout so requests don't hang forever."</td>
+          </tr>
+          <tr>
+            <td><strong>Senior</strong></td>
+            <td>"I configure gRPC with deadlines, retry on UNAVAILABLE with exponential backoff, and reuse connections across requests. I set max message size and keep-alive to prevent connection drift."</td>
+          </tr>
+          <tr>
+            <td><strong>Staff</strong></td>
+            <td>"I treat gRPC deadlines as end-to-end latency budgets — each service propagates the remaining time, not the original. I size flow-control windows to the BDP of each link (bandwidth × RTT) to avoid underutilizing high-speed connections. Retries are configured only for idempotent, transient failures (UNAVAILABLE, ABORTED) with exponential backoff, jitter, and a retry budget (max 10% of RPCs) to prevent storms. I monitor DEADLINE_EXCEEDED rate as an overload signal, flow-control stall time as a window-tuning signal, and retry rate as an amplification signal. For cross-region gRPC, I tune initial flow-control windows to 8–16 MB and confirm via <code>ss -ti</code> that windows aren't constraining throughput."</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ntip">
+        <strong>Key Takeaways:</strong>
+        <ul class="dot-ul mt-2">
+          <li><strong>gRPC</strong> = Protocol Buffers + HTTP/2: multiplexed binary RPC over persistent connections — eliminates per-request TCP/TLS overhead.</li>
+          <li><strong>Flow control</strong> operates at connection + stream levels, preventing memory exhaustion. Tune window sizes to BDP for optimal throughput.</li>
+          <li><strong>Deadlines</strong> define end-to-end latency budgets, propagate automatically across services, and cancel downstream work when exceeded — always set them.</li>
+          <li><strong>Retries</strong> improve resilience only for transient, idempotent failures — govern with exponential backoff, jitter, budgets, and deadline awareness.</li>
+          <li>At the Staff level: tune flow-control windows, propagate deadlines consistently, reuse HTTP/2 connections, monitor retry behavior and tail latency, and align transport settings with SLOs.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/5e3cc68c-26f7-42f5-9706-b3fe5b2747d9.png"
+           alt="gRPC Internals: Flow Control, Deadlines and Retries Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

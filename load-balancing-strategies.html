@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Load Balancing Strategies — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Load Balancing Strategies</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Load Balancing Strategies</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Round Robin · Least Connections · Consistent Hashing — choosing the right algorithm</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">Load balancing is not simply about spreading requests — it is about <strong>maximizing throughput, minimizing P99 latency, preventing hotspots, improving availability, and supporting autoscaling</strong>. Choosing the wrong algorithm can overload healthy servers, increase tail latency, or reduce cache efficiency.</p>
+      <div class="ncode">Client Requests
+  ↓
+Load Balancer
+  ↓
+Which server?
+  ├── Round Robin        → Next server in rotation
+  ├── Least Connections  → Server with fewest active connections
+  └── Consistent Hashing → Server determined by hash of request key</div>
+      <div class="nkw mt-3">
+        <span>Round Robin</span>
+        <span>Weighted RR</span>
+        <span>Least Connections</span>
+        <span>Consistent Hashing</span>
+        <span>Virtual Nodes</span>
+        <span>Hash Ring</span>
+        <span>Hot Keys</span>
+        <span>Session Affinity</span>
+      </div>
+    </div>
+
+    <!-- Strategy Cards -->
+
+    <!-- Round Robin -->
+    <div class="nc">
+      <p class="nh">1 — Round Robin (RR)</p>
+      <p class="text-sm text-gray-600 mb-2">Requests assigned sequentially. Every backend receives approximately the same number of requests.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Basic Round Robin</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Request 1 → Server A
+Request 2 → Server B
+Request 3 → Server C
+Request 4 → Server A
+Request 5 → Server B
+...</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Weighted Round Robin</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Server A weight=3
+Server B weight=2
+Server C weight=1
+
+Traffic: A A A B B C A A A B B C
+→ Larger servers get more traffic</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+        <div class="bg-green-50 border border-green-100 rounded-lg p-3">
+          <p class="font-bold text-green-700 mb-1">✅ Advantages</p>
+          <p class="text-gray-600">Extremely simple · O(1) scheduling · Very low CPU · Stateless · Easy to scale</p>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+          <p class="font-bold text-red-700 mb-1">❌ Disadvantages</p>
+          <p class="text-gray-600">Ignores backend load · No session affinity · Poor when request cost varies</p>
+        </div>
+      </div>
+      <p class="ntip"><strong>Best for:</strong> stateless REST APIs, static websites, CDN edge servers, homogeneous backend pools where requests are roughly equal in cost.</p>
+    </div>
+
+    <!-- Least Connections -->
+    <div class="nc">
+      <p class="nh">2 — Least Connections (LC)</p>
+      <p class="text-sm text-gray-600 mb-2">Send to the server with the fewest active connections. Adapts to variable request durations.</p>
+      <div class="ncode">Current Active Connections:
+  Server A = 50
+  Server B = 18  ← WINNER
+  Server C = 27
+
+→ Next request → Server B
+
+WHY: A long-running request on Server A counts as still active
+     even if it's nearly done. LC adapts to this reality.</div>
+      <div class="ncode mt-2">Weighted Least Connections:
+  Effective Load = Active Connections / Server Capacity
+  → Larger machines receive proportionally more traffic</div>
+      <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+        <div class="bg-green-50 border border-green-100 rounded-lg p-3">
+          <p class="font-bold text-green-700 mb-1">✅ Advantages</p>
+          <p class="text-gray-600">Adapts to workload · Better tail latency · Reduces overloaded servers · Good for variable durations</p>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+          <p class="font-bold text-red-700 mb-1">❌ Disadvantages</p>
+          <p class="text-gray-600">Requires real-time metrics · More scheduling overhead · Idle long connections distort count</p>
+        </div>
+      </div>
+      <p class="ntip"><strong>Best for:</strong> API gateways, gRPC services, HTTP/2 workloads, microservices, reverse proxies, anywhere request duration varies significantly.</p>
+    </div>
+
+    <!-- Consistent Hashing -->
+    <div class="nc">
+      <p class="nh">3 — Consistent Hashing</p>
+      <p class="text-sm text-gray-600 mb-2">Map requests to servers using a hash of the request key. Same key always goes to same server.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Hash Ring</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Ring: 0 ──────────────── 2^32
+
+        Server A at position 100
+        Server B at position 200
+        Server C at position 350
+
+Request key hash = 150
+→ Route to Server B (next clockwise)</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">When Server Added/Removed</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Normal hashing:
+  Add 1 server → almost every key moves!
+
+Consistent hashing:
+  Add 1 server → only ~1/N keys move
+  Remove 1 server → only affected keys remapped
+  → Minimal cache invalidation</div>
+        </div>
+      </div>
+      <div class="ncode mt-3">Virtual Nodes (for even distribution):
+  Instead of: A, B, C (3 points on ring)
+  Use: A1, A2, A3, B1, B2, B3, C1, C2, C3
+  → Much better distribution even with few servers</div>
+      <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+        <div class="bg-green-50 border border-green-100 rounded-lg p-3">
+          <p class="font-bold text-green-700 mb-1">✅ Advantages</p>
+          <p class="text-gray-600">Stable key-to-server mapping · Minimal key movement · Natural session affinity · Cache locality</p>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+          <p class="font-bold text-red-700 mb-1">❌ Disadvantages</p>
+          <p class="text-gray-600">Ignores current load · Hot keys overload one server · More complex implementation</p>
+        </div>
+      </div>
+      <p class="ntip"><strong>Best for:</strong> Redis Cluster, Memcached, Cassandra, Kafka partitioning, CDN cache routing, sticky sessions, distributed caches.</p>
+    </div>
+
+    <!-- Full Comparison -->
+    <div class="nc">
+      <p class="nh">Strategy Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Round Robin</th><th>Least Connections</th><th>Consistent Hashing</th></tr></thead>
+        <tbody>
+          <tr><td>Scheduling Cost</td><td>Very Low (O(1))</td><td>Medium</td><td>Medium</td></tr>
+          <tr><td>Load Awareness</td><td>❌</td><td>✅</td><td>❌</td></tr>
+          <tr><td>Session Affinity</td><td>❌</td><td>Optional</td><td>✅</td></tr>
+          <tr><td>Variable Requests</td><td>Poor</td><td>Excellent</td><td>Depends on key</td></tr>
+          <tr><td>Cache Friendly</td><td>❌</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Minimal Key Movement</td><td>N/A</td><td>N/A</td><td>✅</td></tr>
+          <tr><td>Operational Complexity</td><td>Low</td><td>Medium</td><td>High</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Industry Usage -->
+    <div class="nc">
+      <p class="nh">Industry Usage</p>
+      <table class="nt">
+        <thead><tr><th>Environment</th><th>Default Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>NGINX</td><td>Round Robin</td></tr>
+          <tr><td>HAProxy</td><td>Round Robin / Least Connections</td></tr>
+          <tr><td>Envoy</td><td>Least Request (connection count)</td></tr>
+          <tr><td>AWS ALB</td><td>Round Robin (health-aware)</td></tr>
+          <tr><td>Kubernetes Services</td><td>Round Robin (IPVS/IPTables)</td></tr>
+          <tr><td>Memcached clients</td><td>Consistent Hashing</td></tr>
+          <tr><td>Redis Cluster</td><td>Consistent Hashing (CRC16 mod 16384 slots)</td></tr>
+          <tr><td>Cassandra</td><td>Consistent Hashing (token ring)</td></tr>
+          <tr><td>Kafka</td><td>Hash-based partition assignment</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Node Failure Behavior -->
+    <div class="nc">
+      <p class="nh">Node Failure Behavior</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Round Robin</p>
+          <p class="text-xs text-gray-600">Remove from rotation. Continue cycling remaining servers.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Least Connections</p>
+          <p class="text-xs text-gray-600">Connections redistributed across remaining servers. Adaptive balancing continues.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Consistent Hashing</p>
+          <p class="text-xs text-gray-600">Only affected keys remapped to next server on ring. Minimal disruption to other keys.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Round Robin distributes evenly</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Use Least Connections for variable requests</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is the workload stateless or stateful?</li>
+            <li>Do request durations vary significantly?</li>
+            <li>Is cache locality important?</li>
+            <li>What happens to in-flight requests on server failure?</li>
+            <li>Are there hot keys in consistent hashing?</li>
+            <li>How does the strategy behave during autoscale events?</li>
+            <li>Is the load balancer itself a bottleneck?</li>
+            <li>Should we combine strategies (weighted + health-aware)?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Guide -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Guide</p>
+      <table class="nt">
+        <thead><tr><th>Requirement</th><th>Best Choice</th></tr></thead>
+        <tbody>
+          <tr><td>Lowest complexity</td><td>Round Robin</td></tr>
+          <tr><td>Adaptive to real-time load</td><td>Least Connections</td></tr>
+          <tr><td>Stable key mapping</td><td>Consistent Hashing</td></tr>
+          <tr><td>Session affinity</td><td>Consistent Hashing</td></tr>
+          <tr><td>Cache locality</td><td>Consistent Hashing</td></tr>
+          <tr><td>Uniform stateless traffic</td><td>Round Robin</td></tr>
+          <tr><td>Variable request durations</td><td>Least Connections</td></tr>
+          <tr><td>gRPC / HTTP/2 microservices</td><td>Least Connections</td></tr>
+          <tr><td>Distributed cache sharding</td><td>Consistent Hashing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Round Robin:
+  Sequential rotation · O(1) · Stateless
+  ✔ Simple, fast, low overhead
+  ✗ Ignores load — bad when request cost varies
+  Use: stateless REST APIs, homogeneous pools
+
+Least Connections:
+  Route to server with fewest active connections
+  ✔ Adapts to real workload (variable durations)
+  ✗ Requires real-time metrics; idle conns distort count
+  Use: API gateways, gRPC, HTTP/2, microservices
+
+Consistent Hashing:
+  Hash key → position on ring → next server clockwise
+  Virtual nodes needed for even distribution
+  ✔ Stable mapping; minimal key movement on scale
+  ✗ No load awareness; hot keys overload single server
+  Use: caches (Redis, Memcached), Cassandra, Kafka
+
+Production: rarely a single algorithm
+  Combine: Weighted RR + health checks
+           Least Conn + capacity weights
+           Consistent Hashing + health failover
+
+Metrics to watch:
+  Requests/backend (fairness)
+  Active connections (load)
+  P99 latency per backend
+  Error rate per backend
+  Hot key distribution (consistent hashing)</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/2694f9df-e8c2-4f19-adbc-5479f3ece477.png"
+        alt="Load Balancing Strategies Round Robin Least Connections Consistent Hashing visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

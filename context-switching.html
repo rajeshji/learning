@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Context Switching &amp; Latency</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Context Switching &amp; Latency</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Context Switching &amp; Latency</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Save/Restore State &bull; Thread vs Process Switch &bull; Cache Pollution &bull; Tail Latency &bull; Minimization Strategies</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">A CPU can execute only one thread per core at a time. The OS scheduler continuously switches the CPU between runnable threads so that thousands of tasks can share a handful of cores. This is a context switch — and it is <strong>not free</strong>. Every switch burns CPU cycles and raises latency.</p>
+      <div class="ncode" style="font-size:.72rem">Thread A running
+  ↓ Scheduler fires (time slice, I/O block, or interrupt)
+  ↓ Kernel saves: Registers | Program Counter | Stack Ptr | CPU Flags
+  ↓ Kernel selects Thread B
+  ↓ Kernel restores Thread B's state
+  ↓ Thread B continues exactly where it left off</div>
+      <p class="ntip mt-2"><strong>Rule of thumb:</strong> If your system does millions of context switches per second, you are burning CPU cycles that could be doing useful work. Goal: do useful work, not context switches.</p>
+    </div>
+
+    <!-- Types of Context Switches -->
+    <div class="nc">
+      <p class="nh">Types of Context Switches</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Type</th><th>Trigger</th><th>What Changes</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Thread Switch</strong> (same process)</td><td>Scheduler picks another thread in same app</td><td>Registers, stack ptr only. Same address space.</td><td class="text-green-600">Low ~0.5–1.5 µs</td></tr>
+          <tr><td><strong>Process Switch</strong> (different process)</td><td>Scheduler picks thread in different process</td><td>Registers + page tables + TLB flush + address space</td><td class="text-red-500">High ~1–5 µs</td></tr>
+          <tr><td><strong>User &harr; Kernel Transition</strong></td><td>Syscall, interrupt, page fault, trap</td><td>CPU mode switch only — Ring 3 to Ring 0</td><td class="text-yellow-600">Low–Medium</td></tr>
+          <tr><td><strong>Interrupt Handling</strong></td><td>Hardware: NIC packet, disk complete, timer</td><td>CPU pauses task, runs kernel handler, resumes</td><td class="text-yellow-600">Medium</td></tr>
+          <tr><td><strong>Voluntary Switch</strong></td><td>Thread blocks on I/O, lock, or sleep</td><td>Scheduler picks next runnable task</td><td class="text-yellow-600">Medium</td></tr>
+          <tr><td><strong>Involuntary Switch (Preemption)</strong></td><td>Time slice expires — timer interrupt</td><td>OS preempts running task regardless of state</td><td class="text-yellow-600">Medium</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip mt-2">Thread switches are cheaper than process switches. More switches = more overhead + more latency. Both types matter in production.</p>
+    </div>
+
+    <!-- Cost breakdown + Hidden costs -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Cost of a Context Switch</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Operation</th><th>Typical Cost</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Function call</td><td class="text-green-600">~5–10 ns</td><td>No privilege change</td></tr>
+            <tr><td>System call (no I/O)</td><td class="text-yellow-600">~150–1000 ns</td><td>Mode switch only</td></tr>
+            <tr><td>Thread context switch</td><td class="text-yellow-600">~0.5–1.5 µs</td><td>Registers + stack</td></tr>
+            <tr><td>Process context switch</td><td class="text-red-500">~1–5 µs</td><td>TLB flush + page tables</td></tr>
+            <tr><td>Cache/TLB cold miss</td><td class="text-red-500">+10–50 µs</td><td>Cache rebuild dominates</td></tr>
+          </tbody>
+        </table>
+        <p class="ntip mt-2">The switch itself is microseconds. The <strong>cache rebuild after the switch</strong> is often 10–50x more expensive — and usually invisible in profiling.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Hidden Microarchitectural Costs</p>
+        <p class="text-xs text-gray-600 mb-2">The save/restore is only the visible cost. The real damage is done to the CPU's internal state:</p>
+        <div class="space-y-2">
+          <div class="bg-red-50 border border-red-100 rounded-lg p-2">
+            <p class="text-xs font-bold text-red-700">Cache Pollution</p>
+            <p class="text-xs text-gray-600">Thread A's working set is evicted when Thread B runs. Thread A must reload all its data from L3 or RAM on return.</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-2">
+            <p class="text-xs font-bold text-orange-700">TLB Flushes</p>
+            <p class="text-xs text-gray-600">Process switches invalidate TLB entries. All virtual-to-physical address translations must be rebuilt.</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-2">
+            <p class="text-xs font-bold text-amber-700">Branch Predictor Reset</p>
+            <p class="text-xs text-gray-600">CPU's branch prediction history is lost. First N branches after a switch are mispredicted — each costs 15–20 cycles.</p>
+          </div>
+          <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-2">
+            <p class="text-xs font-bold text-yellow-700">Pipeline Stalls + NUMA Penalty</p>
+            <p class="text-xs text-gray-600">CPU instruction pipeline is drained. If thread migrates to another socket, memory access latency doubles (NUMA).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Impact on latency + Throughput -->
+    <div class="nc">
+      <p class="nh">Impact on Performance &amp; Latency</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <table class="nt">
+            <thead><tr><th>Metric</th><th>Effect of More Switches</th></tr></thead>
+            <tbody>
+              <tr><td>CPU Overhead</td><td class="text-red-500">More time spent switching vs working</td></tr>
+              <tr><td>Throughput</td><td class="text-red-500">Less useful work per second</td></tr>
+              <tr><td>Average Latency</td><td class="text-red-500">Higher scheduling delays</td></tr>
+              <tr><td>P95 / P99 Latency</td><td class="text-red-500">Much higher — jitter from scheduler</td></tr>
+              <tr><td>Power Efficiency</td><td class="text-red-500">More wakeups = less idle time</td></tr>
+            </tbody>
+          </table>
+          <div class="bg-red-50 border border-red-200 rounded-xl p-3 mt-2">
+            <p class="text-xs font-bold text-red-700 mb-1">Latency Impact Chain</p>
+            <div class="ncode" style="font-size:.7rem; padding:.5rem .75rem">More context switches
+  → Higher average latency
+  → More variability (jitter)
+  → Worse P95 / P99
+  → Cache/TLB misses
+  → Longer tail latency</div>
+          </div>
+        </div>
+        <div>
+          <p class="sub-h">More Threads does NOT always mean more performance</p>
+          <div class="ncode" style="font-size:.72rem">Threads = CPU cores
+  ↓ Each thread gets full core
+  ↓ Low switching overhead
+  ↓ High throughput
+
+Threads = 10x CPU cores
+  ↓ Constant preemption
+  ↓ Scheduler thrashing
+  ↓ Cache eviction storm
+  ↓ Lower throughput than fewer threads</div>
+          <p class="ntip mt-2">For CPU-bound work: thread pool size should approximate the number of CPU cores. For I/O-bound work: event-driven architecture eliminates most switches entirely.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Where context switches happen + How to reduce -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Where Context Switches Happen in Production</p>
+        <p class="sub-h">Web Server (Nginx)</p>
+        <div class="ncode" style="font-size:.7rem; padding:.6rem .85rem">Accept → Handle → I/O Wait (epoll) → Wake Up → Respond
+Each I/O wait = switch out + switch back</div>
+        <p class="sub-h">Database (PostgreSQL)</p>
+        <div class="ncode" style="font-size:.7rem; padding:.6rem .85rem">Query → Disk I/O → Switch Out → I/O Done → Switch Back
+One disk read = multiple context switches</div>
+        <p class="sub-h">Threaded App (Python/Java)</p>
+        <div class="ncode" style="font-size:.7rem; padding:.6rem .85rem">Thread 1 → Preempted → Thread 2 → Preempted → Thread 1
+Too many threads > CPU cores = constant preemption</div>
+        <p class="sub-h">Interrupt Handling</p>
+        <div class="ncode" style="font-size:.7rem; padding:.6rem .85rem">Running Task → Interrupt → Kernel Handler → Return → Resume
+NIC packet, disk complete — always cause a switch</div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">How to Reduce Context Switches</p>
+        <div class="space-y-1.5">
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800"><strong>Async / Non-blocking I/O</strong> — epoll, io_uring. Thread never blocks waiting for I/O.</div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800"><strong>Event-driven architecture</strong> — one thread handles thousands of connections (Nginx, Redis, Node.js).</div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800"><strong>Right-size thread pools</strong> — CPU-bound: threads = CPU cores. I/O-bound: use epoll instead.</div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800"><strong>Batch operations</strong> — <code>writev</code>, <code>sendmmsg</code>, <code>recvmmsg</code>. Fewer syscalls = fewer switches.</div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800"><strong>CPU affinity</strong> — pin worker threads to cores. Prevents migration and keeps cache warm.</div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800"><strong>Avoid unnecessary locks</strong> — every lock contention = voluntary context switch. Use lock-free or message passing.</div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800"><strong>Reduce process count</strong> — fewer processes = fewer page table switches and TLB flushes.</div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800"><strong>Connection pooling</strong> — reuse sockets. Each new connection creates FDs and may trigger wakeups.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Design + Real systems table -->
+    <div class="nc">
+      <p class="nh">System Design Implications &amp; Real-World Choices</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="sub-h">Architecture vs Context Switch Cost</p>
+          <table class="nt">
+            <thead><tr><th>Design Choice</th><th>Switch Impact</th></tr></thead>
+            <tbody>
+              <tr><td>Thread per request</td><td class="text-red-500">Very High</td></tr>
+              <tr><td>Thread pool</td><td class="text-orange-500">Moderate</td></tr>
+              <tr><td>Event-driven (epoll)</td><td class="text-green-600">Low</td></tr>
+              <tr><td>Async I/O (io_uring)</td><td class="text-green-600">Very Low</td></tr>
+              <tr><td>Kernel bypass (DPDK)</td><td class="text-green-600">Minimal</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="sub-h">How Real Systems Minimize Switches</p>
+          <table class="nt">
+            <thead><tr><th>System</th><th>Strategy</th></tr></thead>
+            <tbody>
+              <tr><td>Nginx</td><td>epoll event loop, few workers per CPU</td></tr>
+              <tr><td>Redis</td><td>Single-threaded event loop — near-zero switches</td></tr>
+              <tr><td>Kafka</td><td>Batching + zero-copy — fewer I/O wakeups</td></tr>
+              <tr><td>PostgreSQL</td><td>Async I/O + shared buffers reduce disk blocks</td></tr>
+              <tr><td>Chat System</td><td>Non-blocking sockets + epoll for 1M+ connections</td></tr>
+              <tr><td>Trading Engine</td><td>CPU pinning + DPDK — kernel bypass, busy poll</td></tr>
+              <tr><td>Search Engine</td><td>Separate CPU and I/O thread pools</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures + Debugging -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Production Failure Scenarios</p>
+        <div class="space-y-2">
+          <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-red-700">High CPU, low throughput</p>
+            <p class="text-xs text-gray-600 mt-0.5">Too many runnable threads. Scheduler spends more time switching than executing work. Reduce thread count or adopt event-driven architecture.</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-orange-700">High P99 latency</p>
+            <p class="text-xs text-gray-600 mt-0.5">Frequent thread wake-ups and scheduler jitter drive tail latency. Reduce blocking I/O and lock contention. Use async I/O.</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-amber-700">Cache miss storm</p>
+            <p class="text-xs text-gray-600 mt-0.5">Threads constantly migrate across CPU cores. Enable CPU affinity (<code>taskset</code> / <code>pthread_setaffinity_np</code>) to keep workers on the same cores.</p>
+          </div>
+          <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-yellow-700">Lock contention cascade</p>
+            <p class="text-xs text-gray-600 mt-0.5">Threads repeatedly block on mutexes. Every block = voluntary context switch. Replace with lock-free structures, finer-grained locking, or async message passing.</p>
+          </div>
+        </div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Measuring Context Switches — Tools</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Tool / Path</th><th>What It Shows</th></tr></thead>
+          <tbody>
+            <tr><td><code>pidstat -w &lt;pid&gt; 1</code></td><td>Voluntary + involuntary switches/sec per process</td></tr>
+            <tr><td><code>vmstat 1</code></td><td>System-wide context switch rate (cs column)</td></tr>
+            <tr><td><code>perf sched record</code></td><td>Full scheduler trace — latency &amp; migrations</td></tr>
+            <tr><td><code>perf sched latency</code></td><td>Per-task scheduling latency breakdown</td></tr>
+            <tr><td><code>/proc/&lt;pid&gt;/status</code></td><td><code>voluntary_ctxt_switches</code> + <code>nonvoluntary_ctxt_switches</code></td></tr>
+            <tr><td><code>htop</code> → F2 columns</td><td>Add VCSW / IVCSW columns per process</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h mt-2">Debugging Checklist</p>
+        <ul class="dot-ul">
+          <li>Measure voluntary vs involuntary switches — voluntary = I/O blocks, involuntary = preemption</li>
+          <li>Check if thread count far exceeds CPU core count</li>
+          <li>Identify which threads block on I/O or locks most frequently</li>
+          <li>Check CPU migrations with <code>perf sched</code></li>
+          <li>Verify thread pool sizing is reasonable for the workload type</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Staff Engineer Thinking + Decision Framework -->
+    <div class="nc">
+      <p class="nh">Engineer Progression &amp; Decision Framework</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <div class="space-y-1.5">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs"><span class="font-bold text-gray-500">Junior:</span> "Why is my API slow?"</div>
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs"><span class="font-bold text-blue-700">Senior:</span> "Is the CPU overloaded?"</div>
+            <div class="bg-violet-50 border border-violet-100 rounded-lg p-2 text-xs"><span class="font-bold text-violet-700">Staff:</span> How many context switches per request? Are threads blocked on I/O? Is the scheduler thrashing? Can async I/O eliminate blocking? Should workers be pinned to cores?</div>
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-2 text-xs"><span class="font-bold text-purple-700">Principal:</span> Can the architecture eliminate blocking entirely? Event-driven vs thread-pool vs kernel bypass — what fits this workload's latency budget?</div>
+          </div>
+        </div>
+        <div>
+          <table class="nt">
+            <thead><tr><th>Scenario</th><th>Approach</th></tr></thead>
+            <tbody>
+              <tr><td>Thousands of concurrent clients</td><td>epoll / async I/O</td></tr>
+              <tr><td>CPU-bound workload</td><td>Thread pool = CPU cores</td></tr>
+              <tr><td>High lock contention</td><td>Lock-free / message queues</td></tr>
+              <tr><td>Ultra-low latency</td><td>CPU affinity + kernel bypass (DPDK)</td></tr>
+              <tr><td>Many small syscalls</td><td>Batch: <code>writev</code>, <code>sendmmsg</code></td></tr>
+              <tr><td>Blocking disk/network I/O</td><td>Async I/O: <code>io_uring</code></td></tr>
+              <tr><td>Thread migration / NUMA</td><td><code>taskset</code> / <code>numactl</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">What is a context switch?
+  CPU saves current task state (registers, PC, stack ptr, flags)
+  and restores another task's state so it can continue.
+
+Types
+  Thread switch (same process)  ~0.5–1.5 µs   no page table change
+  Process switch (diff process) ~1–5 µs        TLB flush + page tables
+  Voluntary    → thread blocks on I/O / lock → scheduler picks next
+  Involuntary  → time slice expires → OS preempts running thread
+
+Real cost is the hidden microarchitecture damage:
+  Cache pollution   → Thread A's data evicted → rebuild after return
+  TLB flush         → All address translations must be redone
+  Branch predictor  → Mispredictions for first N branches after switch
+  Pipeline stall    → Instruction pipeline must drain and refill
+  NUMA penalty      → If migrated to different socket: memory latency 2x
+
+Impact on latency
+  More switches → higher avg latency + worse P99 (scheduler jitter)
+
+How to minimize
+  epoll / io_uring     → thread never blocks on I/O
+  Event-driven arch    → 1 thread handles 100k connections (Nginx, Redis)
+  Thread pool = cores  → CPU-bound work, no oversubscription
+  CPU affinity         → pin threads, keep cache warm, prevent migration
+  Batch syscalls       → writev, sendmmsg — fewer kernel crossings
+  Lock-free            → eliminate voluntary switches from contention
+
+Measure
+  pidstat -w PID 1     voluntary + involuntary switches/sec
+  vmstat 1             system-wide cs column
+  perf sched latency   scheduler wakeup latency per task</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Necessary overhead</strong> — enables multitasking, fairness, I/O handling. Cannot be eliminated entirely.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Hidden cost dominates</strong> — cache/TLB rebuild is 10–50x more expensive than the switch itself.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>P99 killer</strong> — excessive switches add jitter that inflates tail latency far more than average latency.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Minimize by design</strong> — async I/O, event loops, right-sized thread pools, CPU affinity, batching.</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Staff Engineers don't just ask whether the CPU is busy — they investigate why the scheduler is busy, how many context switches occur per request, and what architectural changes can reduce unnecessary scheduling overhead. That's the difference between tuning and designing.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/ContextSwitching/context-switching.png"
+           alt="Context Switching &amp; Latency visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

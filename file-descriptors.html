@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>File Descriptors &amp; Resource Limits</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">File Descriptors &amp; Resource Limits</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">File Descriptors &amp; Resource Limits</h1>
+      <p class="text-xs text-gray-400 mt-0.5">FD Lifecycle &bull; ulimit &bull; RLIMIT_NOFILE &bull; epoll &bull; FD Leaks &bull; High-Concurrency I/O</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">Every I/O operation — opening a file, accepting a socket, reading a pipe — goes through a <strong>File Descriptor (FD)</strong>: a small integer the kernel hands back as a handle to an underlying resource. Whether it's a file, socket, pipe, device, or epoll instance — everything in Linux is accessed through an FD. "Everything is a file."</p>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-center"><p class="text-xs font-bold text-blue-700">0</p><p class="text-xs text-gray-500">stdin</p></div>
+        <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-center"><p class="text-xs font-bold text-green-700">1</p><p class="text-xs text-gray-500">stdout</p></div>
+        <div class="bg-red-50 border border-red-100 rounded-lg p-2 text-center"><p class="text-xs font-bold text-red-700">2</p><p class="text-xs text-gray-500">stderr</p></div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-2 text-center"><p class="text-xs font-bold text-violet-700">3+</p><p class="text-xs text-gray-500">files / sockets</p></div>
+        <div class="bg-amber-50 border border-amber-100 rounded-lg p-2 text-center"><p class="text-xs font-bold text-amber-700">N</p><p class="text-xs text-gray-500">epoll / pipes</p></div>
+      </div>
+      <p class="ntip mt-2">The FD is just an integer. It points to a kernel <strong>File Object</strong> which points to the actual resource. The app never touches the hardware directly.</p>
+    </div>
+
+    <!-- What happens internally + FD Lifecycle -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">What Happens Internally</p>
+        <div class="ncode" style="font-size:.72rem">open("orders.txt")
+  ↓ Kernel allocates File Object
+  ↓ Kernel assigns lowest free FD (e.g. 5)
+  ↓ Application uses FD 5
+
+read(5, buf, 4096)
+  ↓ Kernel looks up File Object for FD 5
+  ↓ Reads from filesystem
+  ↓ Copies data to user buffer
+  ↓ Returns bytes read
+
+close(5)
+  ↓ Ref count decremented
+  ↓ If 0 → kernel frees File Object
+  ↓ FD 5 is now reusable</div>
+        <p class="ntip mt-2">The kernel always assigns the <strong>lowest available</strong> FD number. After <code>close()</code> the number is reused by the next <code>open()</code>.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">FD Lifecycle &amp; Sharing</p>
+        <div class="ncode" style="font-size:.72rem">open() / socket() / pipe() / accept()
+  ↓ FD Created (lowest free int)
+  ↓
+  read() / write() / ioctl() / send()
+  ↓
+  dup() / fork()
+  ↓ Both FDs share same File Object
+     (shared offset, shared state)
+  ↓
+  close(fd)
+  ↓ Ref count--; object freed when 0
+  ↓
+  exec()
+  ↓ FDs inherited UNLESS O_CLOEXEC set</div>
+        <p class="sub-h">FD Flags to Know</p>
+        <table class="nt">
+          <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
+          <tbody>
+            <tr><td><code>O_CLOEXEC</code></td><td>Auto-close FD on exec() — prevents leaks to child programs</td></tr>
+            <tr><td><code>O_NONBLOCK</code></td><td>Non-blocking I/O — read/write return immediately</td></tr>
+            <tr><td><code>O_APPEND</code></td><td>Atomic appends — safe for concurrent log writers</td></tr>
+            <tr><td><code>FD_CLOEXEC</code></td><td>Same as O_CLOEXEC, set via fcntl()</td></tr>
+          </tbody>
+        </table>
+        <p class="ntip mt-2">Always create FDs with <code>O_CLOEXEC</code> or use <code>accept4(..., SOCK_CLOEXEC)</code> to avoid accidentally leaking sockets to child processes.</p>
+      </div>
+    </div>
+
+    <!-- Common Operations + Resource Limits -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Common FD Operations</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Operation</th><th>Syscall</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Open file</td><td><code>open(path, flags)</code></td><td>Returns new FD</td></tr>
+            <tr><td>Create pipe</td><td><code>pipe(fds[2])</code></td><td>fds[0]=read, fds[1]=write</td></tr>
+            <tr><td>Accept connection</td><td><code>accept4(..., SOCK_CLOEXEC)</code></td><td>Race-free close-on-exec</td></tr>
+            <tr><td>Duplicate FD</td><td><code>dup()</code> / <code>dup2()</code> / <code>dup3()</code></td><td>Share same File Object</td></tr>
+            <tr><td>Close FD</td><td><code>close(fd)</code></td><td>Decrements ref count</td></tr>
+            <tr><td>Get/Set flags</td><td><code>fcntl(fd, F_GETFL/F_SETFL)</code></td><td>File status or FD flags</td></tr>
+            <tr><td>Check FD info</td><td><code>/proc/&lt;pid&gt;/fd</code></td><td>Symlinks to all open targets</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Resource Limits — Protecting the System</p>
+        <p class="text-xs text-gray-600 mb-2">Every open FD consumes kernel memory, file table entries, and socket buffers. Linux enforces two tiers of limits:</p>
+        <table class="nt">
+          <thead><tr><th>Limit</th><th>Meaning</th><th>Check/Set</th></tr></thead>
+          <tbody>
+            <tr><td><code>RLIMIT_NOFILE</code></td><td>Max open FDs per process</td><td><code>ulimit -n</code></td></tr>
+            <tr><td><code>RLIMIT_NPROC</code></td><td>Max processes per user</td><td><code>ulimit -u</code></td></tr>
+            <tr><td><code>RLIMIT_AS</code></td><td>Max address space</td><td><code>ulimit -v</code></td></tr>
+            <tr><td><code>fs.file-max</code></td><td>System-wide kernel file table limit</td><td><code>sysctl</code></td></tr>
+            <tr><td><code>fs.file-nr</code></td><td>Allocated / free / max counts</td><td><code>cat /proc/sys/fs/file-nr</code></td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h">Soft vs Hard Limit</p>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-blue-50 border border-blue-100 rounded-lg p-2">
+            <p class="text-xs font-bold text-blue-700">Soft Limit</p>
+            <p class="text-xs text-gray-600">Current working ceiling. Process can raise it up to the hard limit.</p>
+            <p class="text-xs font-mono text-blue-600 mt-1"><code>ulimit -Sn 65535</code></p>
+          </div>
+          <div class="bg-violet-50 border border-violet-100 rounded-lg p-2">
+            <p class="text-xs font-bold text-violet-700">Hard Limit</p>
+            <p class="text-xs text-gray-600">Absolute ceiling. Only root can increase it.</p>
+            <p class="text-xs font-mono text-violet-600 mt-1"><code>ulimit -Hn 200000</code></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ulimit Quick Reference -->
+    <div class="nc">
+      <p class="nh">ulimit Quick Reference</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <table class="nt">
+            <thead><tr><th>Command</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>ulimit -n</code></td><td>Show soft FD limit</td></tr>
+              <tr><td><code>ulimit -Hn</code></td><td>Show hard FD limit</td></tr>
+              <tr><td><code>ulimit -a</code></td><td>Show all current limits</td></tr>
+              <tr><td><code>ulimit -Sn 65535</code></td><td>Set soft FD limit</td></tr>
+              <tr><td><code>ulimit -Hn 200000</code></td><td>Set hard limit (needs root)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="sub-h">System-Wide Tuning</p>
+          <div class="ncode" style="font-size:.72rem"># Check system-wide limit
+sysctl fs.file-max
+cat /proc/sys/fs/file-nr
+# allocated / unused / max
+
+# Set permanently (/etc/sysctl.conf)
+fs.file-max = 2000000
+
+# For services (systemd)
+LimitNOFILE=200000</div>
+          <p class="ntip mt-2">Nginx, PostgreSQL, and Redis all need <code>LimitNOFILE</code> tuned in their systemd unit files for high-concurrency deployments.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- epoll -->
+    <div class="nc">
+      <p class="nh">epoll — Scalable I/O Multiplexing</p>
+      <p class="nq">Traditional <code>select()</code> and <code>poll()</code> scan <strong>every</strong> FD on each call — O(N) complexity. As connections grow, CPU grows. <strong>epoll</strong> inverts this: the kernel tracks which FDs are ready and returns only those — approaching O(active events).</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+        <div>
+          <p class="sub-h text-red-600">select / poll — O(N) — Scan Everything</p>
+          <div class="ncode" style="font-size:.72rem">100,000 connections
+  ↓ scan all 100,000 FDs every loop
+  ↓ only 10 are active
+  ↓ 99,990 FDs checked for nothing
+  → CPU grows linearly with connections</div>
+          <p class="sub-h text-green-600">epoll — O(active events) — Kernel Notifies</p>
+          <div class="ncode" style="font-size:.72rem">100,000 connections
+  ↓ kernel tracks readiness internally
+  ↓ epoll_wait() returns only 10 ready FDs
+  ↓ application processes 10 events
+  → CPU stays low regardless of total conns</div>
+        </div>
+        <div>
+          <p class="sub-h">Three Key Syscalls</p>
+          <table class="nt">
+            <thead><tr><th>Syscall</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>epoll_create1()</code></td><td>Create an epoll instance (returns FD)</td></tr>
+              <tr><td><code>epoll_ctl()</code></td><td>Add / modify / remove FDs to watch</td></tr>
+              <tr><td><code>epoll_wait()</code></td><td>Block until events arrive; returns ready FDs</td></tr>
+            </tbody>
+          </table>
+          <p class="sub-h">Trigger Modes</p>
+          <div class="grid grid-cols-2 gap-2 mt-1">
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2">
+              <p class="text-xs font-bold text-blue-700">Edge-Triggered (ET)</p>
+              <p class="text-xs text-gray-600">Fires once when state changes. App must drain the FD completely. Higher performance, harder to use correctly.</p>
+            </div>
+            <div class="bg-green-50 border border-green-100 rounded-lg p-2">
+              <p class="text-xs font-bold text-green-700">Level-Triggered (LT)</p>
+              <p class="text-xs text-gray-600">Fires repeatedly while data is available. Easier to use. Default mode. Used by most applications.</p>
+            </div>
+          </div>
+          <p class="ntip mt-2">Systems using epoll: <strong>Nginx, Redis, HAProxy, Envoy, PostgreSQL, Node.js, Netty</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FD Leaks + Failure Modes -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">FD Leaks — Most Common Production Issue</p>
+        <div class="ncode" style="font-size:.72rem">open("orders.txt")  → FD 7
+  ↓ process request
+  ↓ forgot close(7)
+  ↓ next request → FD 8
+  ↓ forgot close(8)
+  ↓ ...10,000 requests later...
+  ↓ EMFILE: Too many open files
+  ↓ no new connections possible</div>
+        <p class="sub-h">Detection</p>
+        <ul class="dot-ul">
+          <li><code>ls -l /proc/&lt;pid&gt;/fd</code> — list all open FDs</li>
+          <li><code>lsof -p &lt;pid&gt;</code> — detailed list with files &amp; sockets</li>
+          <li><code>cat /proc/&lt;pid&gt;/limits</code> — all resource limits</li>
+          <li><code>strace -p &lt;pid&gt; -e trace=%file</code> — trace file syscalls</li>
+          <li><code>ss -p</code> — show sockets and owning process</li>
+          <li><code>ps -p &lt;pid&gt; -o pid,cmd,fdsize</code> — show FD size (soft limit)</li>
+        </ul>
+        <p class="sub-h">Prevention</p>
+        <ul class="dot-ul">
+          <li>Use try/finally, RAII, or defer patterns to always close</li>
+          <li>Set <code>O_CLOEXEC</code> on every FD before exec()</li>
+          <li>Use connection pooling to cap total FDs</li>
+          <li>Alert when FD usage exceeds 80% of <code>ulimit -n</code></li>
+        </ul>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Common Failure Modes</p>
+        <div class="space-y-2">
+          <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-red-700">EMFILE — Too many open files</p>
+            <p class="text-xs text-gray-600 mt-0.5">Process hit its <code>RLIMIT_NOFILE</code>. New connections/files fail. Fix: raise <code>LimitNOFILE</code> in systemd and fix FD leaks.</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-orange-700">ENFILE — System file table full</p>
+            <p class="text-xs text-gray-600 mt-0.5">Kernel's global <code>fs.file-max</code> reached. <em>Entire system</em> cannot open new resources. Fix: increase <code>fs.file-max</code>, identify leaking processes.</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-amber-700">FD leak — silent exhaustion</p>
+            <p class="text-xs text-gray-600 mt-0.5">Missing <code>close()</code> or missing <code>O_CLOEXEC</code> causes gradual FD buildup. Monitor <code>/proc/&lt;pid&gt;/fd</code> count over time.</p>
+          </div>
+          <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-yellow-700">High CPU at scale with select()</p>
+            <p class="text-xs text-gray-600 mt-0.5"><code>select()</code> has a hard limit of 1024 FDs and scans all of them every call. Replace with <code>epoll</code> for any high-concurrency server.</p>
+          </div>
+          <div class="bg-purple-50 border border-purple-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-purple-700">TIME_WAIT + low fd limit</p>
+            <p class="text-xs text-gray-600 mt-0.5">Outbound connections linger in TIME_WAIT consuming FDs. Fix: tune <code>tcp_tw_reuse</code>, increase FD limit, or use connection pooling.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real World + Decision Framework -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Real-World Examples</p>
+        <table class="nt mt-1">
+          <thead><tr><th>System</th><th>FD Usage</th></tr></thead>
+          <tbody>
+            <tr><td>Nginx</td><td>Each client = 1 socket FD. Uses epoll for 100k+ concurrent connections per worker.</td></tr>
+            <tr><td>PostgreSQL</td><td>Each backend opens DB files, WAL, client socket, temp files. Needs generous <code>RLIMIT_NOFILE</code>.</td></tr>
+            <tr><td>Redis</td><td>Non-blocking sockets + epoll. Serves millions of ops/sec from a single thread.</td></tr>
+            <tr><td>Docker/K8s</td><td>Container PID 1 must manage child FDs. Missing <code>O_CLOEXEC</code> leaks sockets into subprocesses.</td></tr>
+            <tr><td>Unix Pipeline</td><td><code>ps aux | grep nginx | wc -l</code> — each | creates a pipe pair using 2 FDs.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Staff Engineer Decision Framework</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Scenario</th><th>Approach</th></tr></thead>
+          <tbody>
+            <tr><td>High-concurrency server</td><td>epoll (or io_uring on Linux 5.1+)</td></tr>
+            <tr><td>Prevent exec() FD leaks</td><td><code>O_CLOEXEC</code> / <code>SOCK_CLOEXEC</code> on all FDs</td></tr>
+            <tr><td>Server returns EMFILE</td><td>Raise <code>LimitNOFILE</code> + fix leaks</td></tr>
+            <tr><td>System-wide exhaustion</td><td>Increase <code>fs.file-max</code> via sysctl</td></tr>
+            <tr><td>Detect FD leaks</td><td><code>/proc/&lt;pid&gt;/fd</code>, <code>lsof</code>, <code>strace</code></td></tr>
+            <tr><td>Reduce FD churn</td><td>Connection pooling — reuse sockets</td></tr>
+            <tr><td>Non-blocking I/O</td><td><code>O_NONBLOCK</code> + epoll event loop</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h mt-2">Engineer Progression</p>
+        <div class="space-y-1">
+          <div class="bg-gray-50 border border-gray-200 rounded p-2 text-xs"><span class="font-bold text-gray-500">Junior:</span> "Why is my server saying too many open files?"</div>
+          <div class="bg-blue-50 border border-blue-100 rounded p-2 text-xs"><span class="font-bold text-blue-700">Senior:</span> "I need to raise ulimit -n and close FDs properly."</div>
+          <div class="bg-violet-50 border border-violet-100 rounded p-2 text-xs"><span class="font-bold text-violet-700">Staff:</span> How many FDs per request? Leaks? epoll vs select? O_CLOEXEC on all FDs?</div>
+          <div class="bg-purple-50 border border-purple-200 rounded p-2 text-xs"><span class="font-bold text-purple-700">Principal:</span> Pool connections, design FD budgets, alert at 80%, use io_uring for next-gen I/O.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">File Descriptor (FD)
+  Small integer handle to a kernel File Object.
+  0=stdin, 1=stdout, 2=stderr, 3+=everything else.
+  Returned by: open(), socket(), pipe(), accept(), epoll_create1().
+
+FD Lifecycle
+  open() → lowest free FD assigned
+  dup()/fork() → both FDs share same File Object (shared offset)
+  close() → ref count--; kernel frees when 0
+  exec() → FDs inherited unless O_CLOEXEC is set
+
+Resource Limits
+  RLIMIT_NOFILE   per-process FD limit    ulimit -n / LimitNOFILE
+  fs.file-max     system-wide FD limit    sysctl fs.file-max
+  Soft limit      process can raise to hard limit
+  Hard limit      only root can increase
+
+Failure Modes
+  EMFILE   process hit RLIMIT_NOFILE   → raise limit, fix leaks
+  ENFILE   kernel file table full      → raise fs.file-max
+  FD leak  missing close()             → O_CLOEXEC + RAII patterns
+  select() FD_SETSIZE limit=1024       → replace with epoll
+
+epoll
+  epoll_create1()  create epoll instance (is itself an FD)
+  epoll_ctl()      add/modify/remove watched FDs
+  epoll_wait()     block; returns only READY FDs (not all)
+  O(active events) vs select/poll O(N) — scales to 100k+ connections
+  ET (edge-triggered): fire once on change; must drain fully
+  LT (level-triggered): fire while data available; default; simpler
+
+Golden Rules
+  Always O_CLOEXEC. Always close() in every code path.
+  epoll for concurrency. ulimit -n for capacity. lsof to debug.</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>FD = ticket</strong> to a kernel resource. Count them — they directly measure concurrency.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>RLIMIT_NOFILE</strong> — tune it. EMFILE at peak traffic = capacity planning failure.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>FD leaks</strong> are silent killers. O_CLOEXEC + RAII + lsof monitoring prevent them.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>epoll</strong> is why Nginx handles 100k connections per worker. select() cannot.</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Staff Engineers focus on FD lifecycle management, resource limit tuning, connection pooling, leak prevention, and scalable event-driven I/O — because these directly determine the scalability and reliability of production systems.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/FileDescriptors/file-descriptors.png"
+           alt="File Descriptors &amp; Resource Limits visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

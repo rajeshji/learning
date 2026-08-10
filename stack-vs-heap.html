@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stack vs Heap Performance — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d95; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* warn card */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Stack vs Heap Performance</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Stack vs Heap Performance</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Allocation speed, cache locality, GC — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="text-sm text-gray-600 mb-2">Where memory is allocated dramatically affects allocation speed, CPU cache efficiency, GC overhead, fragmentation, thread scalability, and tail latency (P99).</p>
+      <div class="ncode">Process Memory
+─────────────────────────
+Stack  (per thread — LIFO, contiguous)
+Heap   (shared process — dynamic, fragmented)</div>
+      <p class="nq">Choosing the correct memory region is one of the biggest performance optimizations.</p>
+    </div>
+
+    <!-- Allocation Speed -->
+    <div class="nc">
+      <p class="nh">Allocation Speed</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Stack — O(1), near-zero cost</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">Stack Pointer
+↓
+Move Pointer
+↓
+Memory Allocated</div>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1">Heap — O(1) avg, higher constant</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">malloc()
+↓ Allocator logic
+Free List Search
+↓ Split / Merge
+Block Returned</div>
+        </div>
+      </div>
+      <p class="ntip">Stack allocation is generally <strong>10–100× faster</strong> than heap allocation.</p>
+    </div>
+
+    <!-- Allocation Cost Table -->
+    <div class="nc">
+      <p class="nh">Allocation Cost Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Operation</th><th>Stack</th><th>Heap</th></tr></thead>
+        <tbody>
+          <tr><td>Allocation</td><td class="text-green-600 font-medium">Pointer bump</td><td>Allocator logic</td></tr>
+          <tr><td>Deallocation</td><td class="text-green-600 font-medium">Automatic</td><td>free() / GC</td></tr>
+          <tr><td>Complexity</td><td class="text-green-600 font-medium">O(1)</td><td>O(1) avg, higher constant</td></tr>
+          <tr><td>Overhead</td><td class="text-green-600 font-medium">Extremely Low</td><td class="text-orange-600">Medium–High</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Memory Locality -->
+    <div class="nc">
+      <p class="nh">Memory Locality &amp; CPU Cache</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Stack — contiguous</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">CPU → L1 Cache → Stack Frame
+(prefetcher works efficiently)</div>
+          <ul class="dot-ul mt-2">
+            <li>Better cache locality</li>
+            <li>Better branch prediction</li>
+            <li>Fewer cache misses</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1">Heap — scattered</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">CPU → L1 miss → L2 miss
+   → L3 → RAM → Object</div>
+          <ul class="dot-ul mt-2">
+            <li>Pointer chasing</li>
+            <li>More cache misses</li>
+            <li>Lower bandwidth efficiency</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- TLB & Fragmentation -->
+    <div class="nc">
+      <p class="nh">TLB Pressure &amp; Fragmentation</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Stack</p>
+          <ul class="dot-ul">
+            <li>Small contiguous region</li>
+            <li>Few page table entries</li>
+            <li>Better TLB hit rate</li>
+            <li><strong>Zero fragmentation</strong> (LIFO reuse)</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1">Heap</p>
+          <ul class="dot-ul">
+            <li>Large address space</li>
+            <li>Higher TLB pressure</li>
+            <li>Internal + external fragmentation</li>
+            <li>Large heaps benefit from Huge Pages</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Concurrency -->
+    <div class="nc">
+      <p class="nh">Concurrency &amp; Thread Safety</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Stack — thread-local</p>
+          <p class="text-sm text-green-800">Each thread owns its own stack. No locking, no contention — excellent scalability.</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1">Heap — shared</p>
+          <p class="text-sm text-orange-800">All threads share the heap. Allocator must manage synchronization via per-thread arenas (jemalloc, tcmalloc, mimalloc).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- GC Impact -->
+    <div class="nc">
+      <p class="nh">Garbage Collection Impact</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Stack</p>
+          <p class="text-sm text-green-800">Objects disappear on function return. <strong>No GC required.</strong></p>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1">Heap</p>
+          <p class="text-sm text-orange-800">Objects accumulate → Young Gen → Minor GC → Old Gen → Major GC. Heavy heap churn = more GC pauses + higher P99.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Escape Analysis -->
+    <div class="nc">
+      <p class="nh">Escape Analysis — Runtime Optimizations</p>
+      <p class="text-sm text-gray-600 mb-2">Modern runtimes try to keep short-lived objects on the stack whenever possible.</p>
+      <table class="nt">
+        <thead><tr><th>Runtime</th><th>Mechanism</th><th>Benefit</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Java</strong></td><td>JIT Escape Analysis</td><td>Objects that don't escape method stay on stack</td></tr>
+          <tr><td><strong>Go</strong></td><td>Compiler Escape Analysis</td><td>Non-escaping values → stack; escaping → heap</td></tr>
+          <tr><td><strong>Rust</strong></td><td>Ownership Model</td><td>Default stack; <code>Box&lt;T&gt;</code> for explicit heap</td></tr>
+          <tr><td><strong>C++</strong></td><td>Explicit (developer)</td><td>Locals → stack; <code>new</code>/<code>malloc</code> → heap</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode mt-3">Go compiler escape analysis:
+Object doesn't escape → Stack (zero GC cost)
+Object escapes function → Heap (GC required)</div>
+    </div>
+
+    <!-- Security -->
+    <div class="nc">
+      <p class="nh">Security Considerations</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Stack Risks</p>
+          <ul class="dot-ul">
+            <li>Stack overflow</li>
+            <li>Buffer overflow → return address overwrite</li>
+          </ul>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mt-2 mb-1">Mitigations</p>
+          <ul class="dot-ul">
+            <li>Stack canaries</li>
+            <li>ASLR</li>
+            <li>Shadow stacks</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Heap Risks</p>
+          <ul class="dot-ul">
+            <li>Use-after-free</li>
+            <li>Double free</li>
+            <li>Heap overflow</li>
+            <li>Memory leaks</li>
+          </ul>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mt-2 mb-1">Mitigations</p>
+          <ul class="dot-ul">
+            <li>ASAN, Valgrind</li>
+            <li>Smart pointers</li>
+            <li>Hardened allocators</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Stack Use</th><th>Heap Use</th><th>Key Point</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Spring Boot API</strong></td><td>Local counters, return values</td><td>Request DTOs, objects</td><td>Too many temp heap objects → Minor GC frequency</td></tr>
+          <tr><td><strong>Nginx</strong></td><td>Function variables, metadata</td><td>Memory pools for buffers</td><td>Very low allocation overhead</td></tr>
+          <tr><td><strong>RocksDB</strong></td><td>Local state</td><td>Off-heap cache buffers</td><td>No GC on cache → predictable latency</td></tr>
+          <tr><td><strong>Go microservices</strong></td><td>Escape-analyzed temporaries</td><td>Long-lived goroutine state</td><td>Lower GC pressure via escape analysis</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Should I use stack or heap?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Will this increase GC?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is allocation happening in the hot path?</li>
+            <li>Will escape analysis eliminate this allocation?</li>
+            <li>Is cache locality affected?</li>
+            <li>Is fragmentation increasing?</li>
+            <li>Are heap allocs increasing GC pauses?</li>
+            <li>Is NUMA locality preserved?</li>
+            <li>Can object pooling reduce latency?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-orange-800">High P99 Latency</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Excessive temporary heap allocations &nbsp;·&nbsp; <strong>Fix:</strong> Reduce allocations or rely on escape analysis</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High CPU Usage</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Allocator contention &nbsp;·&nbsp; <strong>Fix:</strong> Use jemalloc/tcmalloc or thread-local arenas</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High GC Frequency</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Heavy heap churn &nbsp;·&nbsp; <strong>Fix:</strong> Reuse objects or reduce allocation rate</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Large Memory Footprint</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Too many threads with large stacks &nbsp;·&nbsp; <strong>Fix:</strong> Reduce thread stack size or use async/event-loop architecture</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Approach</th></tr></thead>
+        <tbody>
+          <tr><td>Function-local temporary data</td><td>Stack</td></tr>
+          <tr><td>Large shared buffers</td><td>Heap</td></tr>
+          <tr><td>Hot code path</td><td>Prefer Stack</td></tr>
+          <tr><td>Long-lived cache</td><td>Heap</td></tr>
+          <tr><td>Large JVM service</td><td>Heap + GC tuning</td></tr>
+          <tr><td>Low-latency trading engine</td><td>Stack + Off-heap buffers</td></tr>
+          <tr><td>High-concurrency server</td><td>Thread-local allocators</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Full Comparison -->
+    <div class="nc">
+      <p class="nh">Stack vs Heap — Full Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Stack</th><th>Heap</th></tr></thead>
+        <tbody>
+          <tr><td>Allocation Speed</td><td class="text-green-600 font-medium">Extremely Fast</td><td class="text-orange-600">Slower</td></tr>
+          <tr><td>Locality</td><td class="text-green-600 font-medium">Excellent</td><td>Depends on allocator</td></tr>
+          <tr><td>Fragmentation</td><td class="text-green-600 font-medium">None</td><td class="text-orange-600">Internal &amp; External</td></tr>
+          <tr><td>Lifetime</td><td class="text-green-600 font-medium">Deterministic</td><td class="text-orange-600">Arbitrary</td></tr>
+          <tr><td>Thread Safety</td><td class="text-green-600 font-medium">Thread-local</td><td class="text-orange-600">Shared</td></tr>
+          <tr><td>GC Required</td><td class="text-green-600 font-medium">No</td><td class="text-orange-600">Usually Yes</td></tr>
+          <tr><td>Cache Efficiency</td><td class="text-green-600 font-medium">Excellent</td><td>Moderate</td></tr>
+          <tr><td>Best Use</td><td>Small, temporary objects</td><td>Large, dynamic objects</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Measure allocation rate (hot path vs background)</li>
+        <li class="text-sm text-gray-700">✅ Profile stack vs heap allocations</li>
+        <li class="text-sm text-gray-700">✅ Monitor GC frequency and pause time</li>
+        <li class="text-sm text-gray-700">✅ Check cache and TLB miss rates (<code>perf stat</code>)</li>
+        <li class="text-sm text-gray-700">✅ Measure allocator contention</li>
+        <li class="text-sm text-gray-700">✅ Inspect fragmentation (<code>/proc/buddyinfo</code>)</li>
+        <li class="text-sm text-gray-700">✅ Verify NUMA locality (<code>numastat</code>)</li>
+        <li class="text-sm text-gray-700">✅ Benchmark before and after any optimization</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Stack
+• Thread-local, LIFO, contiguous, deterministic.
+• O(1) allocation (pointer bump). Zero fragmentation.
+• Excellent cache locality. No GC. 10–100× faster.
+
+Heap
+• Shared, dynamic, fragmented, arbitrary lifetime.
+• Allocator overhead. Fragmentation. GC required.
+• Pointer chasing → cache misses → higher latency.
+
+Escape Analysis (Java / Go)
+• Compiler/JIT keeps non-escaping objects on stack.
+• Reduces GC pressure and allocation overhead.
+
+Staff focus
+• Avoid heap allocations in hot paths.
+• Reduce heap churn → lower GC pauses.
+• Use escape analysis, object pools, off-heap buffers.
+• Thread-local allocators (jemalloc/tcmalloc) for concurrency.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/b2527750-f54d-47df-bc56-8e26fc9bede7.png"
+        alt="Stack vs Heap Performance visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

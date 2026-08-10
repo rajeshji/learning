@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Producer–Consumer &amp; Bounded Queues — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Producer–Consumer &amp; Bounded Queues</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Producer–Consumer &amp; Bounded Queues</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Blocking Queues, Ring Buffers, Backpressure &amp; Flow Control</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- ═══════════════════ TEXT TAB ═══════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">THE BIG PICTURE</div>
+      <div class="nh">🌍 The Complete Story</div>
+      <p class="text-gray-700 mb-3">Instead of learning <strong>producer threads, consumer threads, blocking queues, semaphores, condition variables, backpressure, thread pools, ring buffers,</strong> and <strong>flow control</strong> separately, this page explains <strong>how modern concurrent systems decouple work generation from work processing while maintaining throughput, predictable latency, and resource stability.</strong></p>
+      <p class="text-gray-700 mb-3">Almost every concurrent system follows the same architecture:</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+        <div style="background:#ede9fe;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:6px;">🏭</div>
+          <div class="font-bold text-violet-700">Producer Threads</div>
+          <div class="text-gray-600 text-sm mt-1">HTTP requests · Kafka events · DB transactions · Sensor data</div>
+        </div>
+        <div style="background:#7c3aed;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:6px;">📦</div>
+          <div class="font-bold text-white">Shared Queue</div>
+          <div class="text-gray-200 text-sm mt-1">Buffer · Decoupler · Backpressure point</div>
+        </div>
+        <div style="background:#ede9fe;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:6px;">⚙️</div>
+          <div class="font-bold text-violet-700">Consumer Threads</div>
+          <div class="text-gray-600 text-sm mt-1">Worker threads · Kafka consumers · Search indexers</div>
+        </div>
+      </div>
+      <p class="text-gray-700">The queue absorbs differences between production speed and consumption speed, enabling <strong>higher throughput, better CPU utilization, decoupled workloads, and smoother load handling</strong>.</p>
+    </div>
+
+    <!-- Queue States -->
+    <div class="nc">
+      <div class="section-badge">QUEUE STATES</div>
+      <div class="nh">Bounded Queue — Three States</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+        <div style="background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:16px;">
+          <div class="font-bold text-green-700 mb-2">🟢 Empty</div>
+          <div style="background:#dcfce7;border-radius:6px;padding:8px;font-family:monospace;font-size:0.9rem;margin-bottom:8px;">[ □ □ □ □ □ □ □ □ ]</div>
+          <p class="text-gray-600 text-sm"><strong>Producer:</strong> Can insert<br/><strong>Consumer:</strong> Must wait</p>
+        </div>
+        <div style="background:#faf5ff;border:2px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div class="font-bold text-violet-700 mb-2">🟣 Partial (Ideal)</div>
+          <div style="background:#ede9fe;border-radius:6px;padding:8px;font-family:monospace;font-size:0.9rem;margin-bottom:8px;">[ ■ ■ ■ □ □ □ □ □ ]</div>
+          <p class="text-gray-600 text-sm"><strong>Producer:</strong> Can insert<br/><strong>Consumer:</strong> Can remove</p>
+        </div>
+        <div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:10px;padding:16px;">
+          <div class="font-bold text-orange-700 mb-2">🔴 Full</div>
+          <div style="background:#ffedd5;border-radius:6px;padding:8px;font-family:monospace;font-size:0.9rem;margin-bottom:8px;">[ ■ ■ ■ ■ ■ ■ ■ ■ ]</div>
+          <p class="text-gray-600 text-sm"><strong>Producer:</strong> Cannot insert<br/><strong>Consumer:</strong> Must drain first</p>
+        </div>
+      </div>
+      <div class="ntip"><strong>Bounded queues prevent unbounded memory growth.</strong> Without capacity limits, a slow consumer and fast producer will eventually exhaust heap memory → OOM crash.</div>
+    </div>
+
+    <!-- Backpressure -->
+    <div class="nc">
+      <div class="section-badge">BACKPRESSURE</div>
+      <div class="nh">Backpressure — The Safety Valve</div>
+      <p class="text-gray-700 mb-3">When the queue becomes full, the system signals the producer to slow down. This is <strong>backpressure</strong> — it propagates load upstream rather than absorbing it unsafely.</p>
+      <div class="ncode">WITHOUT backpressure:
+  Fast Producer → Unbounded Queue → OOM → Crash
+
+WITH backpressure:
+  Fast Producer → Full Bounded Queue → Slow Down → Stable System
+
+Backpressure propagation in microservices:
+  Service D overloaded
+    → Queue D full → Service C blocks
+    → Queue C full → Service B blocks
+    → Service B rejects or rate-limits Service A
+  Result: controlled degradation instead of cascading OOM crash</div>
+    </div>
+
+    <!-- Overload Strategies -->
+    <div class="nc">
+      <div class="section-badge">OVERLOAD STRATEGIES</div>
+      <div class="nh">When Queue Is Full — 5 Strategies</div>
+      <table class="nt mb-3">
+        <thead><tr><th>Strategy</th><th>Behavior</th><th>Best For</th><th>Risk</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Block Producer</strong></td><td>Producer sleeps until space available</td><td>Thread pools, ordered processing</td><td>Latency spike; upstream blocking</td></tr>
+          <tr><td><strong>Drop New Item</strong></td><td>Discard incoming item silently</td><td>Metrics, sampling, non-critical events</td><td>Data loss</td></tr>
+          <tr><td><strong>Drop Oldest</strong></td><td>Remove head, insert new item</td><td>Video frames, real-time sensor data</td><td>Old data loss (usually acceptable)</td></tr>
+          <tr><td><strong>Overwrite</strong></td><td>Newest data replaces oldest slot</td><td>Telemetry, last-value caches</td><td>Readers see inconsistent snapshots</td></tr>
+          <tr><td><strong>Dynamic Resize</strong></td><td>Temporarily expand capacity</td><td>Absorbing short bursts</td><td>Unpredictable memory; hides overload</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip"><strong>Staff-level:</strong> Always choose your overload strategy intentionally. "Use the biggest queue you can" is not a strategy — it just delays the failure and makes it harder to detect.</div>
+    </div>
+
+    <!-- Blocking vs Lock-Free -->
+    <div class="nc">
+      <div class="section-badge">IMPLEMENTATION TYPES</div>
+      <div class="nh">Blocking Queue vs Lock-Free Queue</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Blocking Queue — Mutex + Condition Variable</p>
+      <div class="ncode">// Classic POSIX-style blocking bounded queue
+pthread_mutex_t mu;
+pthread_cond_t not_full;   // signal: space available
+pthread_cond_t not_empty;  // signal: item available
+T buffer[CAPACITY];
+int head=0, tail=0, count=0;
+
+void produce(T item) {
+    pthread_mutex_lock(&mu);
+    while (count == CAPACITY)
+        pthread_cond_wait(&not_full, &mu);   // sleep until space
+    buffer[tail++ % CAPACITY] = item;
+    count++;
+    pthread_cond_signal(&not_empty);         // wake a consumer
+    pthread_mutex_unlock(&mu);
+}
+
+T consume() {
+    pthread_mutex_lock(&mu);
+    while (count == 0)
+        pthread_cond_wait(&not_empty, &mu);  // sleep until item
+    T item = buffer[head++ % CAPACITY];
+    count--;
+    pthread_cond_signal(&not_full);          // wake a producer
+    pthread_mutex_unlock(&mu);
+    return item;
+}
+// Java equivalent: ArrayBlockingQueue, LinkedBlockingQueue</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Ring Buffer — High Performance Fixed Memory</p>
+      <div class="ncode">// Circular buffer: head and tail wrap around — O(1) always
+// No memory allocation after initialization
+
+struct RingBuffer {
+    T data[CAPACITY];   // fixed array — cache-friendly
+    atomic&lt;int&gt; head{0};
+    atomic&lt;int&gt; tail{0};
+
+    bool push(T item) {
+        int t = tail.load(relaxed);
+        int next = (t + 1) % CAPACITY;
+        if (next == head.load(acquire)) return false;  // full
+        data[t] = item;
+        tail.store(next, release);
+        return true;
+    }
+
+    bool pop(T& item) {
+        int h = head.load(acquire);
+        if (h == tail.load(relaxed)) return false;     // empty
+        item = data[h];
+        head.store((h + 1) % CAPACITY, release);
+        return true;
+    }
+};
+// LMAX Disruptor, Linux network stack, audio/video pipelines</div>
+
+      <table class="nt mt-3">
+        <thead><tr><th>Feature</th><th>Blocking Queue</th><th>Lock-Free Queue</th><th>Ring Buffer</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Blocking</strong></td><td>Yes</td><td>No</td><td>Depends</td></tr>
+          <tr><td><strong>CPU Usage</strong></td><td>Low (sleeps)</td><td>Higher (retries)</td><td>Lowest</td></tr>
+          <tr><td><strong>Latency</strong></td><td>Medium</td><td>Low</td><td>Lowest</td></tr>
+          <tr><td><strong>Throughput</strong></td><td>Good</td><td>Very High</td><td>Very High</td></tr>
+          <tr><td><strong>Complexity</strong></td><td>Low</td><td>High</td><td>Medium</td></tr>
+          <tr><td><strong>Context Switches</strong></td><td>Yes</td><td>No</td><td>No</td></tr>
+          <tr><td><strong>Best For</strong></td><td>Thread pools, ordered tasks</td><td>High-perf systems</td><td>Streaming, event processing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Throughput vs Latency -->
+    <div class="nc">
+      <div class="section-badge">QUEUE SIZING</div>
+      <div class="nh">Queue Size — The Throughput vs Latency Trade-off</div>
+      <table class="nt mb-3">
+        <thead><tr><th>Queue Size</th><th>Pros</th><th>Cons</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Too Small</strong></td><td>Low latency, fast failure detection</td><td>Frequent blocking, lower throughput</td><td>Latency-critical real-time</td></tr>
+          <tr><td><strong>Right Size</strong></td><td>Balanced — absorbs bursts, controlled latency</td><td>Requires tuning per workload</td><td>Most production systems</td></tr>
+          <tr><td><strong>Too Large</strong></td><td>High throughput, absorbs spikes</td><td>High latency, memory waste, hides overload</td><td>Batch pipelines only</td></tr>
+        </tbody>
+      </table>
+      <div class="nq">"The right queue size is large enough to absorb burst traffic but small enough that filling it triggers visible backpressure before systems degrade."</div>
+    </div>
+
+    <!-- Real-World -->
+    <div class="nc">
+      <div class="section-badge">REAL-WORLD EXAMPLES</div>
+      <div class="nh">Where Producer–Consumer Is Used</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Queue Type</th><th>Overload Policy</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Java ThreadPoolExecutor</strong></td><td><code>ArrayBlockingQueue</code></td><td>RejectedExecutionHandler (reject/block/caller-runs)</td><td>Bounded worker pool with configurable rejection</td></tr>
+          <tr><td><strong>Kafka Broker</strong></td><td>Bounded partition log</td><td>Producer block / slow down</td><td>Backpressure to producers when consumer lag grows</td></tr>
+          <tr><td><strong>Go Channels</strong></td><td>Bounded channel (make(chan T, N))</td><td>Sender blocks automatically</td><td>Language-native CSP-style backpressure</td></tr>
+          <tr><td><strong>Linux Net Stack</strong></td><td>NIC ring buffer (sk_buff)</td><td>Drop packet</td><td>Fixed-size kernel buffer; overflow = dropped packet</td></tr>
+          <tr><td><strong>Disk Scheduler</strong></td><td>I/O request queue</td><td>Block process</td><td>Serializes concurrent disk access, prioritizes requests</td></tr>
+          <tr><td><strong>LMAX Disruptor</strong></td><td>Lock-free ring buffer</td><td>Block producer (sequencer)</td><td>Millions of events/sec — no GC, no locks, cache-line padded</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION FAILURES</div>
+      <div class="nh">Common Failure Modes</div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Out Of Memory — Unbounded Queue</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Producer faster than consumer; queue grows without limit until heap exhausted. <strong>Fix:</strong> Always use bounded queues with explicit backpressure in production systems.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Thread Pool Saturation</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Tasks arrive faster than workers process them; queue fills; new requests rejected. <strong>Fix:</strong> Tune queue capacity + thread pool size together; add rejection policy metrics; scale consumers.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">High Tail Latency from Oversized Queue</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Queue too large — tasks wait behind thousands of items before processing (head-of-line blocking). <strong>Fix:</strong> Reduce queue depth; separate priority lanes; scale consumers horizontally.</p>
+      </div>
+      <div class="nc-warn">
+        <div class="nh-warn">Consumer Lag (Kafka / Stream Processing)</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Consumer processes slower than producer publishes; lag grows indefinitely. <strong>Fix:</strong> Scale consumer instances; optimize processing logic; apply backpressure to producer; monitor consumer lag as primary SLA metric.</p>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Level</th><th>Question Asked</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Junior</strong></td><td>"Which queue implementation should I use?"</td></tr>
+          <tr><td><strong>Senior</strong></td><td>"Should the queue be bounded? What's the rejection policy?"</td></tr>
+          <tr><td><strong>Staff</strong></td><td>"What latency SLA must this queue satisfy? Should overload block, drop, or apply backpressure? Is throughput or predictability more important? How many producers and consumers exist? Should queues be per-core to reduce contention? Does this queue create head-of-line blocking? What is the optimal queue depth for our burst traffic patterns? How do failures propagate upstream through the service mesh?"</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Staff Engineer Decision Framework</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Scenario</th><th>Recommended Queue</th></tr></thead>
+        <tbody>
+          <tr><td>Thread pool task queue</td><td>Bounded Blocking Queue (<code>ArrayBlockingQueue</code>)</td></tr>
+          <tr><td>Kafka / message broker</td><td>Bounded + Backpressure to producer</td></tr>
+          <tr><td>Metrics / sampling pipeline</td><td>Drop-Oldest or Drop-New (non-critical data loss OK)</td></tr>
+          <tr><td>Real-time video / audio</td><td>Overwrite Ring Buffer (freshness &gt; completeness)</td></tr>
+          <tr><td>Low-latency trading</td><td>Lock-Free Ring Buffer (Disruptor pattern)</td></tr>
+          <tr><td>Async logging</td><td>Mostly unbounded async buffer (durability via WAL)</td></tr>
+          <tr><td>Per-core work stealing</td><td>Lock-Free SPSC Queue per thread</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Production Readiness Checklist</div>
+      <ul class="dot-ul mt-2">
+        <li>Choose bounded or unbounded <strong>intentionally</strong> — never default to unbounded</li>
+        <li>Define overload behavior: block, drop, overwrite, or reject</li>
+        <li>Size queues using measured production traffic burst patterns</li>
+        <li>Monitor queue depth continuously as a primary health metric</li>
+        <li>Track producer and consumer throughput <strong>separately</strong></li>
+        <li>Measure consumer lag (for event-driven systems)</li>
+        <li>Tune thread pool size and queue capacity <strong>together</strong> — they are coupled</li>
+        <li>Apply backpressure instead of unlimited buffering</li>
+        <li>Benchmark under 2× expected burst traffic before production</li>
+        <li>Alert when queues remain full for sustained periods (&gt;30 seconds)</li>
+      </ul>
+
+      <div class="nq mt-3">"The Producer–Consumer pattern decouples work generation from work processing using a shared queue. Bounded queues are essential in production because they provide backpressure, preventing unbounded memory growth and protecting systems from overload. Staff Engineers treat queue capacity as a critical performance and resilience parameter."</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">What to Remember</div>
+      <ul class="dot-ul">
+        <li>The <strong>Producer–Consumer pattern decouples work generation from work processing</strong> using a shared queue, allowing producers and consumers to operate independently while maximizing throughput and CPU utilization.</li>
+        <li><strong>Bounded queues are essential for production systems</strong> because they provide backpressure, preventing unbounded memory growth, controlling latency, and protecting systems from overload.</li>
+        <li><strong>Blocking queues</strong> prioritize CPU efficiency by sleeping waiting threads; <strong>lock-free queues</strong> and <strong>ring buffers</strong> prioritize low latency and scalability using atomic operations.</li>
+        <li>Modern systems — <strong>thread pools, Kafka, Go channels, Linux network stacks, disk schedulers, and LMAX Disruptor</strong> — all use variations of the producer–consumer pattern with carefully tuned queue behavior.</li>
+        <li>Staff Engineers treat <strong>queue capacity as a critical performance and resilience parameter</strong>, balancing throughput, latency, memory, fairness, and overload behavior rather than simply choosing the largest possible queue.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════════════ ORIGINAL NOTES TAB ═══════════════════ -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — PART 1</div>
+      <div class="nh">Core Mechanisms</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Blocking Queue — Full Implementation (Java)</p>
+      <div class="ncode">// Java ArrayBlockingQueue — internally uses ReentrantLock + 2 Conditions
+public class BoundedBlockingQueue&lt;T&gt; {
+    private final Object[] items;
+    private int head, tail, count;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition notFull  = lock.newCondition();
+    private final Condition notEmpty = lock.newCondition();
+
+    public BoundedBlockingQueue(int capacity) {
+        items = new Object[capacity];
+    }
+
+    public void put(T item) throws InterruptedException {
+        lock.lock();
+        try {
+            while (count == items.length)
+                notFull.await();         // sleep until space available
+            items[tail++ % items.length] = item;
+            count++;
+            notEmpty.signal();           // wake one consumer
+        } finally { lock.unlock(); }
+    }
+
+    public T take() throws InterruptedException {
+        lock.lock();
+        try {
+            while (count == 0)
+                notEmpty.await();        // sleep until item available
+            T item = (T) items[head++ % items.length];
+            count--;
+            notFull.signal();            // wake one producer
+            return item;
+        } finally { lock.unlock(); }
+    }
+}
+
+// Java standard library:
+// ArrayBlockingQueue  — array-backed, fair/unfair mode
+// LinkedBlockingQueue — linked-node, optionally bounded
+// PriorityBlockingQueue — heap, unbounded, ordered
+// SynchronousQueue  — zero capacity, direct handoff</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Semaphore-Based Bounded Queue</p>
+      <div class="ncode">// Classic semaphore implementation (POSIX / textbook)
+// Two semaphores: one counting free slots, one counting items
+sem_t empty_slots;   // initialized to CAPACITY
+sem_t filled_slots;  // initialized to 0
+pthread_mutex_t mu;
+T buffer[CAPACITY];
+int head=0, tail=0;
+
+void produce(T item) {
+    sem_wait(&empty_slots);      // decrement free slots (block if 0)
+    pthread_mutex_lock(&mu);
+    buffer[tail++ % CAPACITY] = item;
+    pthread_mutex_unlock(&mu);
+    sem_post(&filled_slots);     // signal item available
+}
+
+T consume() {
+    sem_wait(&filled_slots);     // decrement items (block if 0)
+    pthread_mutex_lock(&mu);
+    T item = buffer[head++ % CAPACITY];
+    pthread_mutex_unlock(&mu);
+    sem_post(&empty_slots);      // signal slot available
+    return item;
+}</div>
+
+      <hr class="border-violet-100 my-4"/>
+
+      <p class="font-semibold text-violet-700 mb-1">LMAX Disruptor — Ring Buffer Architecture</p>
+      <div class="ncode">// Key innovation: separate sequence numbers per producer/consumer
+// No locks — cache-line padding eliminates false sharing
+// Wait strategies: BusySpin, Yielding, Blocking, Sleeping
+
+// Cache-line padded sequence (64 bytes):
+// @sun.misc.Contended
+class Sequence {
+    volatile long value;
+    // 56 bytes padding...
+}
+
+// Producer publishes to sequence slot:
+long seq = sequencer.next();    // claim next slot
+ringBuffer[seq & MASK] = item;  // write item
+sequencer.publish(seq);         // make visible to consumers
+
+// Consumer reads:
+long available = sequencer.getHighestPublishedSequence(next, available);
+for (long i = next; i &lt;= available; i++) {
+    T item = ringBuffer[(int)(i & MASK)];
+    handler.onEvent(item, i, i == available);
+}
+
+// Throughput: 25M+ events/second on modern hardware
+// Used by: LMAX Exchange, Disruptor-based frameworks</div>
+
+      <hr class="border-violet-100 my-4"/>
+
+      <p class="font-semibold text-violet-700 mb-1">Synchronization Primitives Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Primitive</th><th>Purpose in Queue</th><th>Blocking?</th><th>OS Syscall?</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Mutex</strong></td><td>Exclusive access to buffer state</td><td>Yes</td><td>futex (Linux)</td></tr>
+          <tr><td><strong>Condition Variable</strong></td><td>Sleep/wake on empty or full</td><td>Yes</td><td>futex_wait/wake</td></tr>
+          <tr><td><strong>Semaphore</strong></td><td>Count free slots and filled items</td><td>Yes</td><td>sem_wait/post</td></tr>
+          <tr><td><strong>Atomic CAS</strong></td><td>Lock-free head/tail update</td><td>No</td><td>None</td></tr>
+          <tr><td><strong>Sequence Number</strong></td><td>Disruptor-style slot claiming</td><td>Configurable</td><td>None</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — PART 2</div>
+      <div class="nh">OS Internals &amp; Performance Reference</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Queue Internals — OS-Level Flow</p>
+      <div class="ncode">// What happens when producer calls blocking put() on a full queue:
+
+1. Producer acquires mutex (futex_lock — fast path, no syscall if uncontended)
+2. Producer checks count == capacity → TRUE → call cond_wait()
+3. cond_wait():
+   a. Atomically releases mutex + sleeps (futex_wait syscall)
+   b. Thread state: RUNNING → WAITING (removed from run queue)
+4. Consumer calls take():
+   a. Acquires mutex
+   b. Removes item, count--
+   c. Calls cond_signal() → futex_wake(1)
+   d. Releases mutex
+5. Kernel wakes producer:
+   a. Producer re-added to run queue: WAITING → RUNNABLE
+   b. Producer re-acquires mutex
+   c. Proceeds with insert
+6. Producer signals notEmpty → futex_wake(1) to wake one consumer
+
+Cost: 2 futex syscalls (1 wait + 1 wake) ≈ 1–10 µs per cross-thread handoff</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Key Performance Numbers</p>
+      <table class="nt">
+        <thead><tr><th>Metric</th><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>ArrayBlockingQueue throughput</td><td>~3–10M ops/sec</td><td>Single producer/consumer, modern hardware</td></tr>
+          <tr><td>Disruptor throughput</td><td>~25–100M events/sec</td><td>Single producer, pre-allocated ring buffer</td></tr>
+          <tr><td>Context switch cost</td><td>~1–10 µs</td><td>OS thread sleep/wake via futex</td></tr>
+          <tr><td>Lock-free CAS (uncontended)</td><td>~5–10 ns</td><td>LOCK CMPXCHG</td></tr>
+          <tr><td>Lock-free CAS (contended)</td><td>~50–200 ns</td><td>Cache-line bouncing</td></tr>
+          <tr><td>Optimal queue depth</td><td>Producer burst × 2–3×</td><td>Absorb bursts, avoid large wait</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nq mt-3">"A queue is not just a data structure — it is a contract between producer and consumer about throughput, latency, and overload behavior. Every production queue must have a bounded size, a defined overload policy, and continuous depth monitoring. Anything else is an incident waiting to happen."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- ═══════════════════ VISUAL GUIDE TAB ═══════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <img src="images/foundation/l1/OS/c4592926-3d67-4869-b548-bacbca8328c8.png" class="w-full rounded-lg shadow-md" alt="Producer-Consumer and Bounded Queues Visual Guide"/>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

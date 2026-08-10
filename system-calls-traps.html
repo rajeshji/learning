@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>System Calls &amp; Traps</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transilors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">System Calls &amp; Traps</span>
+  </div>
+</header>
+
+<!-- PAGE TITLE -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">System Calls &amp; Traps</h1>
+      <p class="text-xs text-gray-400 mt-0.5">User Space Bridge &bull; Mode Switch &bull; Traps &bull; Page Faults &bull; Performance Optimization</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TEXT TAB ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">Applications run in User Space with limited privileges. Hardware is controlled by the Kernel. Whenever an app needs a privileged operation it cannot do it directly — it asks the kernel through a <strong>System Call</strong>. The CPU switches from Ring 3 to Ring 0, does the work, and returns. If something <em>unexpected</em> happens — invalid memory access, divide by zero — the CPU generates a <strong>Trap</strong> and hands control to the kernel automatically.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-1">System Call</p>
+          <p class="text-xs text-gray-600">A <strong>controlled request</strong> by the application to the OS kernel to perform a privileged operation. The app decides when to call it.</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+          <p class="text-xs font-black text-orange-700 mb-1">Trap</p>
+          <p class="text-xs text-gray-600">An <strong>event triggered by the CPU</strong> when something exceptional occurs during execution. The CPU decides — the app does not.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why syscalls exist + common syscall table -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Why System Calls Exist</p>
+        <p class="text-xs text-gray-600 mb-2">Applications must never be allowed to directly:</p>
+        <ul class="dot-ul">
+          <li class="text-red-600">Read or write physical memory</li>
+          <li class="text-red-600">Write to raw disk sectors</li>
+          <li class="text-red-600">Access network hardware</li>
+          <li class="text-red-600">Create or kill processes</li>
+          <li class="text-red-600">Configure CPU settings</li>
+        </ul>
+        <p class="ntip mt-2">The kernel is the <strong>trusted manager</strong> that validates every request before touching hardware. No validation = no system.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Common System Calls</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Syscall</th><th>What It Does</th></tr></thead>
+          <tbody>
+            <tr><td><code>open()</code> / <code>close()</code></td><td>Open / close file descriptors</td></tr>
+            <tr><td><code>read()</code> / <code>write()</code></td><td>File and socket I/O</td></tr>
+            <tr><td><code>send()</code> / <code>recv()</code></td><td>Network send / receive</td></tr>
+            <tr><td><code>fork()</code> / <code>exec()</code></td><td>Create / launch processes</td></tr>
+            <tr><td><code>mmap()</code></td><td>Map memory / files into address space</td></tr>
+            <tr><td><code>epoll_wait()</code></td><td>Async I/O event monitoring</td></tr>
+            <tr><td><code>brk()</code> / <code>sbrk()</code></td><td>Expand heap memory</td></tr>
+            <tr><td><code>ioctl()</code></td><td>Device-specific control</td></tr>
+            <tr><td><code>gettimeofday()</code></td><td>Read system clock (vDSO fast path)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- System Call Flow + Internal steps -->
+    <div class="nc">
+      <p class="nh">System Call Flow — What Really Happens for <code>read("data.txt")</code></p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="ncode">Application calls read(fd, buf, n)
+  ↓ libc / glibc wrapper invoked
+  ↓ CPU executes 'syscall' instruction
+  ↓ Ring 3 → Ring 0  (privilege switch)
+  ↓ Save registers + switch kernel stack
+  ↓ Kernel validates request &amp; params
+  ↓ VFS + Filesystem locate file data
+  ↓ Disk Driver reads from storage
+  ↓ Kernel copies data → user buffer
+  ↓ Ring 0 → Ring 3  (restore state)
+  ↓ Application receives data &amp; continues</div>
+        <div>
+          <p class="sub-h">What the CPU does during mode switch</p>
+          <div class="space-y-1.5">
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs text-blue-800"><span class="font-bold">1.</span> Save current application registers</div>
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs text-blue-800"><span class="font-bold">2.</span> Switch privilege level Ring 3 → Ring 0</div>
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs text-blue-800"><span class="font-bold">3.</span> Switch to thread's kernel stack</div>
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs text-blue-800"><span class="font-bold">4.</span> Execute kernel syscall handler</div>
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs text-blue-800"><span class="font-bold">5.</span> Perform requested operation</div>
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs text-blue-800"><span class="font-bold">6.</span> Restore saved registers</div>
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs text-blue-800"><span class="font-bold">7.</span> Return to Ring 3 — app continues</div>
+          </div>
+          <p class="ntip mt-2">This happens <strong>millions of times per second</strong> on busy production servers. Every transition has a cost.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why Expensive + Typical overheads -->
+    <div class="nc">
+      <p class="nh">Why System Calls Are Expensive — Typical Overhead</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="text-xs text-gray-600 mb-2">Unlike a normal function call (stays in User Space), a syscall pays for all of these:</p>
+          <ul class="dot-ul">
+            <li>CPU privilege change (Ring 3 → Ring 0)</li>
+            <li>Save and restore all registers</li>
+            <li>Switch to kernel stack</li>
+            <li>Security parameter validation</li>
+            <li>Possible scheduler involvement</li>
+            <li>Possible device I/O (blocking)</li>
+          </ul>
+          <p class="ntip mt-2">If the operation blocks (disk or network), the scheduler may switch to another thread — adding milliseconds, not microseconds.</p>
+        </div>
+        <div>
+          <table class="nt mt-1">
+            <thead><tr><th>Operation</th><th>Typical Cost</th></tr></thead>
+            <tbody>
+              <tr><td>Normal function call</td><td class="text-green-600">~10–50 ns</td></tr>
+              <tr><td>Syscall (no I/O blocking)</td><td class="text-yellow-600">~200–1000 ns</td></tr>
+              <tr><td>Context switch</td><td class="text-yellow-600">~1–5 µs</td></tr>
+              <tr><td>Page fault (minor)</td><td class="text-orange-500">~1–10 µs</td></tr>
+              <tr><td>Page fault (major)</td><td class="text-red-600">~100 µs – ms</td></tr>
+              <tr><td>Disk I/O (SSD)</td><td class="text-red-600">~50–500 µs</td></tr>
+              <tr><td>Disk I/O (HDD)</td><td class="text-red-600">~5–20 ms</td></tr>
+            </tbody>
+          </table>
+          <p class="ntip mt-2">Frequent syscalls or page faults can <strong>dominate CPU time</strong> and drive up tail latency.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Traps + Page Fault + Syscall vs Trap table -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">What is a Trap?</p>
+        <p class="text-xs text-gray-600 mb-2">A Trap is a <strong>synchronous CPU-generated event</strong> that transfers control to the kernel because the current instruction caused an exceptional condition. The app did not ask for this — the CPU decided.</p>
+        <table class="nt">
+          <thead><tr><th>Trap</th><th>Cause</th></tr></thead>
+          <tbody>
+            <tr><td>Page Fault</td><td>Memory not loaded in RAM</td></tr>
+            <tr><td>Divide by Zero</td><td>Arithmetic error</td></tr>
+            <tr><td>Invalid Instruction</td><td>Unknown opcode executed</td></tr>
+            <tr><td>Breakpoint (INT 3)</td><td>Debugger breakpoint hit</td></tr>
+            <tr><td>General Protection Fault</td><td>Illegal memory access</td></tr>
+            <tr><td>Stack Overflow</td><td>Stack pointer out of bounds</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h">Syscall vs Trap vs Interrupt</p>
+        <table class="nt">
+          <thead><tr><th>Type</th><th>Triggered By</th><th>Synchronous?</th></tr></thead>
+          <tbody>
+            <tr><td>System Call</td><td>Application</td><td class="text-green-600">Yes</td></tr>
+            <tr><td>Trap</td><td>CPU (exception)</td><td class="text-green-600">Yes</td></tr>
+            <tr><td>Interrupt</td><td>Hardware device</td><td class="text-red-500">No (async)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Page Fault — The Most Common Trap</p>
+        <div class="ncode" style="font-size:.72rem">Application accesses memory
+  ↓
+Page not present in RAM
+  ↓
+CPU generates Page Fault Trap
+  ↓
+Kernel checks if access is valid
+  ↓
+Valid? Load page from disk into RAM
+  ↓
+Application resumes transparently
+
+Invalid? Send SIGSEGV
+  ↓
+Process terminated (Segmentation Fault)</div>
+        <p class="ntip mt-2">Page faults are <strong>how virtual memory works</strong>. Minor page faults (~1–10 µs) are normal. Major page faults requiring disk I/O can spike P99 latency by milliseconds.</p>
+        <p class="sub-h mt-3">Interrupt (Asynchronous)</p>
+        <p class="text-xs text-gray-600">Hardware events that arrive <em>independently</em> of the current instruction. The CPU pauses the running task, handles the interrupt, then resumes.</p>
+        <ul class="dot-ul mt-1">
+          <li>Network packet arrives (NIC interrupt)</li>
+          <li>Disk I/O completes (DMA interrupt)</li>
+          <li>Timer tick (scheduler quantum expiry)</li>
+          <li>Keyboard / mouse input</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Optimizations -->
+    <div class="nc">
+      <p class="nh">Optimization Techniques — Reducing Kernel Crossings</p>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-1">
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-center">
+          <p class="text-xs font-black text-blue-700 mb-1">vDSO</p>
+          <p class="text-xs text-gray-600">Some syscalls (e.g. <code>gettimeofday</code>) run entirely in User Space — no kernel entry.</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-lg p-3 text-center">
+          <p class="text-xs font-black text-green-700 mb-1">Batching</p>
+          <p class="text-xs text-gray-600">Combine many ops into one syscall. <code>writev</code>, <code>sendmmsg</code> — fewer crossings.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3 text-center">
+          <p class="text-xs font-black text-violet-700 mb-1">Zero-Copy</p>
+          <p class="text-xs text-gray-600">Skip the User Space buffer. <code>sendfile()</code>, <code>splice()</code> — fewer copies and syscalls.</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 text-center">
+          <p class="text-xs font-black text-orange-700 mb-1">Async I/O</p>
+          <p class="text-xs text-gray-600"><code>io_uring</code> — submit many I/O ops and collect completions with a single syscall pair.</p>
+        </div>
+        <div class="bg-pink-50 border border-pink-100 rounded-lg p-3 text-center">
+          <p class="text-xs font-black text-pink-700 mb-1">mmap()</p>
+          <p class="text-xs text-gray-600">Map files directly into address space — avoids repeated <code>read()</code> syscalls on hot data.</p>
+        </div>
+      </div>
+      <p class="ntip mt-3">Goal: <strong>Reduce User &harr; Kernel crossings, copies, and context switches.</strong> That's where most real-world latency hides.</p>
+    </div>
+
+    <!-- Real World + Decision Framework -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Real-World Examples</p>
+        <table class="nt mt-1">
+          <thead><tr><th>System</th><th>Technique</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>Nginx</td><td><code>sendfile()</code></td><td>Serve static files with fewer syscalls + no user buffer</td></tr>
+            <tr><td>Kafka</td><td>Zero-copy APIs</td><td>Reduce CPU during log replication to consumers</td></tr>
+            <tr><td>Redis</td><td>Event-driven loop</td><td>Minimize syscalls; one <code>epoll_wait</code> for thousands of connections</td></tr>
+            <tr><td>Linux VM</td><td>Page fault traps</td><td>Implement demand paging — load pages only when accessed</td></tr>
+            <tr><td>Databases</td><td><code>mmap</code> + <code>io_uring</code></td><td>Async I/O improves query throughput</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Staff Engineer Decision Framework</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Scenario</th><th>Approach</th></tr></thead>
+          <tbody>
+            <tr><td>Millions of tiny writes</td><td><code>writev</code> — batch syscalls</td></tr>
+            <tr><td>Large file transfers</td><td><code>sendfile()</code> — zero-copy</td></tr>
+            <tr><td>High I/O concurrency</td><td><code>io_uring</code> — async submit/complete</td></tr>
+            <tr><td>Frequent page faults</td><td>Increase RAM or shrink working set</td></tr>
+            <tr><td>High system CPU %</td><td>Reduce unnecessary kernel crossings</td></tr>
+            <tr><td>Ultra-low latency networking</td><td>DPDK / RDMA — bypass kernel entirely</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Staff Engineer Thinking + Debugging -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Engineer Progression</p>
+        <div class="space-y-2">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <p class="text-xs font-bold text-gray-500 mb-0.5">Junior</p>
+            <p class="text-xs text-gray-600">"Why is my API slow?"</p>
+          </div>
+          <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-violet-700 mb-0.5">Staff</p>
+            <ul class="dot-ul">
+              <li>How many syscalls per request?</li>
+              <li>Are requests blocking on disk or network?</li>
+              <li>Are page faults causing latency spikes?</li>
+              <li>How much time is in kernel mode vs user mode?</li>
+              <li>Can we reduce User &harr; Kernel transitions?</li>
+            </ul>
+          </div>
+        </div>
+        <p class="ntip mt-2">Optimizing syscall frequency often gives larger gains than optimizing application logic.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Debugging &amp; Observability</p>
+        <p class="text-xs text-gray-600 mb-2">When latency spikes, look for:</p>
+        <ul class="dot-ul mb-2">
+          <li>High <strong>System CPU %</strong> (<code>top</code> / <code>htop</code>)</li>
+          <li>Excessive <strong>context switches</strong> (<code>vmstat</code>)</li>
+          <li>High <strong>syscall rate</strong> (<code>strace -c -p PID</code>)</li>
+          <li>Major <strong>page faults</strong> (<code>vmstat</code> pgmajfault)</li>
+          <li>Long <strong>disk wait</strong> (<code>iostat</code>)</li>
+          <li>High <strong>interrupt rate</strong> (<code>vmstat</code> in col)</li>
+        </ul>
+        <table class="nt">
+          <thead><tr><th>Tool</th><th>What It Shows</th></tr></thead>
+          <tbody>
+            <tr><td><code>strace</code></td><td>Every syscall made by a process</td></tr>
+            <tr><td><code>perf stat</code></td><td>CPU events, context switches, cycles</td></tr>
+            <tr><td><code>bpftrace</code> / eBPF</td><td>Trace syscalls and traps in production</td></tr>
+            <tr><td><code>vmstat</code></td><td>Context switches, page faults, I/O wait</td></tr>
+            <tr><td><code>pidstat</code></td><td>Per-process user vs system CPU %</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">System Call
+  Application → libc → 'syscall' instruction → Ring 3→Ring 0
+  Kernel validates → performs op → Ring 0→Ring 3 → returns result
+  Cost: ~200–1000 ns (non-blocking), much more if I/O blocks
+
+Trap (Synchronous CPU exception)
+  Page Fault    → kernel loads page from disk (or SIGSEGV)
+  Divide by 0   → kernel sends SIGFPE
+  Breakpoint    → kernel notifies debugger
+  GPF           → illegal memory → SIGSEGV / process killed
+
+Interrupt (Asynchronous hardware event)
+  NIC, Disk, Timer → CPU pauses current task → handles → resumes
+
+Optimization Toolkit
+  vDSO          → zero-syscall time reads (gettimeofday)
+  Batching      → writev, sendmmsg — fewer crossings
+  Zero-Copy     → sendfile(), splice() — skip user buffer
+  Async I/O     → io_uring — bulk submit + complete in one pair
+  Kernel bypass → DPDK / RDMA — skip kernel networking entirely
+
+Golden Rule
+  Every User&lt;-&gt;Kernel crossing costs CPU.
+  Measure with strace / perf / eBPF. Optimize with batching &amp; async I/O.</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>System Calls</strong> — controlled gateways for privileged kernel services. App-initiated.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Traps</strong> — CPU-generated on exceptions. Page faults are the most common and impactful.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Every boundary crossing</strong> — privilege change, register save, stack switch — costs CPU cycles.</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Optimize with</strong> — batching, zero-copy, io_uring, vDSO, and eBPF measurement.</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Staff Engineers optimize systems by minimizing unnecessary system calls, using batching, zero-copy, and async I/O — and by measuring kernel behavior with perf, strace, and eBPF rather than guessing. That's where most real-world latency hides.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== IMAGE TAB ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/SystemCallsTraps/system-calls-traps.png"
+           alt="System Calls &amp; Traps visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

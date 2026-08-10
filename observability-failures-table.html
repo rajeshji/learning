@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Observability Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#9d174d; border-bottom-color:#9d174d; }
+    .tab-btn:hover:not(.active) { color:#500724; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fdf2f8; border:1px solid #fbcfe8; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#9d174d; margin-bottom:.6rem; }
+    .ncode{ background:#500724; color:#fbcfe8; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fbcfe8; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#831843; color:#fbcfe8; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #fce7f3;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fdf2f8; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#9d174d; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#831843; color:#fbcfe8; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #fce7f3; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-pink-800 hover:text-pink-950 font-semibold
+              bg-pink-50 hover:bg-pink-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-pink-900 font-semibold">Observability Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-pink-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Observability Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 36 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why Observability Failures Are Uniquely Dangerous</p>
+      <div class="ncode">Observability provides: metrics + logs + traces + alerting + debugging + visibility
+Without it: systems fail silently — MTTR explodes, cascading failures spread undetected
+
+9 root failure classes:
+  metrics | logging | tracing | alerting | monitoring infra
+  cardinality/scale | correlation | time/ordering | security observability</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Metrics Collection and Monitoring Failures</td></tr>
+          <tr>
+            <td>Metrics Pipeline Failure<span class="badge-crit">Must Know</span></td>
+            <td>Prometheus scraper, agent, or collector network fails — metrics stop flowing</td>
+            <td>Dashboards show gaps, "No data" panels, stale last-seen timestamps</td>
+            <td>Fall back to CLI/raw metric endpoints, restart collectors</td>
+            <td>Redundant collectors, HA Prometheus (Thanos/Cortex), watchdog supervision</td>
+            <td class="casc">Blind system operation — operators cannot see CPU, error rates, or latency</td>
+            <td class="troff">Redundant collectors add infra cost and coordination complexity</td>
+          </tr>
+          <tr>
+            <td>Missing Critical Metrics<span class="badge-crit">Must Know</span></td>
+            <td>Metrics never instrumented — incident occurs with zero telemetry for that system</td>
+            <td>Post-incident: no data available for root cause analysis</td>
+            <td>Add instrumentation immediately to affected service</td>
+            <td>Observability standards checklist (RED / USE / golden signals) for every service</td>
+            <td class="casc">Extended MTTR — operators debug blind, guessing at root cause</td>
+            <td class="troff">Comprehensive instrumentation adds engineering effort per service</td>
+          </tr>
+          <tr>
+            <td>Stale / Incorrect Metrics<span class="badge-crit">Must Know</span></td>
+            <td>Buggy instrumentation, counter reset on restart, or metric name collision</td>
+            <td>Impossible values (negative latency), metrics never changing, logic doesn't match</td>
+            <td>Validate metrics pipeline, compare against source-of-truth (logs)</td>
+            <td>Metrics schema testing in CI, canary validation of new instrumentation</td>
+            <td class="casc">Misleading debugging — operators act on wrong data, worsen the incident</td>
+            <td class="troff">Schema validation adds CI pipeline complexity per service</td>
+          </tr>
+          <tr>
+            <td>Metrics Aggregation Failure</td>
+            <td>Aggregator node overloaded — federated or global aggregate stops computing</td>
+            <td>Missing global dashboards, aggregated panels show "no data"</td>
+            <td>Fall back to per-node local dashboards, bypass aggregator</td>
+            <td>Hierarchical aggregation, shard aggregators by service domain</td>
+            <td class="casc">Partial operational blindness — fleet-level view unavailable during incident</td>
+            <td class="troff">Hierarchical aggregation adds complexity and coordination overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Logging Failures</td></tr>
+          <tr>
+            <td>Log Pipeline Failure<span class="badge-crit">Must Know</span></td>
+            <td>Fluentd / Logstash / Kafka log shipper crashes or network fails</td>
+            <td>Missing logs in Elasticsearch/Loki, service generates logs but none arrive</td>
+            <td>Buffer logs locally, retry pipeline, route via secondary shipper</td>
+            <td>HA log pipeline (multiple shippers), local disk buffer with durability guarantee</td>
+            <td class="casc">Debugging impossible — no log evidence for ongoing or past incidents</td>
+            <td class="troff">HA log pipeline adds significant infra complexity and cost</td>
+          </tr>
+          <tr>
+            <td>Log Loss<span class="badge-crit">Must Know</span></td>
+            <td>Log buffer overflows or disk fills — logs dropped silently at source or shipper</td>
+            <td>Sequence gaps in log index, known events absent from log search</td>
+            <td>Replay from service-side buffer if available, check disk space</td>
+            <td>Durable log queues (persistent Kafka topics), log backpressure to service</td>
+            <td class="casc">Missing incident evidence — audit trail incomplete, root cause unprovable</td>
+            <td class="troff">Durable log queues add storage overhead and end-to-end latency</td>
+          </tr>
+          <tr>
+            <td>Excessive Log Storm<span class="badge-crit">Must Know</span></td>
+            <td>Error retry loop or misconfigured verbose logging floods the pipeline</td>
+            <td>Log volume spike, logging infra CPU/disk at 100%, other logs crowded out</td>
+            <td>Rate-limit logs at source, suppress repeated identical messages</td>
+            <td>Structured logging with per-error deduplication, log rate limits per service</td>
+            <td class="casc">Logging infra collapse — storm drowns out critical error signals from other services</td>
+            <td class="troff">Rate limiting may suppress genuine high-frequency error events</td>
+          </tr>
+          <tr>
+            <td>Sensitive Data in Logs</td>
+            <td>Token, password, or PII accidentally included in a log statement</td>
+            <td>Secret scanning alert in log pipeline, SIEM rule triggers on credential pattern</td>
+            <td>Redact affected log records, rotate exposed credentials immediately</td>
+            <td>Safe logging framework (no raw request/response logging), secret scanner in CI</td>
+            <td class="casc">Security breach — anyone with log access has valid credentials</td>
+            <td class="troff">Masking sensitive fields reduces debug detail available in logs</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Distributed Tracing Failures</td></tr>
+          <tr>
+            <td>Missing Trace Propagation<span class="badge-crit">Must Know</span></td>
+            <td>Service fails to forward trace context header — trace chain breaks at that hop</td>
+            <td>Broken trace chains in Jaeger/Zipkin, orphan spans with no parent</td>
+            <td>Inject fallback trace ID at missing hop, patch missing propagation</td>
+            <td>Standardised propagation (W3C TraceContext), propagation integration tests</td>
+            <td class="casc">Request tracking impossible — cannot reconstruct full request path for any incident</td>
+            <td class="troff">Propagation adds per-request overhead and requires changes in every service</td>
+          </tr>
+          <tr>
+            <td>Partial Trace Loss<span class="badge-crit">Must Know</span></td>
+            <td>Trace collector overloaded — spans dropped before storage</td>
+            <td>Missing spans in completed traces, gaps in latency breakdown</td>
+            <td>Buffer spans locally, increase collector capacity</td>
+            <td>Scalable tracing infra, tail-based sampling (sample on completion, not start)</td>
+            <td class="casc">Incomplete root cause analysis — latency spike attributed to wrong service</td>
+            <td class="troff">Tail-based sampling requires holding span buffers in memory during request lifetime</td>
+          </tr>
+          <tr>
+            <td>Trace Cardinality Explosion</td>
+            <td>Too many unique span/operation names — TSDB indexing explodes</td>
+            <td>Storage and query latency growing, tracing backend OOM or slow</td>
+            <td>Reduce span cardinality, apply sampling, drop high-cardinality labels</td>
+            <td>Cardinality governance — no user IDs or request IDs in span operation names</td>
+            <td class="casc">Observability platform crash — tracing backend OOM kills entire trace system</td>
+            <td class="troff">Cardinality limits reduce per-user trace granularity</td>
+          </tr>
+          <tr>
+            <td>Trace Storage Exhaustion</td>
+            <td>Long trace retention or high request volume — trace storage disk fills</td>
+            <td>Trace ingestion failures, "storage full" errors in tracing backend</td>
+            <td>Reduce retention window, archive old traces to cold storage</td>
+            <td>Tiered trace storage, retention policies, storage capacity monitoring</td>
+            <td class="casc">All new traces lost — historical debugging unavailable for post-incident review</td>
+            <td class="troff">Shorter retention reduces post-incident debugging window</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Alerting and Incident Detection Failures</td></tr>
+          <tr>
+            <td>Missing Alert<span class="badge-crit">Must Know</span></td>
+            <td>Threshold never configured, or alert condition not covering the failure mode</td>
+            <td>Incident detected manually by a user report — not by alerting system</td>
+            <td>Emergency dashboards to detect manually, add alert retroactively</td>
+            <td>Alert coverage reviews against SLO, alerting-as-code with coverage checks</td>
+            <td class="casc">Long undetected outage — every minute without alert = longer MTTR</td>
+            <td class="troff">Comprehensive alert coverage requires ongoing tuning as systems change</td>
+          </tr>
+          <tr>
+            <td>False Positive Alert Storm<span class="badge-crit">Must Know</span></td>
+            <td>Noisy thresholds or flapping metric — hundreds of non-actionable alerts fire</td>
+            <td>Massive alert volume, on-call engineer overwhelmed by noise</td>
+            <td>Suppress / group alerts, apply alert deduplication immediately</td>
+            <td>Smarter alerting (multi-window burn rate), SLO-based alerts over raw thresholds</td>
+            <td class="casc">Alert fatigue — real critical alert buried in storm, response delayed</td>
+            <td class="troff">Fewer, smarter alerts may miss some edge-case failure modes</td>
+          </tr>
+          <tr>
+            <td>False Negative Alerts<span class="badge-crit">Must Know</span></td>
+            <td>Threshold too loose — actual outage occurs but alert condition never met</td>
+            <td>Silent failure: users experience degradation, alerting system shows green</td>
+            <td>Add anomaly detection, tighten thresholds, add SLO burn rate alerts</td>
+            <td>SLO-based burn rate alerting, error budget exhaustion alerts</td>
+            <td class="casc">Major outages go completely unnoticed — no one is paged</td>
+            <td class="troff">Tighter thresholds increase false positive rate</td>
+          </tr>
+          <tr>
+            <td>Alert Routing Failure<span class="badge-crit">Must Know</span></td>
+            <td>PagerDuty, Slack, or email integration fails — alerts fire but nobody receives them</td>
+            <td>Alert history shows fired alerts, but no engineer received notification</td>
+            <td>Activate secondary notification channel (phone call, SMS, backup Slack)</td>
+            <td>Multi-channel alerting, alert delivery confirmation, routing health checks</td>
+            <td class="casc">Delayed incident response — alert fires but nobody acts for hours</td>
+            <td class="troff">Multi-channel routing adds notification complexity and possible duplicate pages</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Monitoring Infrastructure Failures</td></tr>
+          <tr>
+            <td>Prometheus Server Failure<span class="badge-crit">Must Know</span></td>
+            <td>Monitoring server crashes, OOM, or storage fills — scraping stops</td>
+            <td>Monitoring itself unavailable — dashboards inaccessible or stale</td>
+            <td>Failover to standby Prometheus instance</td>
+            <td>HA Prometheus (Thanos/Cortex), monitoring of monitoring (meta-monitoring)</td>
+            <td class="casc">Complete visibility loss — operators cannot see any system metrics</td>
+            <td class="troff">HA monitoring cluster doubles cost; Thanos adds operational complexity</td>
+          </tr>
+          <tr>
+            <td>Collector Agent Failure</td>
+            <td>Node exporter, OpenTelemetry agent, or Datadog agent crashes on a host</td>
+            <td>Missing host-level metrics (CPU, memory, disk) for specific nodes</td>
+            <td>Restart collector agent, watchdog supervision</td>
+            <td>Watchdog process for collector, systemd restart policy</td>
+            <td class="casc">Partial blind spots — certain hosts invisible during fleet-wide incident</td>
+            <td class="troff">Watchdog monitoring adds another operational component to manage</td>
+          </tr>
+          <tr>
+            <td>Monitoring Network Partition</td>
+            <td>Monitoring node isolated from services — cannot scrape or receive telemetry</td>
+            <td>All metrics flat-line simultaneously — looks like a major outage</td>
+            <td>Push-based telemetry as fallback, local buffering</td>
+            <td>Multi-path networking for monitoring, push + pull hybrid telemetry model</td>
+            <td class="casc">Visibility gap looks like outage — operators may take unnecessary action</td>
+            <td class="troff">Push-based telemetry changes the model significantly — more complex</td>
+          </tr>
+          <tr>
+            <td>Centralised Monitoring Bottleneck</td>
+            <td>Single Prometheus/Grafana handles too many metrics — query latency explodes</td>
+            <td>Dashboard load times degrade, query timeouts, monitoring UI unresponsive</td>
+            <td>Federated monitoring, reduce query complexity</td>
+            <td>Hierarchical/federated monitoring architecture, pre-aggregate heavy queries</td>
+            <td class="casc">Observability collapse during high-load incident — when you need it most, it fails</td>
+            <td class="troff">Federated monitoring adds coordination complexity and consistency challenges</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Cardinality and Scale Failures</td></tr>
+          <tr>
+            <td>High Cardinality Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Metric labels include user IDs, request IDs, or unbounded values — TSDB explodes</td>
+            <td>Prometheus memory growing rapidly, query latency spike, OOM crash</td>
+            <td>Drop high-cardinality labels immediately, apply recording rules</td>
+            <td>Cardinality governance policy — no unbounded values as metric labels</td>
+            <td class="casc">Monitoring crash — Prometheus OOM kills entire observability platform</td>
+            <td class="troff">Low cardinality metrics reduce per-instance debugging granularity</td>
+          </tr>
+          <tr>
+            <td>Metric Storage Explosion</td>
+            <td>Long retention policy with high metric volume — storage grows faster than capacity</td>
+            <td>Storage growth spike, disk usage alerts on monitoring nodes</td>
+            <td>Compress/archive old metrics, reduce retention window</td>
+            <td>Tiered metric storage (Thanos), retention policies, storage capacity planning</td>
+            <td class="casc">Disk exhaustion kills monitoring node — complete visibility loss</td>
+            <td class="troff">Shorter retention reduces historical debugging and capacity planning ability</td>
+          </tr>
+          <tr>
+            <td>Query Fanout Explosion</td>
+            <td>Dashboard query spans thousands of series — each query fans out to many nodes</td>
+            <td>Dashboard panels timing out, "context deadline exceeded" errors</td>
+            <td>Pre-aggregate with recording rules, reduce query scope</td>
+            <td>Recording rules for expensive queries, query cost limits</td>
+            <td class="casc">Dashboard unusable during incident — cannot see the metrics you need</td>
+            <td class="troff">Recording rules must be maintained as metrics change — operational burden</td>
+          </tr>
+          <tr>
+            <td>Observability DDoS</td>
+            <td>Traffic spike generates massive telemetry volume — collectors and storage overwhelmed</td>
+            <td>Collector CPU/memory spike, telemetry ingestion failures, data loss</td>
+            <td>Throttle telemetry at source, increase sampling ratio</td>
+            <td>Adaptive sampling, rate limiting on telemetry ingestion</td>
+            <td class="casc">Metrics/trace loss at peak load — observability fails when you need it most</td>
+            <td class="troff">Aggressive sampling reduces visibility into edge-case failures</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Correlation and Context Failures</td></tr>
+          <tr>
+            <td>Logs Cannot Correlate to Traces<span class="badge-crit">Must Know</span></td>
+            <td>Logs missing trace ID — cannot link a log line to the distributed trace it belongs to</td>
+            <td>Fragmented debugging — log search and trace view cannot be joined</td>
+            <td>Add trace ID injection middleware to logging framework</td>
+            <td>Unified observability standard (OpenTelemetry), trace ID in all log statements</td>
+            <td class="casc">Slow root cause analysis — operator must manually correlate by timestamp</td>
+            <td class="troff">Trace ID injection requires changes in every service's logging setup</td>
+          </tr>
+          <tr>
+            <td>Metrics Detached from Business Context<span class="badge-crit">Must Know</span></td>
+            <td>Only infra metrics collected — no business KPIs (orders/sec, checkout success rate)</td>
+            <td>Infra shows green but customers report broken functionality</td>
+            <td>Add business metric queries against DB or event stream</td>
+            <td>Golden signals + business metrics, SLI/SLO defined on customer-facing behaviour</td>
+            <td class="casc">Missed customer impact — outage only detected via user complaints, not alerting</td>
+            <td class="troff">Business metrics add engineering effort and ownership questions per domain</td>
+          </tr>
+          <tr>
+            <td>Cross-Service Visibility Gap</td>
+            <td>Downstream dependency has no telemetry — cannot see whether it is the root cause</td>
+            <td>Broken service chain — you can see your service is slow but not why</td>
+            <td>Synthetic monitoring to probe downstream, dependency dashboards</td>
+            <td>End-to-end distributed tracing, observability requirements for all dependencies</td>
+            <td class="casc">Hidden dependency failures — root cause attribution impossible</td>
+            <td class="troff">Requiring observability from dependencies creates political/org friction</td>
+          </tr>
+          <tr>
+            <td>Version / Deployment Blindness</td>
+            <td>Metrics not tagged with deployment version — cannot tell which version caused regression</td>
+            <td>Latency spike after deploy but cannot isolate to specific version</td>
+            <td>Add version label to all metrics, compare before/after deploy</td>
+            <td>Deployment-aware telemetry, version tags in all metric labels</td>
+            <td class="casc">Slow rollback — cannot confidently identify bad version without version tagging</td>
+            <td class="troff">Version labels add cardinality to all metrics</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Time Synchronization and Ordering Failures</td></tr>
+          <tr>
+            <td>Clock Skew Between Nodes<span class="badge-crit">Must Know</span></td>
+            <td>NTP misconfigured — nodes have diverged wall-clock times</td>
+            <td>Timestamp mismatch in correlated logs, events appear out of order</td>
+            <td>Use logical timestamps for correlation, fix NTP immediately</td>
+            <td>Reliable NTP/PTP, clock skew monitoring alert</td>
+            <td class="casc">Incorrect event ordering — root cause analysis leads to wrong conclusions</td>
+            <td class="troff">Monotonic/logical clocks add metadata complexity to telemetry</td>
+          </tr>
+          <tr>
+            <td>Out-of-Order Logs / Events</td>
+            <td>Async buffering or network delay — log events arrive in wrong order</td>
+            <td>Log timestamps inconsistent with event sequence</td>
+            <td>Reorder events by ingestion timestamp, flag out-of-order logs</td>
+            <td>Ordered delivery pipelines, sequence numbers in log records</td>
+            <td class="casc">Misleading debugging — operator reads log sequence as causal when it is not</td>
+            <td class="troff">Strict ordering reduces log pipeline parallelism and throughput</td>
+          </tr>
+          <tr>
+            <td>Delayed Telemetry Delivery<span class="badge-crit">Must Know</span></td>
+            <td>Network congestion or queue lag — telemetry arrives minutes after the event</td>
+            <td>Metric timestamps significantly behind wall clock, old alerts firing late</td>
+            <td>Prioritise telemetry traffic, bypass congested path</td>
+            <td>Separate observability network plane, QoS prioritisation for telemetry</td>
+            <td class="casc">Slow incident detection — alert fires 10 minutes after failure, MTTR extends</td>
+            <td class="troff">Dedicated observability network plane adds significant infra cost</td>
+          </tr>
+          <tr>
+            <td>Telemetry Replay Duplication</td>
+            <td>Pipeline retry or recovery replays telemetry — metrics/logs counted twice</td>
+            <td>Duplicate log entries, metric counters jump unexpectedly</td>
+            <td>Idempotent ingestion using event ID deduplication</td>
+            <td>Deduplication logic in ingestion pipeline, event ID on each telemetry record</td>
+            <td class="casc">Wrong dashboard values — operators act on doubled metrics, make bad decisions</td>
+            <td class="troff">Deduplication adds ingestion latency and storage overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Security and Compliance Observability Failures</td></tr>
+          <tr>
+            <td>Audit Logging Failure<span class="badge-crit">Must Know</span></td>
+            <td>Audit log pipeline crashes, disk fills, or misconfiguration drops audit events</td>
+            <td>Missing audit trail entries, compliance scan finds gaps in audit log</td>
+            <td>Emergency fallback logging, restore pipeline immediately</td>
+            <td>Immutable audit log storage, redundant audit pipeline, gap-detection monitoring</td>
+            <td class="casc">Compliance violation — breach undetectable, regulatory fines possible</td>
+            <td class="troff">Immutable audit log storage adds cost; redundant pipeline adds complexity</td>
+          </tr>
+          <tr>
+            <td>Security Event Blindness<span class="badge-crit">Must Know</span></td>
+            <td>Intrusion, credential stuffing, or privilege escalation not generating telemetry</td>
+            <td>Attack discovered via external report or post-breach forensics</td>
+            <td>Enable security telemetry retroactively, triage recent activity</td>
+            <td>SIEM integration, security-specific metrics (failed auth rate, privilege changes)</td>
+            <td class="casc">Long attacker dwell time — attack spreads undetected across multiple systems</td>
+            <td class="troff">Security telemetry adds log volume and storage cost</td>
+          </tr>
+          <tr>
+            <td>Telemetry Tampering</td>
+            <td>Attacker modifies logs or metrics to hide their activity</td>
+            <td>Log integrity check failure, hash mismatch on audit records</td>
+            <td>Restore from immutable backup, treat system as compromised</td>
+            <td>Signed/immutable logs, write-once audit storage, log integrity monitoring</td>
+            <td class="casc">Hidden compromise — attacker erases evidence and continues undetected</td>
+            <td class="troff">Log signing and immutability add storage and compute overhead per record</td>
+          </tr>
+          <tr>
+            <td>Observability Access Leak</td>
+            <td>Dashboards, log queries, or trace data exposed to unauthorised users</td>
+            <td>Unexpected data access in audit log, user accessing other team's dashboards</td>
+            <td>Restrict access immediately, rotate exposed credentials</td>
+            <td>RBAC for observability tools, data isolation per team/tenant in Grafana</td>
+            <td class="casc">Data leakage — metric data may reveal business logic or traffic patterns</td>
+            <td class="troff">Fine-grained RBAC in observability adds operational overhead</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Observability Failures for Interviews</p>
+      <div class="ncode"> 1. Missing alerts          → SLO burn rate alerts + alert coverage reviews
+ 2. False positive storm    → multi-window burn rate + alert grouping/dedup
+ 3. Missing traces          → W3C propagation + tail-based sampling + scalable collector
+ 4. Log pipeline failure    → HA pipeline + durable buffer + secondary shipper
+ 5. High cardinality        → cardinality governance + no user IDs in labels
+ 6. Missing business metrics → golden signals + business KPIs + SLO-based alerting
+ 7. Metrics pipeline down   → redundant collectors + meta-monitoring + HA Prometheus
+ 8. Clock skew              → NTP monitoring + skew alert + logical timestamps
+ 9. Logs/traces uncorrelated → OpenTelemetry + trace ID in all log statements
+10. Audit log failure       → immutable storage + redundant pipeline + gap detection</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="security-failures-table.html" class="text-red-600 font-semibold hover:underline">Security Failures</a> &nbsp;|&nbsp;
+      <a href="api-gateway-failures-table.html" class="text-cyan-600 font-semibold hover:underline">API Gateway Failures</a> &nbsp;|&nbsp;
+      <a href="distributed-failures-table.html" class="text-indigo-600 font-semibold hover:underline">Distributed Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Observability Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Failures become invisible?   → golden signals + alert coverage + SLO alerting
+2. Alerts noisy/useless?       → burn rate + multi-window + grouping + SLO-based
+3. Telemetry overloads infra?  → cardinality governance + sampling + tiered storage
+4. Correlate logs/traces?      → OpenTelemetry + trace ID in logs + unified standard
+5. Monitoring itself fails?    → meta-monitoring + HA + watchdog + multi-collector
+6. Obs scales with traffic?    → adaptive sampling + federated + recording rules
+7. Business impact measurable? → business KPIs + customer-facing SLI/SLO
+8. Incidents detected quickly? → alert routing + multi-channel + delivery confirmation
+9. Telemetry trustworthy?      → immutable logs + signed records + integrity checks</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Observability Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Observability Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Missing alert</td><td>Outage undetected → MTTR extends from minutes to hours</td></tr>
+          <tr><td>Alert storm</td><td>Pager fatigue → real critical alert buried → delayed response</td></tr>
+          <tr><td>Log explosion</td><td>Disk full → logging infra crashes → all logs lost</td></tr>
+          <tr><td>High cardinality</td><td>Prometheus OOM → entire monitoring platform crashes</td></tr>
+          <tr><td>Missing traces</td><td>Root cause impossible to determine → wrong fix applied</td></tr>
+          <tr><td>Monitoring network partition</td><td>Fake "all systems down" view → operators take wrong action</td></tr>
+          <tr><td>Delayed telemetry</td><td>Alert fires 10min late → cascading failure already spread</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Observability Failures Reduce to 4 States</p>
+      <div class="ncode">1. Missing visibility    → no metrics / no logs / no traces / no alerts
+2. Wrong visibility     → stale / incorrect metrics / misleading alerts / bad clocks
+3. Delayed visibility   → telemetry lag / pipeline delay / slow alert routing
+4. Overloaded obs       → cardinality explosion / log storm / monitoring crash
+
+Most dangerous: missing visibility + missing alert
+  system degrades silently → no one is paged → cascading failure spreads
+  → MTTR measured in hours not minutes
+
+The four golden signals (Google SRE):
+  Latency | Traffic | Errors | Saturation
+  Monitor these for EVERY service and you catch 90% of failures</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#500724;border:1px solid #831843;">
+      <p class="text-xs font-bold text-pink-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-pink-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-pink-200">Covered?</p>
+          <p class="text-xs text-pink-400 mt-0.5">Golden signals + SLO alert</p>
+        </div>
+        <div class="bg-pink-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-pink-200">Correlated?</p>
+          <p class="text-xs text-pink-400 mt-0.5">OTel + trace ID in logs</p>
+        </div>
+        <div class="bg-pink-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-pink-200">Scalable?</p>
+          <p class="text-xs text-pink-400 mt-0.5">Cardinality governance + sampling</p>
+        </div>
+        <div class="bg-pink-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-pink-200">Resilient?</p>
+          <p class="text-xs text-pink-400 mt-0.5">HA + meta-monitoring + HA pipeline</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

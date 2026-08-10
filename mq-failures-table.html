@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Message Queue Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#0284c7; border-bottom-color:#0284c7; }
+    .tab-btn:hover:not(.active) { color:#075985; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#f0f9ff; border:1px solid #bae6fd; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#0284c7; margin-bottom:.6rem; }
+    .ncode{ background:#012e4a; color:#7dd3fc; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #bae6fd; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#0369a1; color:#bae6fd; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #e0f2fe;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f0f9ff; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#0284c7; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#0369a1; color:#bae6fd; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #e0f2fe; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-sky-700 hover:text-sky-900 font-semibold
+              bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-sky-800 font-semibold">Message Queue Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-sky-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Message Queue Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 39 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why MQ Failures Are Uniquely Dangerous</p>
+      <div class="ncode">MQ provides: async communication + buffering + decoupling + event streaming
+MQ failures involve: producers + brokers + partitions + consumers + offsets + ordering
+
+8 root failure classes:
+  broker | producer | consumer | ordering | delivery
+  replication | backpressure | coordination</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Broker Availability Failures</td></tr>
+          <tr>
+            <td>Broker Crash<span class="badge-crit">Must Know</span></td>
+            <td>Hardware failure, OOM kill, process crash on broker node</td>
+            <td>Broker health check fails, partition leader alerts</td>
+            <td>Failover to replica broker, trigger leader re-election</td>
+            <td>Multi-broker cluster, replica factor >= 3</td>
+            <td class="casc">Producers blocked, consumers stalled — event pipeline stops</td>
+            <td class="troff">More brokers add replication overhead and cost</td>
+          </tr>
+          <tr>
+            <td>Complete Cluster Outage<span class="badge-crit">Must Know</span></td>
+            <td>DC outage, network failure, all broker nodes unavailable</td>
+            <td>Cluster-wide unavailable alerts, producer/consumer failures</td>
+            <td>DR failover to secondary region cluster</td>
+            <td>Multi-region clusters, MirrorMaker/Replicator for cross-region</td>
+            <td class="casc">Entire event-driven pipeline stops — all downstream services stall</td>
+            <td class="troff">Cross-region replication adds significant latency and cost</td>
+          </tr>
+          <tr>
+            <td>Leader Broker Failure<span class="badge-crit">Must Know</span></td>
+            <td>Partition leader broker crashes — that partition loses its leader</td>
+            <td>Partition leader unavailable, producer write failures</td>
+            <td>Leader re-election from ISR (In-Sync Replicas)</td>
+            <td>Multiple replicas in ISR, unclean leader election = off</td>
+            <td class="casc">Temporary write unavailability — producers queue up or fail</td>
+            <td class="troff">Larger ISR increases replication overhead and write latency</td>
+          </tr>
+          <tr>
+            <td>ZooKeeper / KRaft Failure</td>
+            <td>Coordination node fails — cluster loses metadata/leader management</td>
+            <td>Metadata errors, leader election failures, cluster instability</td>
+            <td>Failover coordinator, restore quorum</td>
+            <td>Replicated ZooKeeper ensemble (3/5 nodes), or KRaft mode (Kafka 3+)</td>
+            <td class="casc">Cluster-wide instability — no leader elections, metadata stale</td>
+            <td class="troff">Consensus quorum adds coordination overhead per metadata op</td>
+          </tr>
+          <tr>
+            <td>Broker Disk Full</td>
+            <td>Log retention not configured — disk fills with uncompacted segments</td>
+            <td>Disk usage alerts, broker refuses to accept new messages</td>
+            <td>Emergency log cleanup, expand volume</td>
+            <td>Retention limits (size + time), disk monitoring with headroom alert</td>
+            <td class="casc">Broker stops accepting writes — producers fail, cluster unbalanced</td>
+            <td class="troff">Aggressive retention can delete messages before consumers read them</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Broker Performance and Resource Failures</td></tr>
+          <tr>
+            <td>Broker CPU Saturation</td>
+            <td>High-throughput compression (gzip/lz4) or heavy fanout traffic</td>
+            <td>Broker CPU &gt;90%, produce/consume latency spike</td>
+            <td>Add brokers, reduce compression level, shed load</td>
+            <td>Better partition distribution, compression tuning (snappy)</td>
+            <td class="casc">Produce latency spike → producer timeouts → retry storm</td>
+            <td class="troff">Less compression reduces CPU but increases network/disk usage</td>
+          </tr>
+          <tr>
+            <td>Disk IO Bottleneck</td>
+            <td>Heavy sequential writes + replication IO competing on same disk</td>
+            <td>IO wait spike, produce/replicate latency increase</td>
+            <td>NVMe/SSD upgrade, separate log and replication IO</td>
+            <td>Dedicated log disks, proper batch size tuning</td>
+            <td class="casc">Producer timeout cascade → retry storm → broker further overloaded</td>
+            <td class="troff">NVMe SSDs are significantly more expensive</td>
+          </tr>
+          <tr>
+            <td>Network Saturation</td>
+            <td>Heavy replication traffic + consumer fanout saturates broker NIC</td>
+            <td>Network throughput maxed, replication lag increases</td>
+            <td>Throttle replication (kafka-configs), reduce consumer fanout</td>
+            <td>Better partition balancing, dedicated replication network</td>
+            <td class="casc">Replication lag grows → ISR shrinks → message loss risk increases</td>
+            <td class="troff">More bandwidth is expensive; throttling replication slows ISR sync</td>
+          </tr>
+          <tr>
+            <td>Broker Memory Pressure</td>
+            <td>Large retention or page cache exceeded by concurrent readers</td>
+            <td>Heap / OS memory alerts, GC pause spike</td>
+            <td>Tune JVM heap, reduce retention, add brokers</td>
+            <td>Proper retention policy, off-heap page cache awareness</td>
+            <td class="casc">OOM broker crash → leader re-election → temporary unavailability</td>
+            <td class="troff">Less page cache reduces read performance for catching-up consumers</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Producer Failures</td></tr>
+          <tr>
+            <td>Producer Retry Storm<span class="badge-crit">Must Know</span></td>
+            <td>Broker slowness/timeout triggers all producers retrying simultaneously</td>
+            <td>Retry traffic spike, broker request queue depth growing</td>
+            <td>Exponential backoff + jitter, circuit breaker on producer</td>
+            <td>Retry budgets, per-producer rate limits</td>
+            <td class="casc">Broker overload — retry amplification buries the already-slow broker</td>
+            <td class="troff">Backoff increases end-to-end message latency</td>
+          </tr>
+          <tr>
+            <td>Duplicate Message Production<span class="badge-crit">Must Know</span></td>
+            <td>Producer retries after uncertain ack — message written twice</td>
+            <td>Duplicate message IDs in consumer logs</td>
+            <td>Idempotent producer (enable.idempotence=true)</td>
+            <td>Exactly-once producer semantics (Kafka EOS), producer ID + sequence</td>
+            <td class="casc">Duplicate downstream processing — double payment, double order</td>
+            <td class="troff">Idempotent producers add coordination overhead per produce request</td>
+          </tr>
+          <tr>
+            <td>Message Loss Before Ack</td>
+            <td>Producer crashes after send but before receiving broker ack</td>
+            <td>Missing sequence numbers, consumer gap detection</td>
+            <td>Replay from durable producer buffer on restart</td>
+            <td>Durable producer buffer, acks=all, sync produce with confirmation</td>
+            <td class="casc">Missing downstream events — workflow steps silently skipped</td>
+            <td class="troff">acks=all significantly increases produce latency</td>
+          </tr>
+          <tr>
+            <td>Producer Buffer Exhaustion</td>
+            <td>Broker slow/unavailable — local send buffer fills completely</td>
+            <td>BufferExhaustedException, producer blocking metrics</td>
+            <td>Apply backpressure — block or drop with alerting</td>
+            <td>Better flow control, producer buffer sizing, circuit breaker</td>
+            <td class="casc">Producer crashes or drops messages — event pipeline data loss</td>
+            <td class="troff">Blocking producers adds latency; dropping loses messages</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Consumer Failures</td></tr>
+          <tr>
+            <td>Consumer Lag<span class="badge-crit">Must Know</span></td>
+            <td>Consumers process messages slower than producers produce them</td>
+            <td>Consumer lag metrics, increasing offset delta</td>
+            <td>Scale out consumer group, increase batch size</td>
+            <td>Better consumer design, capacity planning, autoscaling</td>
+            <td class="casc">Queue backlog explodes → disk exhaustion → broker disk full</td>
+            <td class="troff">More consumers increase coordination and rebalance frequency</td>
+          </tr>
+          <tr>
+            <td>Poison Message<span class="badge-crit">Must Know</span></td>
+            <td>Malformed/unprocessable message enters topic — consumer fails every time</td>
+            <td>Consumer retry loop on same offset, DLQ growth</td>
+            <td>Dead-letter queue — route poison message aside, continue</td>
+            <td>Schema registry enforcement, producer-side validation</td>
+            <td class="casc">Entire partition blocked — all subsequent messages on that partition stall</td>
+            <td class="troff">DLQ requires operational process to investigate and reprocess</td>
+          </tr>
+          <tr>
+            <td>Consumer Crash / Rebalance<span class="badge-crit">Must Know</span></td>
+            <td>Consumer crashes or rejoins group — triggers partition reassignment</td>
+            <td>Consumer heartbeat loss, rebalance events in group coordinator</td>
+            <td>Sticky partition assignment, graceful rebalance</td>
+            <td>Consumer groups, proper session timeout tuning</td>
+            <td class="casc">Processing pause during rebalance → lag builds → delay cascade</td>
+            <td class="troff">Longer session timeout slows detection of dead consumers</td>
+          </tr>
+          <tr>
+            <td>Offset Commit Failure</td>
+            <td>Commit times out or consumer crashes before committing offset</td>
+            <td>Duplicate message consumption, reprocessing on restart</td>
+            <td>Retry commit, handle duplicates with idempotent consumer</td>
+            <td>Reliable offset storage, synchronous commit on critical paths</td>
+            <td class="casc">Duplicate processing — side effects replayed on restart</td>
+            <td class="troff">Synchronous offset commits add latency per batch</td>
+          </tr>
+          <tr>
+            <td>Slow Consumer</td>
+            <td>Heavy processing logic — consumer takes too long per message</td>
+            <td>Processing latency spike, session timeout fires during processing</td>
+            <td>Parallelise processing, offload heavy work async</td>
+            <td>Efficient consumer design, separate IO from processing</td>
+            <td class="casc">Session timeout triggers rebalance → further disruption mid-processing</td>
+            <td class="troff">More parallelism can break per-key message ordering</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Ordering and Delivery Failures</td></tr>
+          <tr>
+            <td>Out-of-Order Delivery<span class="badge-crit">Must Know</span></td>
+            <td>Parallel consumers, retries from different partitions, multi-thread processing</td>
+            <td>Sequence mismatch in consumer output, invalid state transitions</td>
+            <td>Reorder buffer using sequence numbers before processing</td>
+            <td>Per-key partition ordering (Kafka: same key = same partition)</td>
+            <td class="casc">Wrong state transitions — cancel processed before create</td>
+            <td class="troff">Per-key ordering reduces consumer parallelism</td>
+          </tr>
+          <tr>
+            <td>Duplicate Delivery<span class="badge-crit">Must Know</span></td>
+            <td>At-least-once delivery — retry delivers same message more than once</td>
+            <td>Duplicate IDs detected in consumer processing logs</td>
+            <td>Idempotency key deduplication on consumer side</td>
+            <td>Exactly-once semantics (Kafka EOS), dedup store</td>
+            <td class="casc">Double payment, double order, duplicate notification</td>
+            <td class="troff">Exactly-once semantics add significant complexity and latency</td>
+          </tr>
+          <tr>
+            <td>Message Loss<span class="badge-crit">Must Know</span></td>
+            <td>Broker crash before replication, acks=0 or acks=1 config</td>
+            <td>Sequence gaps in consumer, audit mismatch</td>
+            <td>Replay from replica, replay from upstream source</td>
+            <td>acks=all, replication factor >= 3, min.insync.replicas=2</td>
+            <td class="casc">Missing business workflow steps — order never fulfilled</td>
+            <td class="troff">acks=all with min.insync.replicas increases produce latency significantly</td>
+          </tr>
+          <tr>
+            <td>Delayed Delivery</td>
+            <td>Queue backlog or network congestion — messages arrive late</td>
+            <td>High consumer lag, event timestamp age metrics</td>
+            <td>Prioritise critical messages, scale consumers immediately</td>
+            <td>Capacity planning, separate queues per priority tier</td>
+            <td class="casc">Stale business events processed — decisions made on old data</td>
+            <td class="troff">Priority queues add routing complexity and risk starvation</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Partition and Replication Failures</td></tr>
+          <tr>
+            <td>Under-Replicated Partition<span class="badge-crit">Must Know</span></td>
+            <td>Slow or unavailable replica — ISR shrinks below min.insync.replicas</td>
+            <td>UnderReplicatedPartitions metric, ISR shrink alerts</td>
+            <td>Re-sync replica, add brokers if capacity is the issue</td>
+            <td>Monitor ISR size, spread replicas across AZs</td>
+            <td class="casc">Increased message loss risk — fewer durability guarantees</td>
+            <td class="troff">Larger ISR requirement reduces availability during partial failure</td>
+          </tr>
+          <tr>
+            <td>Hot Partition<span class="badge-crit">Must Know</span></td>
+            <td>Skewed message key — one partition receives most traffic</td>
+            <td>Uneven partition lag, one broker CPU at 100%</td>
+            <td>Repartition with better key, or add sub-partition prefix</td>
+            <td>Better partition key selection, random suffix for hot keys</td>
+            <td class="casc">Single broker overload → that broker crashes → downstream stall</td>
+            <td class="troff">Random suffix breaks per-key ordering guarantee</td>
+          </tr>
+          <tr>
+            <td>Partition Rebalance Storm</td>
+            <td>Rapid consumer scaling or crash-restart loop triggers repeated rebalance</td>
+            <td>Frequent rebalance events, consumer processing pauses</td>
+            <td>Sticky partition assignment (cooperative rebalancing)</td>
+            <td>Controlled scaling, incremental cooperative rebalance protocol</td>
+            <td class="casc">Consumer processing pauses repeatedly → lag builds continuously</td>
+            <td class="troff">Sticky assignment slows detection of truly dead partitions</td>
+          </tr>
+          <tr>
+            <td>Replication Lag</td>
+            <td>Slow follower broker — replica falls behind leader's log offset</td>
+            <td>Replica lag metric, ISR shrink alert</td>
+            <td>Throttle replication bandwidth tuning, investigate slow broker</td>
+            <td>Dedicated network for replication, SSD storage, broker sizing</td>
+            <td class="casc">ISR shrinks → durability guarantee weakened → message loss on crash</td>
+            <td class="troff">Forcing ISR sync reduces throughput during catch-up</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Coordination and Consensus Failures</td></tr>
+          <tr>
+            <td>Leader Election Failure</td>
+            <td>Network partition — no broker can achieve quorum for leader election</td>
+            <td>No partition leader detected, all writes to that partition fail</td>
+            <td>Restore quorum, retry election</td>
+            <td>Multi-AZ broker placement, stable ZooKeeper/KRaft ensemble</td>
+            <td class="casc">Write unavailability for affected partitions — producers queue up</td>
+            <td class="troff">Faster election timeout risks false elections on transient issues</td>
+          </tr>
+          <tr>
+            <td>Split Brain MQ Cluster</td>
+            <td>Network partition — both cluster halves think they have the leader</td>
+            <td>Conflicting leaders, diverging log offsets</td>
+            <td>Fence minority partition (unclean leader election = false)</td>
+            <td>Consensus protocol, unclean.leader.election.enable=false</td>
+            <td class="casc">Diverging message logs — different consumers read different data</td>
+            <td class="troff">Disabling unclean election reduces availability during partition</td>
+          </tr>
+          <tr>
+            <td>Metadata Inconsistency</td>
+            <td>Coordinator lag — different brokers have different partition views</td>
+            <td>Producers routing to wrong broker, metadata mismatch errors</td>
+            <td>Re-fetch metadata from authoritative coordinator</td>
+            <td>Consensus-backed metadata, fast metadata sync</td>
+            <td class="casc">Producers route incorrectly — messages to wrong broker or dropped</td>
+            <td class="troff">Consensus metadata adds coordination latency per metadata refresh</td>
+          </tr>
+          <tr>
+            <td>Quorum Loss</td>
+            <td>Too many broker/ZooKeeper nodes fail — majority unavailable</td>
+            <td>ISR below min.insync.replicas, write failures cluster-wide</td>
+            <td>Read-only / degraded mode, restore nodes</td>
+            <td>Multi-AZ quorum, 3+ replicas across failure domains</td>
+            <td class="casc">All writes blocked until quorum restored — full pipeline stall</td>
+            <td class="troff">Multi-AZ quorum adds cross-AZ latency to every write</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Backpressure and Load Failures</td></tr>
+          <tr>
+            <td>Queue Backlog Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Producers faster than consumers — lag grows unbounded</td>
+            <td>Consumer lag growing, disk usage increasing</td>
+            <td>Scale consumers immediately, apply producer rate limits</td>
+            <td>Backpressure signals to producers, autoscaling consumers</td>
+            <td class="casc">Disk exhaustion → broker stops accepting writes → full pipeline stall</td>
+            <td class="troff">Producer rate limiting reduces throughput and slows upstream systems</td>
+          </tr>
+          <tr>
+            <td>Reconnect Storm</td>
+            <td>Broker restart or network recovery — all producers/consumers reconnect at once</td>
+            <td>Massive connection attempt spike, broker CPU/network saturated</td>
+            <td>Throttle reconnections, stagger client reconnects</td>
+            <td>Exponential backoff on client reconnect, reconnect jitter</td>
+            <td class="casc">Broker overloaded by reconnect flood → slow to accept traffic → retry loop</td>
+            <td class="troff">Slower reconnect means clients take longer to resume processing</td>
+          </tr>
+          <tr>
+            <td>Load Amplification</td>
+            <td>Retries + rebalance + consumer lag combine — traffic multiplies</td>
+            <td>Traffic spike beyond expected load, cascading metric alerts</td>
+            <td>Rate limiting, shed less-critical topics</td>
+            <td>Better retry policy, separate critical and non-critical traffic</td>
+            <td class="casc">Cluster collapse — amplified load overwhelms all brokers simultaneously</td>
+            <td class="troff">Shedding traffic drops messages — downstream gaps</td>
+          </tr>
+          <tr>
+            <td>Infinite Retention Growth</td>
+            <td>Consumers stall or fall far behind — unread segments grow unbounded</td>
+            <td>Disk usage spike, retention growing beyond configured limits</td>
+            <td>Cleanup aged segments, enforce retention limits immediately</td>
+            <td>Retention limits (size and time), disk alerts with response runbook</td>
+            <td class="casc">Broker disk full → writes fail → full event pipeline stops</td>
+            <td class="troff">Aggressive cleanup may delete messages before stalled consumers read them</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Persistence and Recovery Failures</td></tr>
+          <tr>
+            <td>Log Segment Corruption</td>
+            <td>Disk crash, storage hardware failure, bit flip in log segment</td>
+            <td>Segment checksum failure on load, broker startup error</td>
+            <td>Restore from replica, skip/truncate corrupted segment</td>
+            <td>Log checksums, replication for redundancy, ECC storage</td>
+            <td class="casc">Partition unavailable — all consumers of that partition stall</td>
+            <td class="troff">Checksum validation adds minor overhead to every log read/write</td>
+          </tr>
+          <tr>
+            <td>Offset Store Corruption</td>
+            <td>Crash during __consumer_offsets write — committed offset is wrong</td>
+            <td>Consumer restart delivers wrong messages, duplicate or gap detected</td>
+            <td>Reset offset to last known good position, replay from safe point</td>
+            <td>Replicated __consumer_offsets topic (3+ replicas), durable commits</td>
+            <td class="casc">Duplicate or missing processing on all partitions of that consumer group</td>
+            <td class="troff">More replicas on offset topic increase write latency for every commit</td>
+          </tr>
+          <tr>
+            <td>Slow Broker Recovery</td>
+            <td>Large log to replay after broker crash — long startup before joining cluster</td>
+            <td>Broker startup time exceeds normal, ISR missing for partitions</td>
+            <td>Restore from recent checkpoint, use faster storage</td>
+            <td>Frequent checkpointing, SSD storage, controlled log retention</td>
+            <td class="casc">Extended partition under-replication — message loss risk during recovery</td>
+            <td class="troff">More frequent checkpoints add IO overhead during normal operation</td>
+          </tr>
+          <tr>
+            <td>Log Compaction Failure</td>
+            <td>Compaction interrupted — disk full or bug — log grows unbounded</td>
+            <td>Log size growing despite compaction enabled, disk alert</td>
+            <td>Retry compaction, free disk space, adjust compaction config</td>
+            <td>Compaction monitoring, sufficient disk headroom for compaction temp space</td>
+            <td class="casc">Disk exhaustion from uncompacted log → broker stops writing</td>
+            <td class="troff">Aggressive compaction uses significant CPU and extra disk during run</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know MQ Failures for Interviews</p>
+      <div class="ncode"> 1. Consumer lag            → scale consumers + backpressure + autoscaling
+ 2. Poison message          → dead-letter queue + schema registry + validation
+ 3. Duplicate delivery      → idempotent consumer + exactly-once semantics
+ 4. Message loss            → acks=all + RF>=3 + min.insync.replicas=2
+ 5. Out-of-order delivery   → per-key partition + sequence numbers + reorder buffer
+ 6. Producer retry storm    → exponential backoff + jitter + circuit breaker
+ 7. Hot partition           → better key + random suffix + repartition
+ 8. Under-replicated part.  → ISR monitoring + multi-AZ brokers + broker sizing
+ 9. Queue backlog explosion → rate limit producers + autoscale consumers
+10. Partition rebalance     → sticky assignment + cooperative rebalance protocol</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related: <a href="cache-failures-table.html" class="text-emerald-600 font-semibold hover:underline">Cache Failure Scenarios (37 scenarios)</a> &nbsp;|&nbsp; <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failure Scenarios (37 scenarios)</a></p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level MQ Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Messages lost?          → acks=all + RF>=3 + min.insync.replicas
+2. Messages duplicated?    → idempotent consumer + exactly-once EOS
+3. Ordering broken?        → per-key partition + sequence numbers
+4. Consumers behind?       → scale out + backpressure + autoscaling
+5. Retries overload broker? → backoff + jitter + circuit breaker
+6. One partition hot?      → better key + random suffix + repartition
+7. Rebalance destabilize?  → sticky assignment + cooperative protocol
+8. Backlog exhaust storage? → retention limits + producer rate limits
+9. Broker failover safe?   → ISR >= 2 + multi-AZ + unclean election off</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common MQ Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root MQ Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Slow consumers</td><td>Lag grows → backlog explodes → disk exhausts → broker stops writing</td></tr>
+          <tr><td>Broker crash</td><td>Leader re-election delay → producers queue up → timeout → retry storm</td></tr>
+          <tr><td>Retry storm</td><td>Broker overloaded → more timeouts → more retries → amplification loop</td></tr>
+          <tr><td>Poison message</td><td>Partition processing blocked → entire partition lag builds infinitely</td></tr>
+          <tr><td>Hot partition</td><td>Single broker saturates → crashes → downstream consumers stall</td></tr>
+          <tr><td>Replication lag</td><td>ISR shrinks → min.insync.replicas violated → writes fail</td></tr>
+          <tr><td>Queue backlog</td><td>Disk exhaustion → broker disk full → writes blocked cluster-wide</td></tr>
+          <tr><td>Rebalance storm</td><td>Consumer pauses repeatedly → lag compounds → backlog explosion</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Delivery Semantics — Know the Trade-off for Every Interview</p>
+      <div class="ncode">At-Most-Once   → no retries, may lose messages  → use: metrics / logs / telemetry
+At-Least-Once  → retries, may duplicate        → use: most production systems (idempotent consumer required)
+Exactly-Once   → no loss, no duplicate          → use: payments / financial events (Kafka EOS, high complexity)</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All MQ Failures Reduce to 5 States</p>
+      <div class="ncode">1. Broker unavailable  → crash / disk full / coordination failure
+2. Consumer slow       → lag + backlog + disk exhaustion
+3. Message corrupted   → duplicate / lost / out-of-order
+4. Partition problem   → hot key / under-replicated / rebalance storm
+5. Coordination failed → split brain / quorum loss / metadata inconsistency
+
+Most dangerous combo: consumer lag + retry storm
+  lag → backlog → disk full → broker stop → producers retry → amplification loop</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#012e4a;border:1px solid #0369a1;">
+      <p class="text-xs font-bold text-sky-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-sky-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-sky-200">Message Safe?</p>
+          <p class="text-xs text-sky-400 mt-0.5">acks=all + RF>=3 + MIR=2</p>
+        </div>
+        <div class="bg-sky-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-sky-200">No Duplicate?</p>
+          <p class="text-xs text-sky-400 mt-0.5">Idempotent consumer + EOS</p>
+        </div>
+        <div class="bg-sky-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-sky-200">Lag Under Control?</p>
+          <p class="text-xs text-sky-400 mt-0.5">Backpressure + autoscale</p>
+        </div>
+        <div class="bg-sky-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-sky-200">Hot Key?</p>
+          <p class="text-xs text-sky-400 mt-0.5">Better key + suffix shuffle</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

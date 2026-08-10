@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Latency vs Bandwidth vs Throughput — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.93rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+
+    .metric-card { border-radius:10px; padding:18px 22px; margin-bottom:10px; border-left:5px solid #7c3aed; }
+    .metric-latency { background:#faf5ff; border-left-color:#7c3aed; }
+    .metric-bandwidth { background:#f0fdf4; border-left-color:#16a34a; }
+    .metric-throughput { background:#eff6ff; border-left-color:#2563eb; }
+    .metric-title { font-weight:700; font-size:1rem; margin-bottom:4px; }
+    .mt-latency { color:#7c3aed; }
+    .mt-bandwidth { color:#15803d; }
+    .mt-throughput { color:#1d4ed8; }
+
+    .formula-box { background:#1e1b4b; color:#c4b5fd; border-radius:10px; padding:16px 22px; font-family:monospace; font-size:1rem; text-align:center; margin:12px 0; line-height:2; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Latency vs Bandwidth vs Throughput</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Latency vs Bandwidth vs Throughput Calculations</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Networking &amp; Performance</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Why Care -->
+    <div class="nc">
+      <div class="section-badge">WHY IT MATTERS</div>
+      <div class="nh">Why Should a Staff Engineer Care?</div>
+      <p class="text-gray-700 mb-3">Almost every performance issue in distributed systems comes down to one (or more) of these three factors:</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="metric-card metric-latency">
+          <div class="metric-title mt-latency">Latency</div>
+          <p class="text-gray-600 text-sm">How quickly data <em>starts</em> moving — time to first byte.</p>
+        </div>
+        <div class="metric-card metric-bandwidth">
+          <div class="metric-title mt-bandwidth">Bandwidth</div>
+          <p class="text-gray-600 text-sm">How much data the network <em>can carry</em> — pipe capacity.</p>
+        </div>
+        <div class="metric-card metric-throughput">
+          <div class="metric-title mt-throughput">Throughput</div>
+          <p class="text-gray-600 text-sm">How much useful data is <em>actually transferred</em> — effective rate.</p>
+        </div>
+      </div>
+      <div class="nq">"Highway analogy: Latency = time for the first car to arrive. Bandwidth = number of lanes. Throughput = cars reaching the destination per hour."</div>
+      <div class="ntip"><strong>Common mistake:</strong> Assuming more bandwidth automatically means better performance. For small requests, <strong>latency is almost always the real bottleneck</strong> — doubling bandwidth has almost zero effect.</div>
+    </div>
+
+    <!-- Definitions -->
+    <div class="nc">
+      <div class="section-badge">DEFINITIONS</div>
+      <div class="nh">Core Definitions</div>
+
+      <div class="metric-card metric-latency mb-3">
+        <div class="metric-title mt-latency">1. Latency</div>
+        <p class="text-gray-700 text-sm mb-2">Time for a packet/request to travel from source to destination. Measured in ms or µs. Answers: <em>"How long until the first byte arrives?"</em></p>
+        <div class="ncode" style="font-size:0.85rem;">Total Latency =
+  Propagation Delay       (distance / speed of light)
+  + Serialization Delay   (packet size / link bandwidth)
+  + Queuing Delay         (time waiting in buffers)
+  + Processing Delay      (per-hop: switch, TLS, routing)
+  + Application Delay     (DB query, business logic)</div>
+        <table class="nt mt-2">
+          <thead><tr><th>Environment</th><th>RTT</th></tr></thead>
+          <tbody>
+            <tr><td>Same Rack</td><td>&lt; 1 ms</td></tr>
+            <tr><td>Same Datacenter</td><td>1–2 ms</td></tr>
+            <tr><td>Same Region</td><td>5–20 ms</td></tr>
+            <tr><td>Cross Region</td><td>30–80 ms</td></tr>
+            <tr><td>India ↔ US</td><td>150–200 ms</td></tr>
+            <tr><td>GEO Satellite</td><td>500–700 ms</td></tr>
+          </tbody>
+        </table>
+        <p class="text-sm text-violet-700 mt-2"><strong>Dominated by:</strong> REST APIs, RPCs, DB queries, leader election, lock acquisition, auth.</p>
+      </div>
+
+      <div class="metric-card metric-bandwidth mb-3">
+        <div class="metric-title mt-bandwidth">2. Bandwidth</div>
+        <p class="text-gray-700 text-sm mb-2">Maximum data a link can transmit per second. Measured in Mbps/Gbps/Tbps. Answers: <em>"How wide is the pipe?"</em></p>
+        <div class="formula-box">Bandwidth = Data / Time</div>
+        <p class="text-sm text-green-700 mt-2"><strong>Dominated by:</strong> Video streaming, backups, ML dataset copies, replication, file transfers.</p>
+      </div>
+
+      <div class="metric-card metric-throughput">
+        <div class="metric-title mt-throughput">3. Throughput</div>
+        <p class="text-gray-700 text-sm mb-2">Actual useful data successfully delivered. Always ≤ bandwidth. Answers: <em>"How much data is actually flowing?"</em></p>
+        <div class="ncode" style="font-size:0.85rem;">Throughput ≤ Bandwidth
+
+Gap caused by:
+  TCP overhead, packet loss, retransmissions,
+  congestion, flow control, encryption,
+  serialization/protocol framing
+
+Example: 1 Gbps link → 820 Mbps actual throughput</div>
+        <p class="text-sm text-blue-700 mt-2"><strong>Dominated by:</strong> DB replication, Kafka replication, bulk data transfer.</p>
+      </div>
+    </div>
+
+    <!-- Key Formulas -->
+    <div class="nc">
+      <div class="section-badge">KEY FORMULAS</div>
+      <div class="nh">Key Formulas Every Staff Engineer Must Know</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Formula 1 — Transfer Time</p>
+      <div class="formula-box">Transfer Time = Handshake RTTs + (File Size ÷ Throughput)</div>
+      <div class="ncode" style="font-size:0.87rem;">Example: 100 MB file, 100 Mbps throughput, 50 ms RTT
+  100 MB = 800 Mb
+  800 Mb ÷ 100 Mbps = 8 s
+  + 50 ms RTT overhead
+  ≈ 8.05 s total</div>
+
+      <p class="font-semibold text-violet-700 mb-1 mt-5">Formula 2 — TCP Throughput (approximate)</p>
+      <div class="formula-box">TCP Throughput ≈ TCP Window Size ÷ RTT</div>
+      <p class="text-gray-600 text-sm mb-3">Larger windows and lower RTT increase throughput. Small windows on high-RTT links severely limit performance.</p>
+
+      <p class="font-semibold text-violet-700 mb-1">Formula 3 — Bandwidth-Delay Product (BDP) ⭐</p>
+      <div class="formula-box">BDP = Bandwidth × RTT</div>
+      <p class="text-gray-700 mb-2">BDP represents the amount of data that must be <strong>"in flight"</strong> to fully utilize a network link.</p>
+      <div class="ncode" style="font-size:0.87rem;">Example: 1 Gbps link, RTT = 100 ms
+  BDP = 1 Gbps × 0.1 s = 100 Mb = 12.5 MB
+
+To fully utilize the link, TCP must have at least
+12.5 MB of unacknowledged data in flight.
+
+If TCP Window = 1 MB (default) and BDP = 12.5 MB:
+  → Sender runs out of data before ACKs return
+  → Link idles between window completions
+  → 1 Gbps bandwidth → ~80 Mbps effective throughput</div>
+      <div class="ntip">BDP is the most important formula for long-distance or high-speed links. <strong>TCP Window ≥ BDP</strong> is the condition for full link utilization. Enable TCP Window Scaling (<code>tcp_window_scaling</code>) and tune <code>net.core.rmem_max</code> and <code>net.core.wmem_max</code>.</div>
+    </div>
+
+    <!-- Latency vs Bandwidth -->
+    <div class="nc">
+      <div class="section-badge">COMPARISONS</div>
+      <div class="nh">Latency vs Bandwidth vs Throughput — When Each Dominates</div>
+
+      <p class="font-semibold text-violet-700 mb-2">Latency vs Bandwidth for small requests</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Link</th><th>RTT</th><th>Bandwidth</th><th>1 KB request time</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>1 ms</td><td>100 Mbps</td><td>≈ 1 ms (RTT dominates)</td></tr>
+          <tr><td>B</td><td>100 ms</td><td>10 Gbps</td><td>≈ 100 ms (RTT dominates)</td></tr>
+        </tbody>
+      </table>
+      <p class="text-gray-600 text-sm mb-4">For a 1 KB request, both complete in roughly ≈ RTT. Bandwidth barely matters. <strong>Latency dominates for small payloads.</strong></p>
+
+      <p class="font-semibold text-violet-700 mb-2">Bandwidth vs Throughput</p>
+      <div class="ncode" style="font-size:0.87rem;">Link: 1 Gbps
+Packet Loss: 2%
+→ TCP retransmissions consume capacity
+→ Actual Throughput: ~600 Mbps
+
+Bandwidth didn't change. Throughput did.
+Packet loss is a throughput killer.</div>
+
+      <table class="nt mt-4">
+        <thead><tr><th>Workload</th><th>Dominated By</th></tr></thead>
+        <tbody>
+          <tr><td>REST API / gRPC / DB Query</td><td><strong>Latency</strong></td></tr>
+          <tr><td>Search / Authentication / RPCs</td><td><strong>Latency</strong></td></tr>
+          <tr><td>Video Streaming / Backup</td><td><strong>Bandwidth</strong></td></tr>
+          <tr><td>ML Dataset Copy / Object Storage</td><td><strong>Bandwidth</strong></td></tr>
+          <tr><td>DB Replication / Kafka Replication</td><td><strong>Throughput</strong></td></tr>
+          <tr><td>Bulk data transfer over long distances</td><td><strong>Throughput (BDP)</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Worked Examples -->
+    <div class="nc">
+      <div class="section-badge">WORKED EXAMPLES</div>
+      <div class="nh">Practical Calculation Examples</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Example 1 — API Call</p>
+          <div class="ncode" style="font-size:0.82rem;">Payload:     2 KB
+Bandwidth:   1 Gbps
+RTT:         80 ms
+
+Transfer:    ≈ 0.02 ms
+Total:       ≈ 80 ms
+
+Latency dominates.
+Upgrading bandwidth
+has no effect.</div>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Example 2 — Video Upload</p>
+          <div class="ncode" style="font-size:0.82rem;">Payload:     5 GB
+RTT:         20 ms
+Bandwidth:   50 Mbps
+
+5 GB = 40 Gb
+40 Gb ÷ 50 Mbps
+= 800 s (≈13 min)
+
+Bandwidth dominates.
+Latency irrelevant.</div>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Example 3 — Cross-Region Replication</p>
+          <div class="ncode" style="font-size:0.82rem;">RTT:         150 ms
+Bandwidth:   10 Gbps
+Window:      64 KB (default)
+
+Throughput ≈
+64 KB ÷ 0.15 s
+= ~3.4 Mbps
+
+BDP = 10Gbps × 0.15
+    = 1.5 GB in-flight needed
+
+Window << BDP → underutilized.
+Fix: TCP Window Scaling.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optimization -->
+    <div class="nc">
+      <div class="section-badge">OPTIMIZATION</div>
+      <div class="nh">Optimization Strategies</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Reduce Latency</p>
+          <ul class="dot-ul text-sm">
+            <li>CDN / Edge computing</li>
+            <li>Local caches</li>
+            <li>Connection reuse (Keep-Alive)</li>
+            <li>HTTP/2, HTTP/3, gRPC</li>
+            <li>Fewer round trips</li>
+            <li>Async processing</li>
+            <li>Regional replicas</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Increase Bandwidth</p>
+          <ul class="dot-ul text-sm">
+            <li>Upgrade network links</li>
+            <li>Compression (gzip/zstd)</li>
+            <li>Reduce payload size</li>
+            <li>Better routing</li>
+            <li>Dedicated links</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Increase Throughput</p>
+          <ul class="dot-ul text-sm">
+            <li>TCP Window Scaling</li>
+            <li>Match window to BDP</li>
+            <li>Connection pooling</li>
+            <li>HTTP/2 multiplexing</li>
+            <li>QUIC / BBR congestion control</li>
+            <li>Reduce retransmissions</li>
+            <li>Batch operations</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Regions -->
+    <div class="nc">
+      <div class="section-badge">DIAGNOSIS</div>
+      <div class="nh">Performance Regions &amp; Symptoms</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Region</th><th>Bottleneck</th><th>Optimization</th></tr></thead>
+        <tbody>
+          <tr><td>Latency-bound</td><td>High RTT</td><td>Reduce round trips, use CDN, async</td></tr>
+          <tr><td>Bandwidth-bound</td><td>Link capacity</td><td>Upgrade links, compress, reduce payload</td></tr>
+          <tr><td>Throughput-bound</td><td>TCP/Protocol overhead</td><td>Tune BDP, window scaling, batching</td></tr>
+        </tbody>
+      </table>
+      <table class="nt">
+        <thead><tr><th>Symptom</th><th>Likely Cause</th></tr></thead>
+        <tbody>
+          <tr><td>Slow API responses</td><td>High latency</td></tr>
+          <tr><td>Slow file upload/download</td><td>Low bandwidth</td></tr>
+          <tr><td>Poor replication speed</td><td>Low throughput</td></tr>
+          <tr><td>High RTT readings</td><td>Network distance or congestion</td></tr>
+          <tr><td>High packet loss</td><td>Reduces throughput via retransmissions</td></tr>
+          <tr><td>Underutilized 10 Gbps link</td><td>TCP window too small (BDP mismatch)</td></tr>
+          <tr><td>High P99 latency</td><td>Queuing delay + tail latency</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Measurement Tools</div>
+      <table class="nt">
+        <thead><tr><th>Tool</th><th>Measures</th></tr></thead>
+        <tbody>
+          <tr><td><code>ping</code></td><td>RTT / Latency</td></tr>
+          <tr><td><code>traceroute</code></td><td>Per-hop latency</td></tr>
+          <tr><td><code>iperf3</code></td><td>Bandwidth &amp; Throughput (use <code>-w</code> to set window)</td></tr>
+          <tr><td><code>tcpdump</code></td><td>Packet loss &amp; retransmissions</td></tr>
+          <tr><td><code>Wireshark</code></td><td>End-to-end network behavior</td></tr>
+          <tr><td><code>ss -ti</code></td><td>TCP window size, RTT, retransmits per socket</td></tr>
+          <tr><td><code>netstat -s</code></td><td>Retransmission counters</td></tr>
+          <tr><td>Prometheus/Grafana</td><td>Latency histograms, throughput, utilization</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- System Design -->
+    <div class="nc">
+      <div class="section-badge">SYSTEM DESIGN</div>
+      <div class="nh">System Design Applications</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Primary Concern</th><th>Recommended Optimization</th></tr></thead>
+        <tbody>
+          <tr><td>REST API</td><td>Latency</td><td>Keep-Alive, HTTP/2, caching, fewer RTTs</td></tr>
+          <tr><td>CDN</td><td>Latency</td><td>Edge deployment, TLS session resumption</td></tr>
+          <tr><td>Object Storage</td><td>Bandwidth</td><td>Compression, multipart uploads, parallel streams</td></tr>
+          <tr><td>Database Replication</td><td>Throughput</td><td>Window scaling, batch writes, dedicated link</td></tr>
+          <tr><td>Kafka</td><td>Throughput</td><td>Larger batches, compression, <code>linger.ms</code></td></tr>
+          <tr><td>Video Streaming</td><td>Bandwidth</td><td>Adaptive bitrate, CDN, compression</td></tr>
+          <tr><td>Global Search</td><td>Latency</td><td>Regional replicas, local index shards</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Trade-offs -->
+    <div class="nc">
+      <div class="section-badge">TRADE-OFFS</div>
+      <div class="nh">Trade-offs</div>
+      <table class="nt">
+        <thead><tr><th>Optimization</th><th>Improves</th><th>Trade-off</th></tr></thead>
+        <tbody>
+          <tr><td>Reduce RTT (edge, CDN)</td><td>Latency</td><td>More infrastructure cost</td></tr>
+          <tr><td>Upgrade links</td><td>Bandwidth</td><td>Higher cost</td></tr>
+          <tr><td>TCP Window Scaling + larger buffers</td><td>Throughput</td><td>Higher memory usage per connection</td></tr>
+          <tr><td>Connection reuse (Keep-Alive)</td><td>Latency</td><td>More open sockets, idle FD usage</td></tr>
+          <tr><td>Compression (gzip/zstd)</td><td>Bandwidth + Throughput</td><td>Higher CPU usage</td></tr>
+          <tr><td>Batching</td><td>Throughput</td><td>Increased end-to-end latency per item</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Interview Questions -->
+    <div class="nc">
+      <div class="section-badge">INTERVIEW PREP</div>
+      <div class="nh">Common Interview Questions</div>
+      <ol class="list-decimal pl-5 space-y-2 text-gray-700">
+        <li>Explain the difference between latency, bandwidth, and throughput.</li>
+        <li>Why doesn't increasing bandwidth always improve performance?</li>
+        <li>What is the Bandwidth-Delay Product (BDP)?</li>
+        <li>How do you calculate transfer time?</li>
+        <li>Why can a high-bandwidth link still have poor throughput?</li>
+        <li>Why do small API calls care more about latency than bandwidth?</li>
+        <li>How would you optimize cross-region database replication?</li>
+        <li>What causes throughput to be lower than bandwidth?</li>
+        <li>How does TCP window size affect throughput?</li>
+        <li>How would you determine whether a system is latency-bound or bandwidth-bound?</li>
+      </ol>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt">
+        <thead><tr><th>Level</th><th>Thinking Pattern</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Junior</strong></td>
+            <td>"Our API is slow. We need more bandwidth."</td>
+          </tr>
+          <tr>
+            <td><strong>Senior</strong></td>
+            <td>"I'll profile the request. If the payload is small, it's latency — I'll add caching and keep-alive. If the payload is large, it's bandwidth — I'll add compression."</td>
+          </tr>
+          <tr>
+            <td><strong>Staff</strong></td>
+            <td>"I first classify the bottleneck: for API calls (≤ 100 KB), it's almost always latency — I reduce round trips via HTTP/2, connection reuse, and edge caching. For bulk transfers (≥ 10 MB), I check bandwidth utilization and throughput. If utilization is high but throughput is low, I check packet loss and retransmissions. For cross-region replication, I compute BDP = bandwidth × RTT and verify TCP window ≥ BDP, tuning <code>net.core.rmem_max</code> and <code>wmem_max</code> accordingly. I always quantify with iperf3 and ss -ti before recommending changes, and validate improvements with P50/P95/P99 latency and throughput metrics."</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ntip">
+        <strong>Key Takeaways:</strong>
+        <ul class="dot-ul mt-2">
+          <li><strong>Latency</strong> = responsiveness (time to first byte); <strong>Bandwidth</strong> = capacity; <strong>Throughput</strong> = effective performance.</li>
+          <li><strong>Bandwidth ≠ Throughput</strong> — packet loss, retransmissions, congestion, and protocol overhead prevent full link utilization.</li>
+          <li><strong>BDP = Bandwidth × RTT</strong> — TCP window must be ≥ BDP to fully utilize a link. Critical for long-distance high-speed connections.</li>
+          <li>Identify whether workloads are <strong>latency-bound, bandwidth-bound, or throughput-bound</strong> before optimizing — and quantify with tools before and after.</li>
+          <li>In system design interviews, justify optimizations with <strong>measurable trade-offs</strong>, not generic "add a cache" advice.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/c97a3100-b688-4fdc-b330-5278b58b981d.png"
+           alt="Latency vs Bandwidth vs Throughput Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Network Partitions, Timeouts &amp; CAP — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.93rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+
+    .flow-box { background:#ede9fe; border:2px solid #7c3aed; border-radius:8px; padding:8px 18px; text-align:center; font-weight:700; color:#4c1d94; font-size:0.95rem; }
+    .flow-arrow { text-align:center; color:#7c3aed; font-size:1.3rem; margin:2px 0; }
+
+    .cap-card { border-radius:10px; padding:16px 20px; margin-bottom:10px; }
+    .cap-cp { background:#ede9fe; border:2px solid #7c3aed; }
+    .cap-ap { background:#f0fdf4; border:2px solid #16a34a; }
+    .cap-cp-title { color:#4c1d94; font-weight:700; font-size:1rem; margin-bottom:6px; }
+    .cap-ap-title { color:#15803d; font-weight:700; font-size:1rem; margin-bottom:6px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Network Partitions, Timeouts &amp; CAP</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Network Partitions, Timeouts &amp; Real-World CAP Implications</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Distributed Systems</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Why Care -->
+    <div class="nc">
+      <div class="section-badge">WHY IT MATTERS</div>
+      <div class="nh">Why Should a Staff Engineer Care?</div>
+      <p class="text-gray-700 mb-3">Distributed systems assume machines can fail — but in reality, <strong>the network fails more often than machines</strong>.</p>
+      <ul class="dot-ul mb-3">
+        <li>Packet loss</li>
+        <li>High latency spikes</li>
+        <li>DNS failures</li>
+        <li>Firewall misconfigurations</li>
+        <li>Network congestion</li>
+        <li>Region isolation</li>
+      </ul>
+      <div class="nq">"Systems cannot immediately distinguish a slow node from a failed node — they rely on timeouts, which are educated guesses."</div>
+      <div class="ntip">A Staff Engineer designs systems expecting <strong>partial failures</strong>, not perfect networks. Every design decision about timeouts, retries, and replication is a real-world CAP trade-off.</div>
+    </div>
+
+    <!-- What is a Partition -->
+    <div class="nc">
+      <div class="section-badge">DEFINITION</div>
+      <div class="nh">What is a Network Partition?</div>
+      <p class="text-gray-700 mb-3">A network partition occurs when healthy nodes can no longer communicate because messages are <strong>delayed, dropped, or blocked</strong>. Unlike hardware failures, nodes continue running — they simply cannot exchange information.</p>
+      <div class="ncode">Before Partition:
+  Node A ──────── Node B
+     │                │
+     └────── Node C ──┘
+
+After Partition:
+  Node A     ✗     Node B
+     │               │
+     └── Node C      │
+  (communication broken)
+
+Both sides may believe they are the healthy cluster.</div>
+
+      <table class="nt mt-4">
+        <thead><tr><th>Real Scenario</th><th>What Happens</th></tr></thead>
+        <tbody>
+          <tr><td>AWS region isolation</td><td>Cross-region communication fails</td></tr>
+          <tr><td>Rack switch failure</td><td>Entire rack becomes isolated</td></tr>
+          <tr><td>Firewall misconfiguration</td><td>Heartbeats blocked silently</td></tr>
+          <tr><td>Kubernetes CNI issue</td><td>Pod-to-pod traffic broken</td></tr>
+          <tr><td>DNS outage</td><td>Services cannot locate peers</td></tr>
+          <tr><td>High packet loss</td><td>Communication becomes unreliable</td></tr>
+        </tbody>
+      </table>
+      <p class="text-gray-600 text-sm mt-2">The nodes themselves are healthy — the network is not. Every distributed algorithm (leader election, replication, consensus, health checks) is affected.</p>
+    </div>
+
+    <!-- Timeouts -->
+    <div class="nc">
+      <div class="section-badge">TIMEOUTS</div>
+      <div class="nh">Timeouts — The Failure Detection Mechanism</div>
+      <p class="text-gray-700 mb-3">A timeout is the maximum time a system waits before assuming another node has failed. It is the primary mechanism for failure detection.</p>
+      <div class="ncode">Heartbeat every 100 ms
+  → No heartbeat for 500 ms
+  → Peer assumed unavailable
+  → Trigger failover or election</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <p class="font-semibold text-red-700 mb-2">⚠️ Timeout Too Short</p>
+          <div class="ncode" style="font-size:0.85rem;">Latency Spike
+  → False Failure
+  → Leader Election
+  → Cluster Instability</div>
+          <ul class="dot-ul mt-2 text-sm">
+            <li class="text-green-700">✅ Fast failover</li>
+            <li class="text-red-700">❌ False positives</li>
+            <li class="text-red-700">❌ Split-brain risk</li>
+            <li class="text-red-700">❌ Frequent elections</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">⚠️ Timeout Too Long</p>
+          <div class="ncode" style="font-size:0.85rem;">Real Failure
+  → System Waits
+  → Slow Recovery
+  → Extended Downtime</div>
+          <ul class="dot-ul mt-2 text-sm">
+            <li class="text-green-700">✅ Stable cluster</li>
+            <li class="text-red-700">❌ Long downtime on real failure</li>
+            <li class="text-red-700">❌ Delayed failover</li>
+            <li class="text-red-700">❌ Poor availability</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ntip mt-3">Timeouts define <strong>failure detection speed</strong>, not actual failures. Choosing values is a balance between <strong>cluster stability</strong> and <strong>recovery speed</strong>.</div>
+    </div>
+
+    <!-- CAP Theorem -->
+    <div class="nc">
+      <div class="section-badge">CAP THEOREM</div>
+      <div class="nh">CAP Theorem</div>
+      <p class="text-gray-700 mb-3">CAP states that under a network partition, a distributed system <strong>cannot simultaneously provide all three</strong>:</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Property</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Consistency (C)</strong></td><td>Every node sees the same data at the same time</td></tr>
+          <tr><td><strong>Availability (A)</strong></td><td>Every request receives a response (not necessarily latest)</td></tr>
+          <tr><td><strong>Partition Tolerance (P)</strong></td><td>System continues operating despite partitions</td></tr>
+        </tbody>
+      </table>
+      <div class="nq">Since real networks always risk partitions, <strong>Partition Tolerance is mandatory</strong>. The real engineering decision is: Consistency vs Availability.</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div class="cap-card cap-cp">
+          <div class="cap-cp-title">CP — Consistency + Partition Tolerance</div>
+          <div class="ncode" style="font-size:0.84rem;">Partition
+  → Minority Stops Accepting Writes
+  → Data Remains Consistent
+  → Some Requests Rejected</div>
+          <p class="text-sm text-violet-800 mt-2 font-semibold">Examples:</p>
+          <div class="flex flex-wrap gap-1 mt-1">
+            <span class="nkw"><span>ZooKeeper</span></span>
+            <span class="nkw"><span>etcd</span></span>
+            <span class="nkw"><span>Spanner</span></span>
+            <span class="nkw"><span>MongoDB (majority)</span></span>
+            <span class="nkw"><span>Kafka acks=all</span></span>
+          </div>
+        </div>
+        <div class="cap-card cap-ap">
+          <div class="cap-ap-title">AP — Availability + Partition Tolerance</div>
+          <div class="ncode" style="font-size:0.84rem;">Partition
+  → Both Sides Continue Writing
+  → Serve Stale Data
+  → Reconcile Later</div>
+          <p class="text-sm text-green-800 mt-2 font-semibold">Examples:</p>
+          <div class="flex flex-wrap gap-1 mt-1">
+            <span class="nkw"><span>Cassandra</span></span>
+            <span class="nkw"><span>DynamoDB</span></span>
+            <span class="nkw"><span>Riak</span></span>
+            <span class="nkw"><span>Couchbase</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ntip mt-3">In production, systems rarely pick one extreme. They tune timeout values, retry behavior, quorum size, and read/write consistency levels. <strong>CAP is expressed through operational choices, not binary system labels.</strong></div>
+    </div>
+
+    <!-- Timeout = CAP Tuning -->
+    <div class="nc">
+      <div class="section-badge">TIMEOUT AS CAP KNOB</div>
+      <div class="nh">Timeout = CAP Tuning in Practice</div>
+      <table class="nt mb-3">
+        <thead><tr><th>Timeout Strategy</th><th>System Behavior</th></tr></thead>
+        <tbody>
+          <tr><td>Short timeout</td><td>Faster failover, higher false-positive risk (lean AP)</td></tr>
+          <tr><td>Long timeout</td><td>Better stability, slower recovery (lean CP)</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode">Example: Reduce Raft election timeout
+  10 s → 2 s
+  Benefit: Faster leader election
+  Risk:    Packet loss triggers unnecessary elections</div>
+    </div>
+
+    <!-- Heartbeats -->
+    <div class="nc">
+      <div class="section-badge">HEARTBEATS</div>
+      <div class="nh">Heartbeats — Liveness Detection</div>
+      <p class="text-gray-700 mb-3">Nodes continuously exchange heartbeats. Missing heartbeats trigger timeout logic.</p>
+      <div class="ncode">Heartbeat @ 100 ms
+Heartbeat @ 200 ms
+Heartbeat @ 300 ms
+No heartbeat @ 400 ms
+No heartbeat @ 500 ms
+  → Timeout threshold exceeded
+  → Node suspected dead
+  → Failover / election triggered</div>
+      <p class="text-gray-700 mb-2 mt-3"><strong>Best Practices:</strong></p>
+      <ul class="dot-ul">
+        <li>Dedicated heartbeat thread (GC pauses can delay the main thread)</li>
+        <li>Randomized election timeouts (prevent synchronized elections)</li>
+        <li>Require multiple consecutive missed heartbeats before declaring failure</li>
+        <li>Monitor RTT trends — rising RTT predicts upcoming timeouts</li>
+      </ul>
+    </div>
+
+    <!-- Production Scenarios -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION SCENARIOS</div>
+      <div class="nh">Real Production Failure Scenarios</div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Region Isolation</div>
+        <p class="text-gray-700 text-sm">US-East ✗ US-West: Replication stops, quorum lost.<br/>
+        CP: Writes blocked on minority side.<br/>
+        AP: Both sides diverge — reconciliation needed on heal.</p>
+      </div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">DNS Failure</div>
+        <p class="text-gray-700 text-sm">Nodes cannot resolve peers — looks like peer is down, but it's DNS.<br/>
+        <strong>Mitigation:</strong> DNS cache, multiple resolvers, service discovery retries.</p>
+      </div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">GC Pause</div>
+        <p class="text-gray-700 text-sm">JVM pauses for 2s — heartbeat thread also pauses — cluster thinks node failed and elects new leader.<br/>
+        <strong>Mitigation:</strong> Separate heartbeat thread, JVM GC tuning, monitor pause times.</p>
+      </div>
+
+      <div class="nc-warn">
+        <div class="nh-warn">Retry Storm</div>
+        <p class="text-gray-700 text-sm"><strong>One of the most common outage amplification patterns:</strong></p>
+        <div class="ncode" style="font-size:0.85rem;">Latency Increases
+  → Requests Timeout
+  → Clients Retry Immediately
+  → Higher Load
+  → More Timeouts
+  → More Retries
+  → System Collapse</div>
+        <p class="text-gray-700 text-sm mt-2"><strong>Mitigation:</strong> Exponential backoff + jitter, circuit breakers, bulkheads, request hedging. Avoid synchronized retries.</p>
+      </div>
+    </div>
+
+    <!-- Quorum -->
+    <div class="nc">
+      <div class="section-badge">QUORUM</div>
+      <div class="nh">Quorum — Consistency via Majority</div>
+      <p class="text-gray-700 mb-3">Many distributed systems require a majority of replicas to agree before committing a write.</p>
+      <div class="ncode">5 nodes → need 3 (majority)
+
+Partition: only 2 nodes reachable
+  → No Quorum
+  → Writes Rejected
+  → Consistency Preserved
+
+Formula: Quorum = ⌊N/2⌋ + 1</div>
+      <div class="ntip mt-3">Quorum is how CP systems implement consistency during partitions — the minority side refuses writes, the majority side continues.</div>
+    </div>
+
+    <!-- Recovery -->
+    <div class="nc">
+      <div class="section-badge">RECOVERY</div>
+      <div class="nh">Recovery After Partition Heals</div>
+      <div class="ncode">Partition Heals
+  → Replication Resumes
+  → Conflict Detection
+  → Resolution Strategy
+  → Consistent State</div>
+      <table class="nt mt-4">
+        <thead><tr><th>Technique</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Read Repair</td><td>Update stale replicas during read operations</td></tr>
+          <tr><td>Hinted Handoff</td><td>Replay missed writes once node recovers</td></tr>
+          <tr><td>Merkle Trees</td><td>Efficient detection of replica divergence</td></tr>
+          <tr><td>CRDTs</td><td>Automatic conflict merging (e.g., counters, sets)</td></tr>
+          <tr><td>Version Vectors</td><td>Track concurrent updates to detect conflicts</td></tr>
+          <tr><td>Last Write Wins (LWW)</td><td>Resolve using latest timestamp — risk of data loss</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Production Metrics to Monitor</div>
+      <table class="nt">
+        <thead><tr><th>Metric</th><th>Why Monitor?</th></tr></thead>
+        <tbody>
+          <tr><td>Heartbeat RTT</td><td>Detect network degradation before timeout fires</td></tr>
+          <tr><td>Timeout Rate</td><td>Identify cluster instability</td></tr>
+          <tr><td>Leader Elections</td><td>Detect cluster churn (frequent elections = problem)</td></tr>
+          <tr><td>Replication Lag</td><td>Measure consistency delay</td></tr>
+          <tr><td>Retry Rate</td><td>Detect retry storms early</td></tr>
+          <tr><td>Quorum Success Rate</td><td>Measure cluster health</td></tr>
+          <tr><td>Packet Loss %</td><td>Detect partitions and network degradation</td></tr>
+          <tr><td>P99 Latency</td><td>Identify network-induced tail latency</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CAP by Workload -->
+    <div class="nc">
+      <div class="section-badge">SYSTEM DESIGN</div>
+      <div class="nh">CAP Choices by Workload</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Model</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Banking / Payments</td><td><strong>CP</strong></td><td>Data correctness critical — prevent double spending</td></tr>
+          <tr><td>Leader Election</td><td><strong>CP</strong></td><td>Single leader required — no split brain</td></tr>
+          <tr><td>Distributed Locking</td><td><strong>CP</strong></td><td>Prevent concurrent lock ownership</td></tr>
+          <tr><td>Social Feed</td><td><strong>AP</strong></td><td>Better to serve slightly stale data than fail</td></tr>
+          <tr><td>Chat Messages</td><td><strong>AP</strong></td><td>High availability preferred over strong ordering</td></tr>
+          <tr><td>Search Index</td><td><strong>AP</strong></td><td>Eventual consistency acceptable</td></tr>
+          <tr><td>Analytics / Metrics</td><td><strong>AP</strong></td><td>Freshness less critical than availability</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Failure Amplification -->
+    <div class="nc">
+      <div class="section-badge">FAILURE AMPLIFICATION</div>
+      <div class="nh">Cascading Failure Pattern</div>
+      <div class="ncode">Packet Loss
+  → Timeouts
+  → Retries
+  → Increased Load
+  → More Latency
+  → More Timeouts
+  → Retry Storm
+  → System Overload</div>
+      <p class="text-gray-700 mb-3 mt-3"><strong>Breaking this cycle is a key Staff Engineer responsibility. Mitigations:</strong></p>
+      <ul class="dot-ul">
+        <li>Exponential backoff with jitter (prevent synchronized retries)</li>
+        <li>Circuit breakers (stop sending to failing dependencies)</li>
+        <li>Bulkheads (isolate workloads from each other)</li>
+        <li>Make writes idempotent (safe to retry)</li>
+        <li>Request hedging for latency-sensitive paths (only when appropriate)</li>
+        <li>Chaos engineering to test partition behavior proactively</li>
+      </ul>
+    </div>
+
+    <!-- Interview Questions -->
+    <div class="nc">
+      <div class="section-badge">INTERVIEW PREP</div>
+      <div class="nh">Common Interview Questions</div>
+      <ol class="list-decimal pl-5 space-y-2 text-gray-700">
+        <li>What is a network partition?</li>
+        <li>Why are timeouts necessary in distributed systems?</li>
+        <li>Why can't systems distinguish a slow node from a failed node?</li>
+        <li>Explain the CAP theorem using a real production example.</li>
+        <li>Why is Partition Tolerance considered mandatory?</li>
+        <li>What are the trade-offs between CP and AP systems?</li>
+        <li>How do short and long timeouts affect system behavior differently?</li>
+        <li>What causes retry storms and how do you prevent them?</li>
+        <li>How does quorum preserve consistency during a partition?</li>
+        <li>What techniques reconcile data after a partition heals?</li>
+      </ol>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt">
+        <thead><tr><th>Level</th><th>Thinking Pattern</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Junior</strong></td>
+            <td>"If a node doesn't respond, it's down. We should restart it."</td>
+          </tr>
+          <tr>
+            <td><strong>Senior</strong></td>
+            <td>"We set a 5s timeout for health checks and retry 3 times before marking a node unhealthy. We use a majority quorum for writes."</td>
+          </tr>
+          <tr>
+            <td><strong>Staff</strong></td>
+            <td>"I treat network partitions as inevitable and design for partial failure at every layer. For CP workloads (payments, locking), I configure majority quorums and accept that the minority side rejects writes during a partition. For AP workloads (feeds, search), I allow divergence and implement reconciliation (CRDTs, read repair, hinted handoff) on partition heal. I tune heartbeat intervals and election timeouts to balance false-positive detection against recovery speed, monitor replication lag and leader churn as partition early-warning signals, and ensure all retries use exponential backoff with jitter and circuit breakers to prevent retry storms from turning a network blip into a full outage."</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ntip">
+        <strong>Key Takeaways:</strong>
+        <ul class="dot-ul mt-2">
+          <li><strong>Network partitions</strong> are inevitable — design for them, don't assume they won't happen.</li>
+          <li><strong>Timeouts</strong> are heuristics for failure detection; they must balance fast recovery against false-positive failures.</li>
+          <li><strong>CAP</strong> is a real engineering decision: CP preserves correctness by sacrificing availability; AP preserves availability by accepting temporary inconsistency.</li>
+          <li><strong>Retry storms</strong> are a common secondary failure — mitigate with exponential backoff, jitter, circuit breakers, and bulkheads.</li>
+          <li>Staff Engineers tune heartbeats, election timeouts, quorum sizes, retry policies, and recovery mechanisms while monitoring replication lag, leader stability, and P99 latency to ensure resilience under real-world network conditions.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/028102e2-04c5-4cc7-bb75-ea1fdbcff39f.png"
+           alt="Network Partitions, Timeouts and CAP Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

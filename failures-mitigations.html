@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Failure Mitigation Strategies — Staff Answer Sheet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#ef4444; border-bottom-color:#ef4444; }
+    .tab-btn:hover:not(.active){ color:#b91c1c; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* Mitigation card */
+    .mit-card { background:#fff; border:1px solid #fee2e2; border-radius:1rem;
+                padding:1rem 1.25rem; }
+    .mit-title { font-weight:700; font-size:.82rem; color:#1e293b; margin-bottom:.5rem; }
+    .mit-lbl { font-size:.6rem; font-weight:800; text-transform:uppercase;
+               letter-spacing:.08em; margin-bottom:.2rem; }
+    .mit-txt { font-size:.75rem; color:#374151; line-height:1.6; }
+    .mit-d { background:#eff6ff; border-radius:.5rem; padding:.5rem .7rem; }
+    .mit-d .mit-lbl { color:#1d4ed8; }
+    .mit-g { background:#f0fdf4; border-radius:.5rem; padding:.5rem .7rem; }
+    .mit-g .mit-lbl { color:#15803d; }
+    .mit-p { background:#faf5ff; border-radius:.5rem; padding:.5rem .7rem; }
+    .mit-p .mit-lbl { color:#7c3aed; }
+    .mit-o { background:#fff7ed; border-radius:.5rem; padding:.5rem .7rem; }
+    .mit-o .mit-lbl { color:#c2410c; }
+
+    /* shared note card */
+    .nc   { background:#fff7f7; border:1px solid #fee2e2; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#ef4444; margin-bottom:.6rem; }
+    .ncode{ background:#1a0000; color:#fca5a5; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .nt th{ background:#fee2e2; color:#991b1b; font-weight:700; font-size:.63rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .7rem; text-align:left; }
+    .nt td{ padding:.4rem .7rem; border-top:1px solid #fee2e2;
+            color:#374151; vertical-align:top; line-height:1.55; }
+    .badge-d { background:#dbeafe; color:#1e40af; font-size:.67rem;
+               font-weight:700; border-radius:999px; padding:.15em .6em; }
+    .badge-g { background:#dcfce7; color:#166534; font-size:.67rem;
+               font-weight:700; border-radius:999px; padding:.15em .6em; }
+    .badge-p { background:#ede9fe; color:#5b21b6; font-size:.67rem;
+               font-weight:700; border-radius:999px; padding:.15em .6em; }
+    .badge-o { background:#ffedd5; color:#9a3412; font-size:.67rem;
+               font-weight:700; border-radius:999px; padding:.15em .6em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-red-500 hover:text-red-700 font-semibold
+              bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-red-600 font-semibold">Mitigation Strategies</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Failure → Mitigation Strategies</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level answer sheet · Detect → Mitigate → Prevent → Trade-off · 14 categories</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-6xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('cards',this)">Mitigation Cards</button>
+    <button class="tab-btn"        onclick="switchTab('quickref',this)">Quick Reference</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB 1 — MITIGATION CARDS
+  ═══════════════════════════════════════ -->
+  <div id="tab-cards" class="tab-pane active pb-16">
+
+    <!-- Staff framework callout -->
+    <div class="nc mb-5">
+      <p class="nh">Staff-Level Mental Model</p>
+      <div class="flex flex-wrap gap-2 items-center text-xs font-semibold">
+        <span class="bg-red-500 text-white px-3 py-1.5 rounded-lg">Failure Occurs</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-blue-600 text-white px-3 py-1.5 rounded-lg">Detect (How do we know?)</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-green-600 text-white px-3 py-1.5 rounded-lg">Mitigate (Recover)</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-purple-600 text-white px-3 py-1.5 rounded-lg">Prevent (Next time)</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-orange-500 text-white px-3 py-1.5 rounded-lg">Trade-off (What we sacrificed)</span>
+      </div>
+    </div>
+
+    <!-- 14 mitigation cards, 2-col grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="mit-card">
+        <p class="mit-title">1. Infrastructure / Hardware Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Health checks · Heartbeats · Node monitoring</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Replication · Auto failover · Redundant HW</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Multi-AZ / multi-region · RAID · Disk replication</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Higher cost vs reliability</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">2. Network Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Latency metrics · Timeout monitoring · Packet loss alerts</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Retries with backoff · Circuit breakers · Fallback paths</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Multi-network routing · Regional isolation</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Retries can cause overload / retry storms</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">3. Application / Service Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Logs + metrics + alerts · Crash monitoring</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Auto-restart (K8s) · Horizontal scaling · Circuit breaker for deps</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Load testing · Canary deployments · Memory profiling</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Over-monitoring → alert fatigue</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">4. Data &amp; Storage Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Checksums · Data validation · Audit logs</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Replication · Backup &amp; restore · Write-ahead logs</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Immutable logs · Strong consistency where needed</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Strong consistency → higher latency</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">5. Distributed System Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Consensus health checks · Replica divergence monitoring</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Leader election (Raft) · Quorum reads/writes · Conflict resolution</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Use proven consensus systems (etcd, ZooKeeper)</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Consistency vs availability (CAP theorem)</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">6. Traffic &amp; Load Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Traffic monitoring · Queue lag metrics · P99 latency</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Auto-scaling · Load balancing · Rate limiting · Load shedding</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Capacity planning · Traffic shaping · Pre-scaling</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Load shedding → some requests dropped</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">7. Concurrency &amp; Race Conditions</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Duplicate detection · Conflict logs · Integrity checks</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Idempotency keys · Distributed locks · Optimistic concurrency</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Proper transaction design · CRDT for conflict-free data</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Locks reduce throughput</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">8. Security Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Intrusion detection · Anomaly monitoring · Audit logs</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Auth / authz · Rate limiting · WAF · Token revocation</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Encryption at rest/transit · Key rotation · Principle of least privilege</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Strong security → higher latency + complexity</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">9. Dependency Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Dependency health checks · Error rate spikes</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Circuit breakers · Fallback responses · Retry with backoff</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Decouple services · Cache critical data locally</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Fallback → degraded / stale experience</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">10. Deployment &amp; Configuration Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Deployment monitoring · Error rate spikes post-deploy</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Rollback · Blue-green deployment · Canary releases</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Feature flags · Backward compatibility · Schema migration guards</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Slower release cycles for safer deploys</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">11. Time &amp; Scheduling Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Time-sync monitoring · Clock skew alerts · Job deadline tracking</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Logical clocks (Lamport) · Retry delayed jobs · Graceful TTL handling</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">NTP sync · Idempotent scheduling · Bounded clock drift (TrueTime)</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Extra complexity for distributed time coordination</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">12. Human / Operational Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Audit logs · Change management alerts · Access monitoring</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Rollback tools · Soft deletes · Access control enforcement</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Automation · Approval workflows · Runbook validation</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">More gates → slower operational velocity</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card">
+        <p class="mit-title">13. Latency &amp; Performance Failures</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Latency histograms (P99) · Slow query logs · GC pause metrics</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Caching · Query optimisation · Indexing · Connection pooling</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Load testing · Profiling in pre-prod · Continuous benchmarking</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Cache → stale data risk</p></div>
+        </div>
+      </div>
+
+      <div class="mit-card" style="border-color:#fca5a5;">
+        <p class="mit-title" style="color:#991b1b;">14. Cascading Failures — Most Dangerous</p>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div class="mit-d"><p class="mit-lbl">Detect</p><p class="mit-txt">Retry spike metrics · Queue growth · Error rate chain reaction</p></div>
+          <div class="mit-g"><p class="mit-lbl">Mitigate</p><p class="mit-txt">Circuit breakers · Rate limiting · Bulkheads · Load shedding</p></div>
+          <div class="mit-p"><p class="mit-lbl">Prevent</p><p class="mit-txt">Service isolation · Timeout on all calls · Async decoupling</p></div>
+          <div class="mit-o"><p class="mit-lbl">Trade-off</p><p class="mit-txt">Partial system shutdown to save the whole</p></div>
+        </div>
+      </div>
+
+    </div><!-- /grid -->
+
+    <!-- Final truth -->
+    <div class="nc mt-6">
+      <p class="nh">The Only Pattern You Need to Memorise</p>
+      <div class="ncode">You don't need to remember 100 failures.
+You only need one pattern:
+
+  retry     → for transient failures (network, timeout)
+  replicate → for hardware and data failures
+  isolate   → for cascading and dependency failures
+  throttle  → for load and traffic failures
+  fallback  → for dependency and deployment failures
+
+Everything maps to one of these five responses.</div>
+    </div>
+
+  </div><!-- /tab-cards -->
+
+  <!-- ═══════════════════════════════════════
+       TAB 2 — QUICK REFERENCE TABLE
+  ═══════════════════════════════════════ -->
+  <div id="tab-quickref" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Complete Mitigation Reference — All 14 Categories</p>
+      <div class="overflow-x-auto mt-1">
+        <table class="nt">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th><span class="badge-d">Detect</span></th>
+              <th><span class="badge-g">Mitigate</span></th>
+              <th><span class="badge-p">Prevent</span></th>
+              <th><span class="badge-o">Trade-off</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-semibold text-gray-700">1. Infrastructure</td>
+              <td>Health checks, heartbeats</td>
+              <td>Replication, auto failover</td>
+              <td>Multi-AZ, RAID</td>
+              <td>Higher cost</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">2. Network</td>
+              <td>Latency metrics, timeouts</td>
+              <td>Retry + backoff, circuit breaker</td>
+              <td>Multi-network routing</td>
+              <td>Retry storms</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">3. Application</td>
+              <td>Logs, crash monitoring</td>
+              <td>Auto-restart, horizontal scale</td>
+              <td>Load testing, canary</td>
+              <td>Alert fatigue</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">4. Data</td>
+              <td>Checksums, audit logs</td>
+              <td>Replication, WAL, backup</td>
+              <td>Immutable logs, strong consistency</td>
+              <td>Higher latency</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">5. Distributed</td>
+              <td>Consensus health, divergence check</td>
+              <td>Raft election, quorum reads</td>
+              <td>Proven consensus systems</td>
+              <td>Consistency vs availability</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">6. Traffic</td>
+              <td>Queue lag, P99 latency</td>
+              <td>Auto-scale, rate limit, shed load</td>
+              <td>Capacity planning, pre-scale</td>
+              <td>Requests dropped</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">7. Concurrency</td>
+              <td>Duplicate detection, conflict logs</td>
+              <td>Idempotency keys, distrib. locks</td>
+              <td>Proper TX design, CRDT</td>
+              <td>Lock contention</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">8. Security</td>
+              <td>Intrusion detection, audit logs</td>
+              <td>Auth/authz, WAF, rate limiting</td>
+              <td>Encryption, key rotation, least privilege</td>
+              <td>Higher latency</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">9. Dependencies</td>
+              <td>Dep. health checks, error spikes</td>
+              <td>Circuit breaker, fallback, retry</td>
+              <td>Decouple, cache critical data</td>
+              <td>Degraded UX</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">10. Deployment</td>
+              <td>Post-deploy error rate</td>
+              <td>Rollback, blue-green, canary</td>
+              <td>Feature flags, backward compat.</td>
+              <td>Slower releases</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">11. Time</td>
+              <td>Clock skew alerts, job deadline</td>
+              <td>Logical clocks, retry delayed jobs</td>
+              <td>NTP sync, idempotent scheduling</td>
+              <td>Extra complexity</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">12. Human</td>
+              <td>Audit logs, change alerts</td>
+              <td>Rollback tools, soft deletes</td>
+              <td>Automation, approval gates</td>
+              <td>Slower ops velocity</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">13. Latency</td>
+              <td>P99 histograms, slow query logs</td>
+              <td>Caching, indexing, query opt.</td>
+              <td>Load testing, profiling</td>
+              <td>Cache staleness</td>
+            </tr>
+            <tr>
+              <td class="font-semibold text-gray-700">14. Cascading</td>
+              <td>Retry spikes, queue growth</td>
+              <td>Circuit breaker, bulkhead, shed</td>
+              <td>Service isolation, async decoupling</td>
+              <td>Partial shutdown</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Ultra-compact memory aid -->
+    <div class="nc">
+      <p class="nh">Ultra-Compact Memory Version</p>
+      <div class="ncode">Failures     → Response
+Infra        → replicate + failover
+Network      → retry + backoff + circuit breaker
+App          → restart + scale + circuit breaker
+Data         → WAL + backup + checksums
+Distributed  → Raft + quorum + conflict resolution
+Load         → autoscale + rate limit + load shed
+Concurrency  → idempotency + locks + optimistic CC
+Security     → auth + WAF + encryption + rotation
+Dependency   → circuit breaker + fallback + cache
+Deployment   → rollback + canary + feature flags
+Time         → logical clocks + NTP + idempotent jobs
+Human        → audit + rollback + automation
+Latency      → cache + index + connection pool
+Cascading    → bulkhead + circuit breaker + isolate</div>
+    </div>
+
+    <!-- Principal takeaway -->
+    <div class="rounded-2xl p-5" style="background:#14532d;border:1px solid #166534;">
+      <p class="text-xs font-bold text-green-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">retry</p>
+          <p class="text-xs text-green-400 mt-0.5">transient errors</p>
+        </div>
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">replicate</p>
+          <p class="text-xs text-green-400 mt-0.5">hardware + data</p>
+        </div>
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">isolate</p>
+          <p class="text-xs text-green-400 mt-0.5">cascading + deps</p>
+        </div>
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">throttle</p>
+          <p class="text-xs text-green-400 mt-0.5">load + traffic</p>
+        </div>
+        <div class="bg-green-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-green-200">fallback</p>
+          <p class="text-xs text-green-400 mt-0.5">deps + deploy</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-quickref -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

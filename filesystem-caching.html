@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Filesystem Caching (Page Cache, Readahead) — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Filesystem Caching</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Filesystem Caching (Page Cache, Readahead, Writeback)</h1>
+      <p class="text-xs text-gray-400 mt-0.5">How Linux accelerates file I/O, hides disk latency, and batches writes</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">Disks are <strong>thousands to millions of times slower than RAM</strong>. Without caching, every file read would stall waiting for disk I/O. Linux uses filesystem caching as the bridge between fast memory and slow storage.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-center text-xs">
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-2">
+          <p class="font-bold text-violet-700">CPU Cache</p><p class="text-gray-500 mt-1">~1 ns</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-2">
+          <p class="font-bold text-violet-700">DRAM</p><p class="text-gray-500 mt-1">~100 ns</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-2">
+          <p class="font-bold text-violet-700">NVMe SSD</p><p class="text-gray-500 mt-1">~100 µs</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-2">
+          <p class="font-bold text-violet-700">HDD</p><p class="text-gray-500 mt-1">~10 ms</p>
+        </div>
+      </div>
+      <div class="ncode mt-3">Application
+  ↓
+System Calls
+  ↓
+Virtual File System (VFS)
+  ↓
+🔥 Page Cache (RAM)
+  ↓
+Block Layer
+  ↓
+SSD / HDD</div>
+      <div class="nkw mt-3">
+        <span>Page Cache</span>
+        <span>Readahead</span>
+        <span>Writeback</span>
+        <span>Dirty Pages</span>
+        <span>O_DIRECT</span>
+        <span>LRU</span>
+        <span>vm.dirty_ratio</span>
+        <span>Double Buffering</span>
+      </div>
+    </div>
+
+    <!-- Three Mechanisms -->
+    <div class="nc">
+      <p class="nh">Three Caching Mechanisms</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Page Cache</p>
+          <p class="text-xs text-gray-600">Stores recently accessed file pages in RAM. Cache hits serve data at nanosecond latency instead of waiting for disk.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Readahead</p>
+          <p class="text-xs text-gray-600">Detects sequential access and prefetches future pages before the app requests them. Hides storage latency.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Writeback</p>
+          <p class="text-xs text-gray-600">Buffers writes as dirty pages and flushes them in large batches, improving throughput and SSD endurance.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page Cache -->
+    <div class="nc">
+      <p class="nh">Page Cache — Read Path</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-green-700 mb-1">Cache Hit</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Application → read()
+  ↓
+VFS checks Page Cache
+  ↓
+HIT → return data from RAM
+Latency: microseconds</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-red-700 mb-1">Cache Miss</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Application → read()
+  ↓
+VFS checks Page Cache
+  ↓
+MISS → fetch from disk
+Store page in cache
+Return data
+Latency: 100µs – 10ms</div>
+        </div>
+      </div>
+      <p class="ntip">Applications never know whether data came from RAM or disk — VFS is transparent. The goal is to maximize the cache hit ratio for the working set.</p>
+    </div>
+
+    <!-- Write Path & Dirty Pages -->
+    <div class="nc">
+      <p class="nh">Write Path & Dirty Pages</p>
+      <div class="ncode">Application → write()
+  ↓
+Data written to Page Cache (RAM)
+  ↓
+Page marked "dirty"
+  ↓
+write() returns immediately (fast!)
+  ↓
+Background writeback thread
+  ↓
+Dirty pages flushed to disk
+  ↓
+Pages marked "clean"</div>
+      <p class="ntip"><strong>Dirty pages are in RAM but not yet on disk.</strong> A crash before writeback means that data is lost. Use <code>fsync()</code> to force immediate flush when durability is required.</p>
+    </div>
+
+    <!-- Writeback -->
+    <div class="nc">
+      <p class="nh">Writeback — Batching for Throughput</p>
+      <p class="text-sm text-gray-600 mb-2">Instead of one disk write per application write, Linux accumulates dirty pages and flushes in bulk:</p>
+      <div class="ncode">Many small writes (4 KB each)
+  ↓
+Accumulated as dirty pages in RAM
+  ↓
+Writeback thread triggers when:
+  - dirty_background_ratio exceeded
+  - dirty_expire_centisecs elapsed
+  - fsync() called explicitly
+  ↓
+Large sequential write to disk
+  ↓
+Pages marked clean</div>
+      <p class="ntip">Writeback converts random small writes into large sequential writes — dramatically improving SSD endurance (lower WAF) and HDD throughput.</p>
+    </div>
+
+    <!-- Readahead -->
+    <div class="nc">
+      <p class="nh">Readahead — Sequential Prefetch</p>
+      <p class="text-sm text-gray-600 mb-2">The kernel detects sequential access patterns and proactively loads future pages:</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Sequential (Aggressive)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">App reads page 1
+Kernel prefetches 2, 3, 4, 5…
+App reads page 2 → already in RAM
+Kernel increases readahead window
+→ Low latency, high throughput</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Random (Conservative)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">App reads page 1, then 93, then 5…
+Kernel detects non-sequential pattern
+Readahead disabled / reduced
+→ Avoids wasting bandwidth on
+   pages that won't be needed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LRU Eviction -->
+    <div class="nc">
+      <p class="nh">Cache Eviction — LRU</p>
+      <p class="text-sm text-gray-600 mb-2">RAM is finite. The kernel evicts pages using an LRU-like two-list approach:</p>
+      <div class="ncode">Active List   → recently used pages (kept in cache)
+Inactive List → aging pages (candidates for eviction)
+
+Page accessed → promoted to Active List
+Page ignored  → demoted to Inactive List → evicted
+
+vm.vfs_cache_pressure controls how aggressively
+metadata (dentries, inodes) cache is reclaimed vs file data.</div>
+    </div>
+
+    <!-- Page Cache vs O_DIRECT -->
+    <div class="nc">
+      <p class="nh">Page Cache vs Direct I/O (O_DIRECT)</p>
+      <table class="nt">
+        <thead><tr><th>Mode</th><th>Uses Page Cache</th><th>Best For</th></tr></thead>
+        <tbody>
+          <tr><td>Buffered I/O (default)</td><td>Yes</td><td>General apps, file servers, CDN</td></tr>
+          <tr><td><code>O_DIRECT</code></td><td>No — bypasses cache</td><td>Databases with own buffer pool</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode mt-3">Database with own buffer pool (e.g. PostgreSQL):
+
+App → Buffer Pool (DB manages cache)
+  ↓ O_DIRECT
+Disk (bypasses kernel page cache)
+
+Without O_DIRECT:
+  Data cached in DB buffer pool AND kernel page cache
+  → Double buffering wastes RAM</div>
+      <p class="ntip">PostgreSQL, MySQL InnoDB, Oracle all use O_DIRECT for data files to avoid double buffering. WAL files may still use buffered I/O with explicit fsync.</p>
+    </div>
+
+    <!-- Kernel Tunables -->
+    <div class="nc">
+      <p class="nh">Kernel Tunables</p>
+      <table class="nt">
+        <thead><tr><th>Parameter</th><th>Purpose</th><th>Typical Value</th></tr></thead>
+        <tbody>
+          <tr><td><code>vm.dirty_ratio</code></td><td>Max dirty % of RAM before writes block</td><td>20%</td></tr>
+          <tr><td><code>vm.dirty_background_ratio</code></td><td>Trigger background flushing</td><td>10%</td></tr>
+          <tr><td><code>vm.dirty_writeback_centisecs</code></td><td>Flush interval (centiseconds)</td><td>500 (5s)</td></tr>
+          <tr><td><code>vm.dirty_expire_centisecs</code></td><td>Max dirty page age before flush</td><td>3000 (30s)</td></tr>
+          <tr><td><code>read_ahead_kb</code></td><td>Readahead window size per block device</td><td>128–4096 KB</td></tr>
+          <tr><td><code>vm.vfs_cache_pressure</code></td><td>Metadata cache aggressiveness</td><td>100</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode mt-2"># Check current values
+cat /proc/sys/vm/dirty_ratio
+cat /sys/block/nvme0n1/queue/read_ahead_kb
+
+# Tune readahead for streaming
+echo 4096 > /sys/block/nvme0n1/queue/read_ahead_kb
+
+# Reduce dirty ratio for lower write latency variance
+sysctl -w vm.dirty_ratio=10</div>
+    </div>
+
+    <!-- Performance Characteristics -->
+    <div class="nc">
+      <p class="nh">Performance Characteristics by Mechanism</p>
+      <table class="nt">
+        <thead><tr><th>Mechanism</th><th>Improves</th><th>Best Workload</th></tr></thead>
+        <tbody>
+          <tr><td>Page Cache</td><td>Read latency</td><td>General apps, file servers</td></tr>
+          <tr><td>Readahead</td><td>Sequential throughput</td><td>Analytics, Streaming, Spark</td></tr>
+          <tr><td>Writeback</td><td>Write throughput</td><td>Logging, file uploads</td></tr>
+          <tr><td>O_DIRECT</td><td>Memory efficiency</td><td>Databases with buffer pools</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-violet-700">PostgreSQL</p>
+          <p class="text-xs text-gray-600 mt-0.5">Uses its own Buffer Pool + O_DIRECT for data files. WAL uses buffered writes + explicit fsync for group commit. Avoids double buffering with kernel.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Kafka</p>
+          <p class="text-xs text-gray-600 mt-0.5">Sequential append workload. Fully relies on Linux page cache + writeback. Large dirty buffers and readahead improve throughput significantly. Designed around OS caching.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Spark / Analytics</p>
+          <p class="text-xs text-gray-600 mt-0.5">Large sequential scans across HDFS/S3. Benefits from large readahead window (4 MB+) and large page cache to avoid repeated disk I/O.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Nginx (CDN / Static Files)</p>
+          <p class="text-xs text-gray-600 mt-0.5">Frequently accessed static assets stay hot in page cache. Requests served directly from RAM without any disk I/O. High cache hit ratio is critical.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trade-offs -->
+    <div class="nc">
+      <p class="nh">Trade-offs</p>
+      <table class="nt">
+        <thead><tr><th>Optimize For</th><th>Benefit</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td>Large Page Cache</td><td>Lower read latency</td><td>More RAM consumed</td></tr>
+          <tr><td>Large Readahead</td><td>Fast sequential reads</td><td>Wasted I/O on random access</td></tr>
+          <tr><td>High dirty_ratio</td><td>High write throughput</td><td>Longer/larger flush spikes</td></tr>
+          <tr><td>Low dirty_ratio</td><td>Predictable write latency</td><td>More frequent small flushes</td></tr>
+          <tr><td>O_DIRECT</td><td>No double buffering</td><td>App must manage own cache</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">What is the page cache?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Should we use O_DIRECT?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is the workload sequential or random?</li>
+            <li>Is memory the bottleneck (OOM, swapping)?</li>
+            <li>Is latency or throughput the priority?</li>
+            <li>Does the app already manage its own cache (DB buffer pool)?</li>
+            <li>Is writeback causing periodic latency spikes?</li>
+            <li>Is readahead wasting I/O bandwidth on random access?</li>
+            <li>What is the current cache hit ratio?</li>
+            <li>Which kernel tunables need adjustment per workload?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Server Running Out of Memory</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Page cache consuming all available RAM &nbsp;·&nbsp; <strong>Fix:</strong> Tune <code>vm.vfs_cache_pressure</code> or use O_DIRECT for workloads with their own buffer pools</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Database Double Buffering</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> DB buffer pool + kernel page cache both caching same data &nbsp;·&nbsp; <strong>Fix:</strong> Enable O_DIRECT on data files (PostgreSQL: <code>effective_io_concurrency</code>, MySQL InnoDB default)</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Periodic Write Latency Spikes</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Large dirty_ratio → huge flush storm when threshold hit &nbsp;·&nbsp; <strong>Fix:</strong> Reduce <code>vm.dirty_ratio</code> for smoother, more frequent smaller flushes</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Sequential Reads</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Default readahead too small for analytics workload &nbsp;·&nbsp; <strong>Fix:</strong> Increase <code>read_ahead_kb</code> on the block device (128 → 4096 KB)</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Poor Cache Hit Ratio</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Working set larger than available RAM &nbsp;·&nbsp; <strong>Fix:</strong> Add RAM, or use tiered caching (Redis for hot data) to reduce pressure on page cache</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Workload</th><th>Recommended Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>General Linux server</td><td>Default page cache (no tuning needed)</td></tr>
+          <tr><td>OLTP Database</td><td>O_DIRECT + DB buffer pool</td></tr>
+          <tr><td>Analytics / Spark</td><td>Large readahead + large page cache</td></tr>
+          <tr><td>Streaming / Kafka</td><td>Large page cache + writeback batching</td></tr>
+          <tr><td>Logging / File writes</td><td>Large dirty_ratio + writeback</td></tr>
+          <tr><td>CDN / Nginx static</td><td>Maximize page cache; tune cache pressure down</td></tr>
+          <tr><td>Memory-constrained</td><td>Reduce dirty_ratio, increase cache pressure</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Linux filesystem caching = Page Cache + Readahead + Writeback
+
+Page Cache:
+  File pages cached in RAM after first read
+  Subsequent reads from RAM (µs vs ms)
+  Kernel manages LRU eviction transparently
+
+Writeback:
+  write() returns immediately → page marked dirty
+  Background thread flushes in large batches
+  Improves throughput; reduces SSD WAF
+  Crash before flush = data loss (use fsync for durability)
+
+Readahead:
+  Sequential access → kernel prefetches ahead
+  Random access → prefetching reduced/disabled
+  Tune read_ahead_kb per block device
+
+O_DIRECT:
+  Bypasses page cache entirely
+  Used by databases to avoid double buffering
+  App must manage its own buffer pool
+
+Key kernel tunables:
+  vm.dirty_ratio            (default 20%) → flush threshold
+  vm.dirty_background_ratio (default 10%) → background flush trigger
+  read_ahead_kb             (default 128)  → prefetch window
+  vm.vfs_cache_pressure     (default 100)  → metadata eviction
+
+Monitor:
+  /proc/meminfo (Cached, Dirty, Writeback)
+  iostat -x (cache hit ratio via r/s vs rMB/s)
+  vmstat (bi/bo for block I/O rates)</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/30d86d8c-6803-424d-8199-d5931060bb1a.png"
+        alt="Filesystem Caching Page Cache Readahead visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Latency and Performance Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#3f3f46; border-bottom-color:#3f3f46; }
+    .tab-btn:hover:not(.active) { color:#09090b; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#f4f4f5; border:1px solid #d4d4d8; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#3f3f46; margin-bottom:.6rem; }
+    .ncode{ background:#09090b; color:#d4d4d8; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #d4d4d8; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#27272a; color:#d4d4d8; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #e4e4e7;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f4f4f5; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#3f3f46; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#27272a; color:#d4d4d8; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #e4e4e7; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#18181b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-zinc-700 hover:text-zinc-900 font-semibold
+              bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-zinc-800 font-semibold">Latency and Performance Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Latency and Performance Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 36 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Latency Failures Are the Hardest to Debug</p>
+      <div class="ncode">System is UP and returning correct results — but too slowly to be usable
+No error rate alert fires. Users just abandon. Business metric drops silently.
+
+Latency failures hide behind: P50 looking fine while P99 is 10x higher
+Root causes live in: tail requests / queuing / GC / cold paths / resource contention</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Tail Latency / P99 Failures</td></tr>
+          <tr>
+            <td>Long Tail Request Accumulation<span class="badge-crit">Must Know</span></td>
+            <td>Small percentage of requests hit slow code paths (GC, cold cache, lock wait) — P99 diverges from P50</td>
+            <td>P99 / P999 much higher than P50 in latency histogram; P50 looks healthy</td>
+            <td>Hedged requests — send duplicate to second replica if no response within threshold</td>
+            <td>Reduce tail causes: GC tuning, cache warm-up, lock contention reduction</td>
+            <td class="casc">Timeout amplification — slow 1% requests block threads, reducing throughput for everyone</td>
+            <td class="troff">Hedged requests double backend load for slow-request percentile</td>
+          </tr>
+          <tr>
+            <td>P99 Amplification in Fan-Out<span class="badge-crit">Must Know</span></td>
+            <td>Request calls 10 services in parallel — P99 of result is the MAX P99 of all 10</td>
+            <td>End-to-end latency much higher than any individual service latency</td>
+            <td>Bounded timeout on fan-out, return partial results if some shards slow</td>
+            <td>Reduce fan-out degree, parallel scatter-gather with strict per-shard deadline</td>
+            <td class="casc">Fan-out latency grows with shard count — adding shards makes P99 worse</td>
+            <td class="troff">Partial results require clients to handle incomplete responses</td>
+          </tr>
+          <tr>
+            <td>Head-of-Line Blocking<span class="badge-crit">Must Know</span></td>
+            <td>One slow request at head of a single-connection queue blocks all requests behind it</td>
+            <td>High latency on requests that follow a slow one on same connection</td>
+            <td>Multiplex requests over many connections, use HTTP/2 or gRPC streaming</td>
+            <td>Connection pooling with many connections, HTTP/2 multiplexing, async request handling</td>
+            <td class="casc">All requests on that connection experience slow-request latency, not just one</td>
+            <td class="troff">Many parallel connections increase memory and connection-management overhead</td>
+          </tr>
+          <tr>
+            <td>Tail Latency from Resource Contention</td>
+            <td>CPU scheduling or lock wait adds variable latency to requests competing for same resource</td>
+            <td>Latency variance high (stddev large), no clear single root cause in traces</td>
+            <td>Reduce contention: partition data, use lock-free structures</td>
+            <td>CPU affinity for latency-sensitive threads, lock-free data structures, work stealing</td>
+            <td class="casc">Latency spikes cascade when slow requests pile up and fill thread pools</td>
+            <td class="troff">CPU affinity reduces scheduler flexibility and may underutilise cores</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Database and Query Latency</td></tr>
+          <tr>
+            <td>Missing Index Full Table Scan<span class="badge-crit">Must Know</span></td>
+            <td>Query on un-indexed column forces sequential scan of entire table as data grows</td>
+            <td>Slow query log, query plan shows Seq Scan, latency grows with row count</td>
+            <td>Add index immediately (use CONCURRENTLY in Postgres to avoid lock)</td>
+            <td>Index all query predicates, EXPLAIN ANALYZE in CI for new queries</td>
+            <td class="casc">DB CPU 100% from scans → all queries slow → application-wide latency spike</td>
+            <td class="troff">Indexes consume storage and add write overhead to every INSERT/UPDATE</td>
+          </tr>
+          <tr>
+            <td>Lock Contention Query Wait<span class="badge-crit">Must Know</span></td>
+            <td>Long-running transaction holds row/table lock — all queries on same rows queue behind it</td>
+            <td>Lock wait metric spike, queries show "lock wait" in pg_stat_activity</td>
+            <td>Kill long-running transaction, apply query timeout</td>
+            <td>Short transactions, statement timeout, avoid user-interactive transactions</td>
+            <td class="casc">All concurrent queries on that row set delayed — throughput collapses</td>
+            <td class="troff">Aggressive lock timeouts may abort valid long analytical queries</td>
+          </tr>
+          <tr>
+            <td>N+1 Query Problem<span class="badge-crit">Must Know</span></td>
+            <td>ORM or application code issues one query per item in a list — 1 request triggers N+1 DB calls</td>
+            <td>DB QPS much higher than application RPS; trace shows N sequential queries</td>
+            <td>Rewrite with batch query or JOIN; add DataLoader pattern</td>
+            <td>ORM lazy-loading audit, query count assertion in tests, DataLoader for GraphQL</td>
+            <td class="casc">DB connection pool exhaustion as N grows — each API request drains N pool slots</td>
+            <td class="troff">Eager loading fetches more data than needed; JOIN complexity grows with schema</td>
+          </tr>
+          <tr>
+            <td>Query Planner Wrong Plan</td>
+            <td>Statistics stale — query planner chooses sequential scan over index on large table</td>
+            <td>Sudden latency regression without schema change; EXPLAIN shows unexpected plan</td>
+            <td>Run ANALYZE to refresh statistics; add query hint if supported</td>
+            <td>Autovacuum/autoanalyze tuning, statistics target increase for skewed columns</td>
+            <td class="casc">All queries using that table degrade simultaneously — looks like data volume regression</td>
+            <td class="troff">Query hints tie application to specific DB version behaviour</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — GC and Runtime Pauses</td></tr>
+          <tr>
+            <td>Stop-the-World GC Pause<span class="badge-crit">Must Know</span></td>
+            <td>JVM full GC triggered — all application threads pause for tens to hundreds of milliseconds</td>
+            <td>Latency spike aligned with GC log events, P99 spike without error rate increase</td>
+            <td>Tune GC (switch to G1GC/ZGC), reduce allocation rate</td>
+            <td>G1GC or ZGC with tuned region size, heap at 50-60% of available RAM</td>
+            <td class="casc">Client timeouts during pause trigger retries — post-GC overload spike</td>
+            <td class="troff">ZGC uses more memory for concurrent GC bookkeeping; tuning GC requires expertise</td>
+          </tr>
+          <tr>
+            <td>GC Pressure from Large Heap<span class="badge-crit">Must Know</span></td>
+            <td>Heap too large — GC takes longer to scan, pause duration grows with heap size</td>
+            <td>GC pause duration growing over time, heap fragmentation increasing</td>
+            <td>Reduce heap size, move large objects to off-heap storage</td>
+            <td>Cap heap at 31 GB (compressed oops threshold), use off-heap for caches (Chronicle Map)</td>
+            <td class="casc">Progressively longer pauses lead to client timeouts → retry storms</td>
+            <td class="troff">Off-heap storage bypasses GC but requires manual memory management</td>
+          </tr>
+          <tr>
+            <td>JIT Compilation Cold Path Latency</td>
+            <td>Newly deployed code not yet JIT-compiled — interpreter runs until hot path detected</td>
+            <td>Latency higher immediately after deploy, normalises after minutes of traffic</td>
+            <td>Warm up with synthetic traffic before routing real users post-deploy</td>
+            <td>JVM warm-up in deploy pipeline, AOT compilation (GraalVM native image)</td>
+            <td class="casc">First real users post-deploy experience slow responses — bad deploy impression</td>
+            <td class="troff">Synthetic warm-up adds deploy time; GraalVM native image has longer build time</td>
+          </tr>
+          <tr>
+            <td>Python GIL Contention</td>
+            <td>CPU-bound threads in Python compete for Global Interpreter Lock — concurrency serialised</td>
+            <td>CPU-bound tasks slow despite multiple cores, profiler shows GIL wait time</td>
+            <td>Move CPU-bound work to separate processes (multiprocessing), use C extensions</td>
+            <td>Async IO for IO-bound work, multiprocessing for CPU-bound, consider compiled alternatives</td>
+            <td class="casc">Single-threaded bottleneck — throughput cap hit regardless of core count</td>
+            <td class="troff">Multiprocessing adds IPC overhead and higher memory footprint per worker</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Network and I/O Latency</td></tr>
+          <tr>
+            <td>TCP Connection Setup Overhead<span class="badge-crit">Must Know</span></td>
+            <td>New TCP connection per request — SYN/ACK round trip adds 1+ RTT to every request</td>
+            <td>Latency correlated with new connection rate, connection setup visible in traces</td>
+            <td>Enable connection keep-alive, use connection pool</td>
+            <td>HTTP keep-alive, connection pooling, HTTP/2 multiplexing over single connection</td>
+            <td class="casc">Reconnect storm on restart floods server with SYN packets, exhausting accept queue</td>
+            <td class="troff">Persistent connections hold server resources for idle clients</td>
+          </tr>
+          <tr>
+            <td>Non-Sequential Disk I/O Seek Latency</td>
+            <td>Random read access pattern on spinning disk — each seek adds ms of latency</td>
+            <td>High disk latency with low throughput, iowait metric elevated</td>
+            <td>Add read cache layer, switch to SSD for random-access workloads</td>
+            <td>SSD for databases, sequential write patterns (LSM-tree), OS page cache tuning</td>
+            <td class="casc">Query latency grows with data volume — each additional row adds seek overhead</td>
+            <td class="troff">SSD has higher cost per GB and finite write endurance</td>
+          </tr>
+          <tr>
+            <td>DNS Resolution on Every Request</td>
+            <td>DNS TTL too short or cache disabled — each API call triggers a DNS lookup adding RTT</td>
+            <td>Latency spike correlated with DNS lookup time, DNS queries much higher than request rate</td>
+            <td>Enable DNS caching at client, increase TTL</td>
+            <td>DNS caching (ndots config, resolv.conf), service discovery via sidecar (Envoy)</td>
+            <td class="casc">DNS server overload if all services do uncached resolution at scale</td>
+            <td class="troff">Longer DNS TTL means slower failover when IP address of endpoint changes</td>
+          </tr>
+          <tr>
+            <td>Cross-AZ Network Latency</td>
+            <td>Service and its dependency in different AZs — every call adds 1-3ms cross-AZ RTT</td>
+            <td>Latency higher than expected for same-region calls, AZ routing visible in traces</td>
+            <td>Co-locate service and dependency in same AZ where possible</td>
+            <td>AZ-aware routing (prefer local AZ replica), Topology Aware Routing in Kubernetes</td>
+            <td class="casc">Cross-AZ latency multiplied by number of hops — microservice chains become very slow</td>
+            <td class="troff">AZ affinity reduces cross-AZ traffic cost but creates load imbalance during AZ failure</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Cold Start and Warm-Up Latency</td></tr>
+          <tr>
+            <td>Container / JVM Cold Start<span class="badge-crit">Must Know</span></td>
+            <td>New instance started — JVM startup, Spring context load, class loading all add seconds before ready</td>
+            <td>First requests to new instance much slower, readiness probe slow to pass</td>
+            <td>Pre-warm with health check traffic before adding to LB pool</td>
+            <td>Smaller container images, GraalVM native for instant startup, pre-warming in deploy</td>
+            <td class="casc">Slow scaling — new instances take too long to be useful during traffic spike</td>
+            <td class="troff">Native image compilation has longer build time and loses JIT optimisation at runtime</td>
+          </tr>
+          <tr>
+            <td>Connection Pool Cold Start</td>
+            <td>New service instance starts with empty connection pool — first requests create connections, adding latency</td>
+            <td>Latency spike for first N requests to new instance (N = pool size)</td>
+            <td>Pre-establish connections on startup before serving traffic</td>
+            <td>Pool pre-warming in startup hook, min pool size = target concurrent requests</td>
+            <td class="casc">Slow autoscale — new instances take seconds to be effective at absorbing load</td>
+            <td class="troff">Pre-warming holds connections that may not be needed if scale-out was unnecessary</td>
+          </tr>
+          <tr>
+            <td>Cache Cold Start After Deploy</td>
+            <td>Deploy flushes or replaces cache — all traffic misses until cache refills</td>
+            <td>Cache hit ratio at 0% post-deploy, backend load spike</td>
+            <td>Pre-warm cache before shifting traffic, use versioned keys to avoid full flush</td>
+            <td>Versioned cache keys (old and new coexist during deploy), pre-warm step in deploy pipeline</td>
+            <td class="casc">Backend overload on every deploy — DB or origin gets full traffic until cache warms</td>
+            <td class="troff">Versioned keys double cache storage during the deployment transition window</td>
+          </tr>
+          <tr>
+            <td>Serverless / Lambda Cold Start</td>
+            <td>Lambda not invoked recently — container spun up fresh, adding 500ms-2s before first response</td>
+            <td>Bimodal latency distribution — fast warm invocations and slow cold start invocations</td>
+            <td>Provisioned concurrency (keep containers warm), async invocation for tolerant paths</td>
+            <td>Provisioned concurrency for latency-sensitive functions, keep-alive pings</td>
+            <td class="casc">Burst traffic triggers many cold starts simultaneously — P99 spikes sharply</td>
+            <td class="troff">Provisioned concurrency adds cost even when functions are idle</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Resource Contention Latency</td></tr>
+          <tr>
+            <td>Noisy Neighbour CPU Steal<span class="badge-crit">Must Know</span></td>
+            <td>Shared hypervisor — another VM bursting consumes CPU cycles allocated to this VM</td>
+            <td>%steal CPU metric elevated, latency increases without application-level explanation</td>
+            <td>Move to dedicated/bare-metal instance, isolate CPU with cgroups</td>
+            <td>CPU-pinned instances, dedicated hosts for latency-sensitive workloads</td>
+            <td class="casc">Unpredictable latency spikes — P99 becomes non-deterministic, SLO breached randomly</td>
+            <td class="troff">Dedicated hosts eliminate sharing efficiency and significantly increase cost</td>
+          </tr>
+          <tr>
+            <td>Memory Bandwidth Saturation</td>
+            <td>Working set too large for L3 cache — memory bus saturated, all memory accesses slow</td>
+            <td>Cache miss rate high in CPU perf counters, latency grows with memory access frequency</td>
+            <td>Reduce working set size, improve data locality, compress in-memory data</td>
+            <td>Data structure alignment, cache-friendly access patterns, working set fits in L3</td>
+            <td class="casc">All threads slow simultaneously — memory bus is shared, so saturation affects all</td>
+            <td class="troff">Compression reduces working set but adds CPU overhead per access</td>
+          </tr>
+          <tr>
+            <td>Disk I/O Contention Between Processes</td>
+            <td>Compaction, backup, or logging competing with query I/O on same disk</td>
+            <td>iowait spike, query latency growing during backup/compaction window</td>
+            <td>Throttle background I/O (ionice), schedule heavy I/O in low-traffic windows</td>
+            <td>Separate disks for WAL vs data vs compaction, I/O rate limiting for background tasks</td>
+            <td class="casc">Query latency spike during backups — production SLO breached on schedule</td>
+            <td class="troff">Separate disks increase hardware cost and operational complexity</td>
+          </tr>
+          <tr>
+            <td>Mutex / Lock Wait Latency</td>
+            <td>High concurrency on shared data structure — threads queue waiting for lock</td>
+            <td>Thread profiler shows lock wait dominating CPU, throughput plateaus under concurrency</td>
+            <td>Reduce lock scope, shard the data structure, switch to lock-free</td>
+            <td>Partitioned data structures, lock-free algorithms (CAS), read-write lock separation</td>
+            <td class="casc">Throughput ceiling — adding more threads makes it worse as lock contention grows</td>
+            <td class="troff">Lock-free algorithms are harder to implement and reason about correctness</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Serialization and Computation Latency</td></tr>
+          <tr>
+            <td>Expensive JSON Serialization<span class="badge-crit">Must Know</span></td>
+            <td>Large or deeply nested JSON response — CPU time for serialization dominates request handling</td>
+            <td>CPU spike without complex business logic in profiles, serialization visible in flame graph</td>
+            <td>Apply response field filtering (sparse fieldsets), switch to binary protocol</td>
+            <td>Protobuf/MessagePack for high-throughput APIs, response size limits, field projection</td>
+            <td class="casc">CPU saturation — serialization hogs cores, reducing throughput for all requests</td>
+            <td class="troff">Binary protocols lose human readability and require schema management</td>
+          </tr>
+          <tr>
+            <td>O(n^2) or Worse Algorithm</td>
+            <td>Nested loop or quadratic sort on growing data — latency grows faster than data size</td>
+            <td>Latency grows super-linearly with input size in load tests</td>
+            <td>Impose input size limit immediately, replace algorithm</td>
+            <td>Algorithmic complexity analysis in code review, load tests with realistic data sizes</td>
+            <td class="casc">Latency explosion — O(n^2) on user-controlled n allows latency DoS attack</td>
+            <td class="troff">Optimal algorithms are often more complex to implement and maintain</td>
+          </tr>
+          <tr>
+            <td>Synchronous Block in Async Context</td>
+            <td>Blocking I/O or Thread.sleep called inside async event loop — event loop thread stalls</td>
+            <td>Event loop thread blocked, all other async tasks on that loop frozen</td>
+            <td>Move blocking call to separate thread pool, use async equivalent</td>
+            <td>Async code linting (asyncio.sleep not time.sleep), blocking detector in testing</td>
+            <td class="casc">All requests on that event loop frozen while block runs — latency spike for all</td>
+            <td class="troff">Offloading to thread pools adds context switch overhead</td>
+          </tr>
+          <tr>
+            <td>Excessive Object Allocation / GC Pressure</td>
+            <td>Hot path allocates many short-lived objects — GC runs frequently to reclaim</td>
+            <td>High GC frequency in metrics, allocation rate high in profiler</td>
+            <td>Object pooling, reduce allocations in hot path</td>
+            <td>Allocation profiling in staging, object reuse patterns, value types where available</td>
+            <td class="casc">GC frequency grows with traffic — latency degrades proportionally to load</td>
+            <td class="troff">Object pooling adds complexity and risk of pool exhaustion under burst</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Queueing and Backpressure Latency</td></tr>
+          <tr>
+            <td>Queue Depth Latency (Little's Law)<span class="badge-crit">Must Know</span></td>
+            <td>Arrival rate slightly exceeds processing rate — queue grows, latency = queue_depth / throughput</td>
+            <td>Latency growing steadily as queue depth increases even though throughput looks healthy</td>
+            <td>Scale processors, reduce arrival rate, apply backpressure to sender</td>
+            <td>Process faster than arrival rate with buffer, model with Little's Law before capacity planning</td>
+            <td class="casc">Latency grows unboundedly — small over-capacity leads to seconds of latency</td>
+            <td class="troff">Excess processing capacity wastes resources when queue is empty</td>
+          </tr>
+          <tr>
+            <td>Head-of-Queue Blocking</td>
+            <td>One slow job at head of work queue blocks all subsequent jobs even if they are fast</td>
+            <td>Most jobs complete fast but P99 matches the slowest job in the queue</td>
+            <td>Priority queue — fast jobs can bypass slow ones</td>
+            <td>Multiple priority queues, job size estimation with admission control</td>
+            <td class="casc">Fast urgent tasks experience same latency as slow batch jobs</td>
+            <td class="troff">Priority queues can starve low-priority jobs under sustained high-priority load</td>
+          </tr>
+          <tr>
+            <td>Slow Consumer Backpressure Latency</td>
+            <td>Slow downstream consumer propagates backpressure upstream — producers stall waiting to write</td>
+            <td>Producer latency growing, downstream consumer visible as bottleneck in traces</td>
+            <td>Decouple via async queue, increase consumer throughput</td>
+            <td>Reactive backpressure (Project Reactor), async queue between producer and consumer</td>
+            <td class="casc">Backpressure propagates all the way upstream — entire pipeline latency grows</td>
+            <td class="troff">Async queue decoupling introduces at-least-once delivery complexity</td>
+          </tr>
+          <tr>
+            <td>Thundering Herd Post-Queue Drain</td>
+            <td>Large backlog drains simultaneously — downstream suddenly receives huge burst</td>
+            <td>Latency spike on downstream immediately after backlog clears</td>
+            <td>Rate-limit drain speed, introduce controlled release of queued work</td>
+            <td>Token bucket release from queue, gradual drain rather than burst drain</td>
+            <td class="casc">Downstream overloaded by drain burst — may trigger cascading failure in downstream</td>
+            <td class="troff">Rate-limited drain means backlog takes longer to clear during recovery</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Cross-Service and Dependency Latency</td></tr>
+          <tr>
+            <td>Synchronous Fan-Out Latency<span class="badge-crit">Must Know</span></td>
+            <td>Service calls N dependencies in sequence — total latency is sum of all, not max</td>
+            <td>End-to-end latency much higher than any single dependency</td>
+            <td>Parallelise independent calls, apply scatter-gather pattern</td>
+            <td>Parallel fan-out with bounded timeout, identify and eliminate sequential dependency chains</td>
+            <td class="casc">Sequential latency adds — each added dependency makes the chain worse</td>
+            <td class="troff">Parallel fan-out increases peak load on dependencies simultaneously</td>
+          </tr>
+          <tr>
+            <td>Chatty API Round-Trip Latency<span class="badge-crit">Must Know</span></td>
+            <td>Client makes many small requests instead of one batch — each RTT adds network latency</td>
+            <td>Many small requests visible in traces, latency = N × RTT even for simple operations</td>
+            <td>Batch requests, aggregate on server side, use bulk endpoints</td>
+            <td>Chunky API design (not chatty), batch endpoints, GraphQL for flexible field selection</td>
+            <td class="casc">Latency grows with N round trips — mobile clients on high-latency links most affected</td>
+            <td class="troff">Batch endpoints are less flexible and harder to cache at individual-item granularity</td>
+          </tr>
+          <tr>
+            <td>Slow Dependency Without Timeout</td>
+            <td>Downstream dependency slow but reachable — calling service waits indefinitely</td>
+            <td>Latency growing on calling service, dependency trace shows slow response time</td>
+            <td>Apply per-dependency timeout immediately, fail fast</td>
+            <td>Timeout on every downstream call, circuit breaker for persistent slow dependency</td>
+            <td class="casc">Thread pool of caller fills with waiting threads — all endpoints of caller become slow</td>
+            <td class="troff">Tight timeout may fail valid slow-but-correct operations on the dependency</td>
+          </tr>
+          <tr>
+            <td>Service Mesh / Sidecar Overhead</td>
+            <td>Envoy/Linkerd sidecar adds per-request overhead — latency increases for every service call</td>
+            <td>Latency regression after service mesh introduction, sidecar CPU visible in profiles</td>
+            <td>Tune sidecar worker threads, enable gRPC multiplexing to reduce connections</td>
+            <td>Benchmark service mesh overhead before adopting, tune worker thread count and connection reuse</td>
+            <td class="casc">Overhead multiplied by number of hops — deep microservice chains accumulate ms per hop</td>
+            <td class="troff">Service mesh adds critical observability and security — cannot simply remove it</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Latency Failures for Interviews</p>
+      <div class="ncode"> 1. P99 fan-out amplification → parallel scatter-gather + bounded per-shard timeout
+ 2. Head-of-line blocking    → HTTP/2 multiplexing + connection pooling
+ 3. Missing DB index         → EXPLAIN ANALYZE + index all query predicates
+ 4. N+1 query problem        → batch query / JOIN + DataLoader pattern
+ 5. Stop-the-world GC        → G1GC/ZGC + heap cap at 31 GB + reduce allocation
+ 6. Cold start latency       → pre-warm + provisioned concurrency + native image
+ 7. Noisy neighbour steal    → dedicated hosts / CPU pinning for latency-sensitive
+ 8. Queue depth latency      → Little's Law + scale processors + backpressure
+ 9. Sequential fan-out       → parallelise independent calls + scatter-gather
+10. Slow dep without timeout → timeout on every call + circuit breaker</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Latency Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. P99 vs P50 diverging?        → tail causes: GC / lock / cold path / fan-out
+2. Latency grows with load?    → queuing / Little's Law / connection pool saturation
+3. Latency grows with data?    → missing index / O(n^2) / scan instead of seek
+4. Latency spikes periodically? → GC pause / disk flush / scheduled backup I/O
+5. Latency after deploy?       → cold start / cache cold / JIT warm-up
+6. Cross-service slower?       → sequential vs parallel / RTT per hop / sidecar overhead
+7. Unpredictable latency?      → noisy neighbour / resource contention / GC non-determinism
+8. Fan-out latency high?       → max(P99_all_shards) / reduce shard count / hedged requests
+9. Client timeout mismatch?    → server timeout must be shorter than client timeout</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Latency Categories and Their Root Causes at a Glance</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Latency Pattern</th><th>Most Likely Root Cause</th><th>First Check</th></tr></thead>
+        <tbody>
+          <tr><td>P99 >> P50</td><td>GC pause / lock contention / cold cache miss</td><td>GC log + lock wait metrics</td></tr>
+          <tr><td>Grows with load</td><td>Queuing (Little's Law) / pool saturation</td><td>Thread/connection pool utilisation</td></tr>
+          <tr><td>Grows with data</td><td>Missing index / O(n^2) / full table scan</td><td>EXPLAIN ANALYZE + row count</td></tr>
+          <tr><td>Periodic spikes</td><td>GC / scheduled backup / compaction / flush</td><td>Correlate with GC log and cron schedule</td></tr>
+          <tr><td>After deploy only</td><td>Cold start / cache cold / JIT warm-up</td><td>Timeline vs deployment timestamp</td></tr>
+          <tr><td>Cross-service only</td><td>Sequential fan-out / RTT / sidecar / DNS</td><td>Distributed trace — find sequential hops</td></tr>
+          <tr><td>Random unpredictable</td><td>Noisy neighbour / lock contention</td><td>CPU steal metric + lock profiler</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Latency Failures Reduce to 4 States</p>
+      <div class="ncode">1. Compute slow   → GC / CPU steal / O(n^2) / serde overhead
+2. I/O slow      → missing index / disk seek / non-sequential / no cache
+3. Waiting       → lock / queue / HOL blocking / slow dep without timeout
+4. Cold          → JIT / connection pool / cache / serverless cold start
+
+The most insidious: system looks healthy (no errors, P50 fine)
+  while P99 is 10x higher and users are silently abandoning</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#09090b;border:1px solid #27272a;">
+      <p class="text-xs font-bold text-zinc-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-zinc-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-zinc-200">Measure P99</p>
+          <p class="text-xs text-zinc-400 mt-0.5">Not P50. Tail is where users hurt.</p>
+        </div>
+        <div class="bg-zinc-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-zinc-200">Parallel fan-out</p>
+          <p class="text-xs text-zinc-400 mt-0.5">Max not sum. Bounded per-shard timeout.</p>
+        </div>
+        <div class="bg-zinc-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-zinc-200">Timeout every call</p>
+          <p class="text-xs text-zinc-400 mt-0.5">Server timeout &lt; client timeout always.</p>
+        </div>
+        <div class="bg-zinc-800 rounded-xl p-3">
+          <p class="text-xs font-bold text-zinc-200">Pre-warm</p>
+          <p class="text-xs text-zinc-400 mt-0.5">JIT + pool + cache before traffic arrives.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

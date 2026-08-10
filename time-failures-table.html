@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Time and Scheduling Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#1e40af; border-bottom-color:#1e40af; }
+    .tab-btn:hover:not(.active) { color:#0f172a; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#eff6ff; border:1px solid #93c5fd; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#1e40af; margin-bottom:.6rem; }
+    .ncode{ background:#0f172a; color:#bfdbfe; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #93c5fd; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#1e3a8a; color:#bfdbfe; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #dbeafe;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#eff6ff; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#1e40af; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#1e3a8a; color:#bfdbfe; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #dbeafe; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e3a8a; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-blue-900 hover:text-blue-950 font-semibold
+              bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-blue-900 font-semibold">Time and Scheduling Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0114 0z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Time and Scheduling Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 36 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Time Failures Are the Most Subtle Failure Class</p>
+      <div class="ncode">Time is the hidden dependency of every distributed system.
+Every node has its own clock. Every clock drifts. Every timezone has edge cases.
+
+Time failures are dangerous because:
+  1. They are often invisible — no error is thrown, just wrong behaviour
+  2. They are intermittent — DST transitions and leap seconds only hit once
+  3. They are hard to reproduce in testing — you cannot easily advance system clocks</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Clock Synchronisation Failures</td></tr>
+          <tr>
+            <td>NTP Failure / Clock Drift<span class="badge-crit">Must Know</span></td>
+            <td>NTP server unreachable or misconfigured — node clock drifts from wall clock over time</td>
+            <td>Clock skew monitoring alert, distributed trace timestamps out of sequence</td>
+            <td>Force NTP sync (ntpdate), restart NTP service</td>
+            <td>Redundant NTP sources, clock skew monitoring alert, chrony preferred over ntpd</td>
+            <td class="casc">Distributed ordering broken — events appear to arrive before they were sent</td>
+            <td class="troff">More frequent NTP sync adds network traffic; chrony uses slewing which is slow to correct large drift</td>
+          </tr>
+          <tr>
+            <td>Clock Skew Causing Event Reordering<span class="badge-crit">Must Know</span></td>
+            <td>Two nodes have different clock values — events timestamped on each appear out of order to consumers</td>
+            <td>Events in stream arriving with timestamps earlier than previous events from other nodes</td>
+            <td>Use logical clocks (Lamport / HLC) for ordering instead of wall clock</td>
+            <td>Lamport timestamps or Hybrid Logical Clocks for event ordering, never rely on wall clock for causality</td>
+            <td class="casc">Incorrect event ordering leads to wrong stream processing results, corrupted state</td>
+            <td class="troff">Logical clocks add metadata overhead per event and require understanding of causal ordering</td>
+          </tr>
+          <tr>
+            <td>VM / Container Clock Drift After Migration</td>
+            <td>VM live-migrated or container suspended/resumed — clock pauses but real time advances</td>
+            <td>Clock jumps forward at resume, timestamps suddenly far ahead of expected</td>
+            <td>Force NTP sync immediately on resume, use monotonic clocks for intervals</td>
+            <td>Hypervisor clock sync on resume, monotonic clock for all interval measurements</td>
+            <td class="casc">All time-based logic (TTL, lease, session) jumps forward — immediate expiry storm</td>
+            <td class="troff">Hypervisor sync requires guest OS cooperation and introduces a sync latency window</td>
+          </tr>
+          <tr>
+            <td>Leap Second Bug</td>
+            <td>UTC leap second inserted — some systems add extra second, others do not — 1 second skew</td>
+            <td>Errors on systems that hit leap second handling bug (often at midnight UTC June/December 30)</td>
+            <td>Leap smearing via NTP as workaround, restart affected services</td>
+            <td>Use leap smearing NTP servers (Google/AWS), test leap second handling in staging</td>
+            <td class="casc">Consensus failures — nodes disagree by 1 second on event ordering at epoch boundary</td>
+            <td class="troff">Leap smearing means time does not precisely match UTC during the smear window</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Timezone and DST Bugs</td></tr>
+          <tr>
+            <td>Local Timezone Stored Instead of UTC<span class="badge-crit">Must Know</span></td>
+            <td>Application stores timestamps in server local timezone — after timezone change, all historical times wrong</td>
+            <td>Data anomalies after server timezone change, times off by UTC offset</td>
+            <td>Migrate stored timestamps to UTC, standardise all code to output UTC</td>
+            <td>Always store UTC, always convert to local timezone at display layer only</td>
+            <td class="casc">All time-based queries, reports, and SLAs compute incorrectly after timezone change</td>
+            <td class="troff">UTC-everywhere requires discipline across all teams and is harder to debug locally</td>
+          </tr>
+          <tr>
+            <td>DST Transition Duplicate / Missing Hour<span class="badge-crit">Must Know</span></td>
+            <td>Clocks go back 1 hour — 1am to 2am occurs twice; cron jobs run twice or appointment times ambiguous</td>
+            <td>Duplicate job executions at DST fall-back, double-billing or duplicate records</td>
+            <td>Deduplicate by idempotency key, treat duplicate execution as expected</td>
+            <td>Store and schedule in UTC, convert to local timezone for display only, idempotent job design</td>
+            <td class="casc">Duplicate financial transactions, duplicate notifications, duplicate state changes</td>
+            <td class="troff">UTC scheduling correctly handles DST but breaks user expectations for "run at 2am local"</td>
+          </tr>
+          <tr>
+            <td>Timezone-Aware vs Naive Datetime Comparison</td>
+            <td>Code compares timezone-aware datetime with naive datetime — runtime error or silent wrong comparison</td>
+            <td>TypeError in Python, unexpected comparison results, wrong date calculations</td>
+            <td>Add explicit timezone to all naive datetimes, fix comparison</td>
+            <td>Type enforcement (pytz / Joda-Time / java.time), linting to disallow naive datetime construction</td>
+            <td class="casc">Silent wrong results — expiry checks, scheduling, and billing calculations return wrong values</td>
+            <td class="troff">Strict timezone-aware types require more verbose code in all datetime operations</td>
+          </tr>
+          <tr>
+            <td>Multi-Region Log Timestamp Mismatch</td>
+            <td>Services in different regions log with local timezone — correlating logs across regions is impossible</td>
+            <td>Log correlation fails, events appear out of sequence across regions</td>
+            <td>Standardise all log timestamps to UTC immediately</td>
+            <td>Logging framework configured to always output UTC, enforced in log schema</td>
+            <td class="casc">Incident debugging becomes extremely slow — cannot establish causal sequence from logs</td>
+            <td class="troff">UTC logs are less intuitive for developers working in a single local timezone</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Cron and Scheduled Job Failures</td></tr>
+          <tr>
+            <td>Cron Job Silently Never Runs<span class="badge-crit">Must Know</span></td>
+            <td>Cron misconfigured, cron daemon down, or job exits non-zero silently — scheduled work not done</td>
+            <td>Business data not updated (stale reports, unpurged records) — discovered late</td>
+            <td>Run job manually, fix cron configuration</td>
+            <td>Cron monitoring (heartbeat to dead-man switch), alerting on missed job execution</td>
+            <td class="casc">Accumulating backlog or stale data — effect grows silently until business impact detected</td>
+            <td class="troff">Dead-man switch monitoring requires external monitoring infrastructure per job</td>
+          </tr>
+          <tr>
+            <td>Cron Timezone Misconfiguration<span class="badge-crit">Must Know</span></td>
+            <td>Cron expression interpreted in server timezone instead of intended timezone — job runs at wrong time</td>
+            <td>Job runs at unexpected time (e.g. 5am instead of midnight), business reports at wrong schedule</td>
+            <td>Convert cron expression to UTC immediately</td>
+            <td>Always write cron in UTC, document intended local time alongside UTC expression</td>
+            <td class="casc">Financial reports, billing cycles, and batch jobs run at wrong times — downstream process depends on output being ready</td>
+            <td class="troff">UTC cron expressions are non-intuitive when communicating schedule to business stakeholders</td>
+          </tr>
+          <tr>
+            <td>Overlapping Job Executions<span class="badge-crit">Must Know</span></td>
+            <td>Job takes longer than schedule interval — next execution starts before previous finishes</td>
+            <td>Multiple instances of same job running simultaneously, resource contention, data duplication</td>
+            <td>Add distributed lock to prevent concurrent execution</td>
+            <td>Idempotent job design, distributed lock with TTL, single-instance job scheduler</td>
+            <td class="casc">Data corruption or double processing if job is not idempotent</td>
+            <td class="troff">Distributed lock means if previous job is stuck, next execution cannot start</td>
+          </tr>
+          <tr>
+            <td>Duplicate Cron Across Multiple Instances</td>
+            <td>Application scaled to multiple replicas — cron runs on all replicas simultaneously</td>
+            <td>Job effects appear N times (N = replica count), duplicate records, N× notifications sent</td>
+            <td>Add leader election or distributed lock for cron coordination</td>
+            <td>Single-instance cron coordinator (Kubernetes CronJob), leader-elected cron execution</td>
+            <td class="casc">N× emails sent, N× charges billed, N× records created — proportional to replica count</td>
+            <td class="troff">Single-coordinator cron creates single point of failure for job execution</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — TTL and Expiry Failures</td></tr>
+          <tr>
+            <td>TTL Unit Confusion (ms vs seconds)<span class="badge-crit">Must Know</span></td>
+            <td>Developer passes milliseconds where seconds expected — TTL set to 1000x longer or shorter than intended</td>
+            <td>Cache entries never expire (very long TTL) or expire immediately (too short TTL)</td>
+            <td>Fix TTL value, flush incorrectly-TTL'd entries</td>
+            <td>Named constants for TTL values, unit tests for TTL behaviour, strongly-typed Duration types</td>
+            <td class="casc">Too-short TTL causes cache miss storm on DB; too-long TTL serves stale data indefinitely</td>
+            <td class="troff">Strongly typed Duration requires API changes across call sites</td>
+          </tr>
+          <tr>
+            <td>Distributed Lock TTL Expires Before Work Completes<span class="badge-crit">Must Know</span></td>
+            <td>Lock TTL set too short — another worker acquires lock while first is still working</td>
+            <td>Two workers operating on same resource simultaneously, duplicate or conflicting operations</td>
+            <td>Stop second worker, verify first completed correctly</td>
+            <td>Lock TTL must be 2x maximum expected job duration, lock refresh during long operations</td>
+            <td class="casc">Two concurrent writers corrupt shared resource</td>
+            <td class="troff">Lock refresh requires heartbeat implementation; if refresh fails, lock may be held too long</td>
+          </tr>
+          <tr>
+            <td>Token / Session Expiry During Long Operation</td>
+            <td>User auth token expires mid-operation (file upload, form submission) — operation rejected mid-flight</td>
+            <td>Mid-operation 401 errors, user experience broken at arbitrary point in workflow</td>
+            <td>Refresh token before expiry, retry with fresh token</td>
+            <td>Sliding session expiry, long-lived refresh tokens, token refresh before starting long operations</td>
+            <td class="casc">User loses work in progress — frustration, data loss, support tickets</td>
+            <td class="troff">Sliding expiry keeps tokens alive longer — increased risk window if token is compromised</td>
+          </tr>
+          <tr>
+            <td>Cache TTL Set to Zero / Negative</td>
+            <td>Configuration error sets TTL to 0 or -1 — all cache writes immediately expire</td>
+            <td>Cache hit rate drops to 0%, backend load spikes</td>
+            <td>Fix TTL configuration, flush and rebuild cache</td>
+            <td>TTL validation at startup (reject 0 or negative), alarm on sustained 0% hit rate</td>
+            <td class="casc">Database overload from every request being a cache miss</td>
+            <td class="troff">TTL validation blocks using 0 as an intentional "no cache" signal</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Distributed Event Time Failures</td></tr>
+          <tr>
+            <td>Event Time vs Processing Time Mismatch<span class="badge-crit">Must Know</span></td>
+            <td>Stream processor uses processing time instead of event time — results change based on when events arrive, not when they occurred</td>
+            <td>Results differ between reprocessing and live processing of same events</td>
+            <td>Switch aggregations to event-time windowing with watermarks</td>
+            <td>Always use event-time semantics in stream processing, embed event timestamp in every record</td>
+            <td class="casc">Non-deterministic results — same data produces different output depending on processing time</td>
+            <td class="troff">Event-time processing requires buffering late events, adding latency to results</td>
+          </tr>
+          <tr>
+            <td>Late-Arriving Events After Window Closed<span class="badge-crit">Must Know</span></td>
+            <td>Event arrives after the processing window it belongs to has closed and been emitted — event silently dropped</td>
+            <td>Aggregate counts lower than expected, events in DLQ or late-event metric counter</td>
+            <td>Configure allowed lateness window, reprocess late events into corrections</td>
+            <td>Generous allowed lateness (minutes, not seconds), side output for late events</td>
+            <td class="casc">Incorrect aggregates emitted — downstream consumers act on incomplete counts</td>
+            <td class="troff">Longer allowed lateness delays finalisation of results and increases state memory</td>
+          </tr>
+          <tr>
+            <td>Watermark Too Aggressive — Events Always Late</td>
+            <td>Watermark advances too quickly relative to actual event time distribution — most events classified as late</td>
+            <td>Late-event counter very high, most events going to side output instead of main results</td>
+            <td>Increase watermark slack to match actual event time distribution</td>
+            <td>Profile event time distribution, set watermark = median delay + 2 standard deviations</td>
+            <td class="casc">All aggregation results incomplete — virtually no events processed in-window</td>
+            <td class="troff">Generous watermark slack increases result latency for all windows</td>
+          </tr>
+          <tr>
+            <td>Out-of-Order Event Processing Without Ordering</td>
+            <td>Events processed in arrival order rather than event order — state machine or aggregate is wrong</td>
+            <td>State machine reaches impossible state, aggregate results non-deterministic</td>
+            <td>Apply event-time reordering buffer, sort before processing</td>
+            <td>Partition by entity ID (all events for same entity go to same partition), event-time sorting</td>
+            <td class="casc">Corrupted state — incorrect sequence of operations applied to entity</td>
+            <td class="troff">Sorting adds latency; partitioning by entity limits parallelism for hot entities</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Deadline and Timeout Misconfiguration</td></tr>
+          <tr>
+            <td>Deadline Not Propagated Through Call Chain<span class="badge-crit">Must Know</span></td>
+            <td>Incoming request has 100ms deadline — service makes downstream calls without passing deadline — downstream works for 500ms</td>
+            <td>Caller times out but downstream continues work and commits — phantom writes without a successful response</td>
+            <td>Cancel downstream work when deadline expires</td>
+            <td>Propagate deadlines via context (Go context.Context, gRPC deadline propagation), never start work after deadline</td>
+            <td class="casc">Wasted backend compute + inconsistent state (work done but caller timed out)</td>
+            <td class="troff">Deadline propagation requires explicit handling at every call site</td>
+          </tr>
+          <tr>
+            <td>Lease Expiry During GC Pause<span class="badge-crit">Must Know</span></td>
+            <td>Leader holds lease but GC pause suspends all threads — lease expires, new leader elected while old leader still thinks it is leader</td>
+            <td>Dual leader scenario, conflicting writes detected after GC resumes</td>
+            <td>Fence old leader via epoch/fencing token before accepting any new writes</td>
+            <td>Lease TTL must be 2x maximum expected GC pause, low-pause GC (ZGC) for lease-holders</td>
+            <td class="casc">Split brain — two leaders write to same resource simultaneously</td>
+            <td class="troff">Longer lease TTL means slower detection of truly dead leaders</td>
+          </tr>
+          <tr>
+            <td>Absolute Deadline vs Relative Timeout Confusion</td>
+            <td>Code passes relative timeout (duration) where absolute deadline (timestamp) expected — deadline set in past or far future</td>
+            <td>Requests immediately timing out or never timing out</td>
+            <td>Fix API call to pass correct deadline type</td>
+            <td>Strong types for deadline vs duration (do not use plain integers for both)</td>
+            <td class="casc">All calls on that path fail immediately or never fail — either outage or resource leak</td>
+            <td class="troff">Strongly typed time types require more verbosity at every call site</td>
+          </tr>
+          <tr>
+            <td>Clock Skew Causing Lease Conflict</td>
+            <td>Two nodes have different wall-clock times — a node whose clock is ahead thinks lease is expired when it is not</td>
+            <td>Spurious leader elections, lock contention despite no actual expiry</td>
+            <td>Use monotonic clocks for lease timing, not wall clock</td>
+            <td>Monotonic clock for all lease/timeout measurements, NTP skew monitoring alert</td>
+            <td class="casc">Election storm — repeated spurious elections disrupt cluster coordination</td>
+            <td class="troff">Monotonic clocks cannot be compared across machines — cannot use for cross-node expiry</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Time-Based Data and Retention Failures</td></tr>
+          <tr>
+            <td>Retention Policy Deletes Too Aggressively<span class="badge-crit">Must Know</span></td>
+            <td>Retention misconfigured in wrong unit or wrong value — data deleted before intended expiry</td>
+            <td>Data missing that should still be present, queries return empty where values expected</td>
+            <td>Restore from backup, fix retention policy</td>
+            <td>Retention policy testing with synthetic data, dry-run mode for retention jobs</td>
+            <td class="casc">Compliance violation if deleted data was within legal retention window</td>
+            <td class="troff">Dry-run retention adds operational steps; harder to detect bugs without actually deleting</td>
+          </tr>
+          <tr>
+            <td>Time-Range Query Returns Wrong Results in DST Window</td>
+            <td>Query for "between 1am and 2am" during DST fall-back returns two hours of data instead of one (or zero)</td>
+            <td>Unexpected row counts in DST period, reports show data anomalies twice a year</td>
+            <td>Rewrite query in UTC, re-run affected reports</td>
+            <td>All stored timestamps in UTC, all queries in UTC, timezone conversion at display only</td>
+            <td class="casc">Financial and audit reports wrong twice a year on all systems not using UTC</td>
+            <td class="troff">UTC-only storage makes it harder for business to reason about "business hours" data</td>
+          </tr>
+          <tr>
+            <td>Time-Series Gap from Clock Reset</td>
+            <td>Server clock reset backwards (NTP correction) — metrics timestamped in past, gap or overlap in time series</td>
+            <td>Metric spikes or gaps in monitoring at moment of clock correction</td>
+            <td>Use monotonic counters with reset detection, tolerate gaps in dashboards</td>
+            <td>Use monotonic timestamps for metric collection, detect and handle clock resets in ingestion pipeline</td>
+            <td class="casc">Alert fires for "missing data" during clock correction — false incident triggered</td>
+            <td class="troff">Monotonic metric timestamps cannot be compared across machines without additional metadata</td>
+          </tr>
+          <tr>
+            <td>Partition Pruning Fails Due to Clock Skew</td>
+            <td>Partitioned table uses timestamp column — clock skew means rows land in wrong partition — pruning skips data</td>
+            <td>Queries returning incomplete results, partition scan showing missing rows</td>
+            <td>Rebuild affected partitions, fix clock sync</td>
+            <td>NTP sync, partition boundary with buffer (write to N-1 and N partitions), clock skew monitoring</td>
+            <td class="casc">Silent data loss in partition-pruned queries — looks correct but returns incomplete data</td>
+            <td class="troff">Writing to multiple partitions increases write amplification and storage use</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Job Queue and Scheduling Failures</td></tr>
+          <tr>
+            <td>Delayed Job Pile-Up After System Restart<span class="badge-crit">Must Know</span></td>
+            <td>System down for maintenance — hundreds of delayed jobs all become due simultaneously on restart</td>
+            <td>Massive job queue depth immediately after restart, workers saturated</td>
+            <td>Rate-limit job processing on restart, process in priority order</td>
+            <td>Staggered job scheduling (jitter on initial delay), rate-limited job dequeue on startup</td>
+            <td class="casc">Worker overload — job pile-up overwhelms processing capacity on restart</td>
+            <td class="troff">Jitter on job delays makes scheduling less predictable for SLA commitments</td>
+          </tr>
+          <tr>
+            <td>Job Starvation from Priority Inversion<span class="badge-crit">Must Know</span></td>
+            <td>Low-priority jobs hold resources needed by high-priority jobs — high-priority jobs wait indefinitely</td>
+            <td>High-priority jobs backed up while low-priority complete normally</td>
+            <td>Apply priority inheritance or preempt low-priority jobs</td>
+            <td>Priority-aware scheduler, priority inheritance protocol, aging for low-priority jobs</td>
+            <td class="casc">SLA violation for high-priority work — urgent tasks delayed behind bulk processing</td>
+            <td class="troff">Aggressive priority enforcement may starve low-priority jobs entirely</td>
+          </tr>
+          <tr>
+            <td>Distributed Cron Without Coordination — Duplicate Run</td>
+            <td>Multiple scheduler instances (no leader election) each trigger the same job</td>
+            <td>Job effects appear N times — duplicate emails, duplicate charges, duplicate records</td>
+            <td>Add idempotency check at job start, deduplicate by job ID</td>
+            <td>Single coordinator with leader election (Kubernetes CronJob), idempotent job logic</td>
+            <td class="casc">N× business effects for every scheduled run — severity scales with replica count</td>
+            <td class="troff">Single coordinator is a SPOF for job scheduling — coordinator failure means no jobs run</td>
+          </tr>
+          <tr>
+            <td>Job Deadline Missed — Silent No-Op</td>
+            <td>Job execution starts after its deadline has passed — job runs but result is no longer useful</td>
+            <td>Job completes successfully but downstream consumer ignores it (too late), SLA breached</td>
+            <td>Check deadline at job start, skip if past deadline and log it</td>
+            <td>Deadline check at job pickup, alerting on deadline-exceeded jobs</td>
+            <td class="casc">SLA violations accumulate silently — jobs run but produce no useful output</td>
+            <td class="troff">Skipping past-deadline jobs may cause data gaps if work was genuinely needed</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Clock-Dependent Security Failures</td></tr>
+          <tr>
+            <td>JWT Rejected Due to Clock Skew<span class="badge-crit">Must Know</span></td>
+            <td>Issuer and validator clocks differ — JWT issued at t=0 but validator's clock is behind, rejects as "not yet valid"</td>
+            <td>Auth failures for valid tokens, correlated with recent NTP drift event</td>
+            <td>Add clock skew tolerance (nbf/exp leeway of 5 minutes) at validator</td>
+            <td>NTP sync on all nodes, small allowed clock skew leeway (30-300 seconds) in JWT validation</td>
+            <td class="casc">All users logged out simultaneously if validator clock drifts far enough</td>
+            <td class="troff">Skew leeway allows replayed tokens within the leeway window</td>
+          </tr>
+          <tr>
+            <td>TOTP Auth Failure from Client Clock Drift<span class="badge-crit">Must Know</span></td>
+            <td>User device clock drifts from server — TOTP code generated for wrong time window, rejected</td>
+            <td>Users unable to log in despite correct TOTP app, support tickets spike</td>
+            <td>Accept adjacent time windows (T-1, T, T+1) at validator</td>
+            <td>TOTP validation accepting one adjacent window each side, user instructions to sync device clock</td>
+            <td class="casc">User lockout — cannot authenticate until device clock corrected</td>
+            <td class="troff">Accepting adjacent windows reduces security window per code</td>
+          </tr>
+          <tr>
+            <td>Certificate Validity Window Violated by Clock Skew</td>
+            <td>Server clock behind — presents a certificate whose notBefore is in the "future" relative to server clock</td>
+            <td>TLS handshake failures, certificate invalid errors in client</td>
+            <td>Sync server clock, request replacement certificate if needed</td>
+            <td>Clock monitoring with tight drift alert, certificate issuance with grace period before notBefore</td>
+            <td class="casc">Complete TLS failure — all HTTPS connections rejected until clock corrected</td>
+            <td class="troff">Grace period before notBefore means certificate is valid slightly before intended</td>
+          </tr>
+          <tr>
+            <td>Token Replay via Time Confusion</td>
+            <td>System accepts tokens with past timestamps due to loose expiry validation — attacker replays captured token</td>
+            <td>Security audit finding, or detected via anomalous re-use of same token ID</td>
+            <td>Tighten expiry validation, add jti (JWT ID) nonce to prevent replay</td>
+            <td>Strict expiry enforcement, jti tracking to detect replay, short token lifetime (15 minutes max)</td>
+            <td class="casc">Unauthorized access using expired but accepted tokens — data breach risk</td>
+            <td class="troff">jti tracking requires server-side storage that scales with token issuance rate</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Time Failures for Interviews</p>
+      <div class="ncode"> 1. Clock skew ordering     → Lamport / HLC instead of wall clock for causality
+ 2. DST duplicate cron      → store+schedule in UTC, idempotent job design
+ 3. Cron silently not run   → dead-man switch heartbeat monitoring per job
+ 4. Duplicate cron replicas → leader election or Kubernetes CronJob (single instance)
+ 5. Lock TTL too short      → TTL = 2x max job duration + heartbeat refresh
+ 6. JWT clock skew reject   → NTP sync + leeway (30-300s) at validator
+ 7. Event time vs proc time → always use event-time windowing with watermarks
+ 8. Late events dropped     → allowed lateness + side output for late events
+ 9. Deadline not propagated → pass context deadline to every downstream call
+10. Local TZ stored not UTC → store UTC always, convert at display layer only</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Time Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Are all timestamps stored in UTC?        → if not, DST bugs are guaranteed twice a year
+2. Are deadlines propagated through chain? → if not, phantom work continues after caller times out
+3. Is event ordering by wall clock?        → wall clock is wrong — use Lamport / HLC / partition
+4. Are cron jobs idempotent?               → if not, duplicate run = data corruption
+5. Are lock TTLs 2x max job duration?      → if not, two workers will run simultaneously
+6. Do JWT validators allow clock skew?     → if not, NTP drift = user lockout
+7. Are late events handled gracefully?     → if not, aggregates will be silently incomplete
+8. Is there a dead-man switch per job?     → if not, silent cron failure goes undetected
+9. Are monotonic clocks used for intervals? → wall clock can jump backwards; monotonic cannot</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Time Failure Patterns — Cause and Detection</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Pattern</th><th>Root Cause</th><th>Detection Signal</th></tr></thead>
+        <tbody>
+          <tr><td>Events appear out of order</td><td>Clock skew between nodes / wall clock used for causality</td><td>Timestamps going backwards in traces</td></tr>
+          <tr><td>Cron runs twice</td><td>Multiple replicas, no coordination / DST fall-back</td><td>Duplicate records at schedule time</td></tr>
+          <tr><td>Cron never runs</td><td>Silent failure, no monitoring</td><td>User report / stale data</td></tr>
+          <tr><td>Users logged out en masse</td><td>NTP drift causes JWT rejection / clock jump on VM resume</td><td>Auth 401 spike with no code change</td></tr>
+          <tr><td>Aggregates incomplete</td><td>Events arriving after window closed / watermark too aggressive</td><td>Late-event counter high</td></tr>
+          <tr><td>Two workers on same resource</td><td>Distributed lock TTL expired before work done</td><td>Data duplication / conflict errors</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — The 4 Time Rules</p>
+      <div class="ncode">1. Store UTC   → store timestamps in UTC always; convert to local only at display
+2. Use logical → use Lamport / HLC for ordering; never trust wall clock for causality
+3. Make idempotent → crons and jobs must be safe to run twice (DST, duplicate, retry)
+4. Monitor silence → dead-man switch for every scheduled job; silence = failure
+
+The single most impactful practice:
+  Store all timestamps in UTC.
+  This one rule eliminates 80% of DST bugs, timezone confusion, and cross-region mismatches.</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#0f172a;border:1px solid #1e3a8a;">
+      <p class="text-xs font-bold text-blue-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-blue-900 bg-opacity-50 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-200">Store UTC</p>
+          <p class="text-xs text-blue-400 mt-0.5">Always. Convert at display only.</p>
+        </div>
+        <div class="bg-blue-900 bg-opacity-50 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-200">Logical clocks</p>
+          <p class="text-xs text-blue-400 mt-0.5">Lamport / HLC for causality.</p>
+        </div>
+        <div class="bg-blue-900 bg-opacity-50 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-200">Idempotent jobs</p>
+          <p class="text-xs text-blue-400 mt-0.5">Safe to run twice. Always.</p>
+        </div>
+        <div class="bg-blue-900 bg-opacity-50 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-200">Dead-man switch</p>
+          <p class="text-xs text-blue-400 mt-0.5">Silence = job failed.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

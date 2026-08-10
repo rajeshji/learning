@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Replication Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#4d7c0f; border-bottom-color:#4d7c0f; }
+    .tab-btn:hover:not(.active) { color:#3f6212; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#f7fee7; border:1px solid #bef264; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#4d7c0f; margin-bottom:.6rem; }
+    .ncode{ background:#1a2e05; color:#bef264; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #bef264; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#3f6212; color:#d9f99d; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #ecfccb;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f7fee7; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#4d7c0f; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#3f6212; color:#d9f99d; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #ecfccb; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-lime-700 hover:text-lime-900 font-semibold
+              bg-lime-50 hover:bg-lime-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-lime-800 font-semibold">Replication Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-lime-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-lime-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Replication Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 37 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why Replication Failures Are Hardest to Debug</p>
+      <div class="ncode">Replication provides: availability + durability + scalability + fault tolerance
+But introduces: consistency | ordering | lag | conflicts | split brain | quorum
+
+8 root failure classes:
+  lag | divergence | failover | quorum | ordering
+  split brain | overload | recovery | geo-replication</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Replication Availability Failures</td></tr>
+          <tr>
+            <td>Primary Replica Failure<span class="badge-crit">Must Know</span></td>
+            <td>Leader crash, hardware failure, OOM on primary node</td>
+            <td>Heartbeat failure, write requests all failing</td>
+            <td>Promote follower replica to new primary</td>
+            <td>Multiple replicas in ISR, automated failover (Patroni/Sentinel)</td>
+            <td class="casc">Temporary write unavailability — all writes stall until failover completes</td>
+            <td class="troff">Automated failover adds coordination complexity and risk of split brain</td>
+          </tr>
+          <tr>
+            <td>Follower Replica Failure</td>
+            <td>Replica node crash or network partition from primary</td>
+            <td>Missing replica in replication topology, replica lag stops updating</td>
+            <td>Remove from read pool, rebuild replica from primary</td>
+            <td>Replica redundancy (RF >= 3), replica health monitoring</td>
+            <td class="casc">Reduced read capacity — primary absorbs all reads if only replica fails</td>
+            <td class="troff">More replicas cost more; rebuilding large replicas adds primary IO load</td>
+          </tr>
+          <tr>
+            <td>All Replicas Unavailable<span class="badge-crit">Must Know</span></td>
+            <td>AZ/DC-wide outage — all replica nodes lose power or network</td>
+            <td>Quorum lost, entire cluster write-unavailable</td>
+            <td>Disaster recovery failover to secondary region</td>
+            <td>Multi-region replication, replicas in at least 3 AZs</td>
+            <td class="casc">Complete data unavailability — service fully down, no reads or writes</td>
+            <td class="troff">Multi-region replication adds cross-region latency and significant cost</td>
+          </tr>
+          <tr>
+            <td>Replica Startup Failure</td>
+            <td>Corrupted WAL/snapshot prevents replica from starting</td>
+            <td>Replica restart loop, failed recovery error in logs</td>
+            <td>Restore from clean snapshot, rebuild from primary</td>
+            <td>Checksum validation on WAL, snapshot integrity checks</td>
+            <td class="casc">Reduced replica redundancy — increased message loss risk during recovery</td>
+            <td class="troff">Longer rebuild time from primary adds IO load on the healthy primary</td>
+          </tr>
+          <tr>
+            <td>Replication Service Crash</td>
+            <td>Replication daemon/process crashes — replication silently stops</td>
+            <td>Replica lag stops advancing, replication stopped alert fires</td>
+            <td>Restart replication process, validate replica is caught up after restart</td>
+            <td>HA replication service, watchdog monitoring for replication thread</td>
+            <td class="casc">Replica drifts silently — divergence grows until detected and fixed</td>
+            <td class="troff">More operational overhead to monitor replication liveness</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Replication Lag and Slow Replication Failures</td></tr>
+          <tr>
+            <td>Replication Lag<span class="badge-crit">Must Know</span></td>
+            <td>Slow network, slow disk on replica, or heavy write burst from primary</td>
+            <td>Seconds-behind-primary metric, replica offset lag alert</td>
+            <td>Route critical reads to primary, set bounded staleness window</td>
+            <td>Tune replication pipeline, sync replication on critical paths</td>
+            <td class="casc">Stale reads system-wide — wrong business decisions made on old data</td>
+            <td class="troff">Synchronous replication significantly increases write latency</td>
+          </tr>
+          <tr>
+            <td>Cross-Region Replication Lag<span class="badge-crit">Must Know</span></td>
+            <td>WAN latency between regions — async replication takes seconds or more</td>
+            <td>Region replication lag metrics, cross-region offset delta</td>
+            <td>Route reads to local region, accept bounded staleness</td>
+            <td>Geo-partitioning — own region data locally, sync only what crosses regions</td>
+            <td class="casc">Global stale data — users in remote region see old state</td>
+            <td class="troff">Geo-partitioning requires careful data placement and routing logic</td>
+          </tr>
+          <tr>
+            <td>Slow Replica Catch-Up</td>
+            <td>Replica restarts or rebuilds — large WAL to replay before it's useful</td>
+            <td>Recovery lag metrics, replica still behind after long time</td>
+            <td>Incremental sync from recent snapshot, not full WAL replay</td>
+            <td>Frequent snapshots to reduce WAL replay length</td>
+            <td class="casc">Long window of reduced redundancy — primary exposed if it fails during rebuild</td>
+            <td class="troff">More frequent snapshots add storage cost and IO overhead</td>
+          </tr>
+          <tr>
+            <td>Async Replication Delay</td>
+            <td>Heavy write traffic overwhelms async replication pipeline</td>
+            <td>Replication queue depth growing, lag increasing under write burst</td>
+            <td>Throttle write rate, increase replication throughput</td>
+            <td>Better batching, increase replication parallelism, tune buffer sizes</td>
+            <td class="casc">Replica inconsistency grows — reads from replica return increasingly stale data</td>
+            <td class="troff">Sync replication avoids lag but directly hurts write throughput</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Replica Divergence and Inconsistency Failures</td></tr>
+          <tr>
+            <td>Replica Divergence<span class="badge-crit">Must Know</span></td>
+            <td>Missed or reordered replication events — replica has different state from primary</td>
+            <td>Checksum mismatch between primary and replica data</td>
+            <td>Re-sync replica from primary using full or incremental repair</td>
+            <td>Quorum replication, synchronous ack before commit on critical data</td>
+            <td class="casc">Different users on different replicas see different truth simultaneously</td>
+            <td class="troff">More replication coordination increases write latency and network load</td>
+          </tr>
+          <tr>
+            <td>Stale Replica Reads<span class="badge-crit">Must Know</span></td>
+            <td>Read routed to lagging replica — returns outdated value</td>
+            <td>Version mismatch, user sees old data after their own write</td>
+            <td>Read-your-writes routing — route to primary after write</td>
+            <td>Session consistency, quorum reads on critical paths</td>
+            <td class="casc">Incorrect business decisions applied — user acts on wrong balance/inventory</td>
+            <td class="troff">Always reading from primary removes read scalability benefit of replicas</td>
+          </tr>
+          <tr>
+            <td>Partial Replication</td>
+            <td>Replication stream interrupted — replica has only part of the data range</td>
+            <td>Missing data ranges detected in reconciliation job</td>
+            <td>Replay missing WAL segments from primary or log</td>
+            <td>Reliable WAL shipping, checksums on replication stream segments</td>
+            <td class="casc">Incomplete state propagation — downstream services process incomplete data</td>
+            <td class="troff">Checksums add validation overhead per replicated segment</td>
+          </tr>
+          <tr>
+            <td>Write Conflict Across Replicas</td>
+            <td>Multi-primary concurrent writes to same key — both accepted, both different</td>
+            <td>Conflict detection in write log, version vector mismatch</td>
+            <td>Conflict resolution/merge (LWW, CRDT, manual reconciliation)</td>
+            <td>Single-writer ownership per key, avoid multi-primary for same data</td>
+            <td class="casc">Corrupted shared state — one of the conflicting writes silently wins or merges badly</td>
+            <td class="troff">Single-writer reduces write availability; CRDT adds data structure complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Quorum and Consensus Failures</td></tr>
+          <tr>
+            <td>Quorum Loss<span class="badge-crit">Must Know</span></td>
+            <td>Too many replicas unavailable — majority of nodes unreachable</td>
+            <td>Quorum alerts, all writes failing with quorum error</td>
+            <td>Switch to read-only mode, restore nodes to regain quorum</td>
+            <td>Multi-AZ replica placement, RF >= 3 with majority quorum (n/2+1)</td>
+            <td class="casc">Write unavailability — entire cluster becomes read-only until quorum restored</td>
+            <td class="troff">Larger quorum requirement reduces availability during partial failures</td>
+          </tr>
+          <tr>
+            <td>Leader Election Failure<span class="badge-crit">Must Know</span></td>
+            <td>Network partition or coordinator instability — no leader can be elected</td>
+            <td>No leader detected, all writes to cluster fail</td>
+            <td>Trigger re-election, restore network connectivity</td>
+            <td>Stable quorum design, randomised election timeouts (Raft)</td>
+            <td class="casc">Replication halts — no leader means no writes accepted anywhere</td>
+            <td class="troff">Faster election timeout risks false elections on transient network issues</td>
+          </tr>
+          <tr>
+            <td>Stale Leader<span class="badge-crit">Must Know</span></td>
+            <td>Old leader isolated by partition still accepts writes — unaware it's dethroned</td>
+            <td>Term/epoch mismatch between old leader writes and new leader writes</td>
+            <td>Fence stale leader using fencing tokens — new leader rejects old leader's writes</td>
+            <td>Consensus protocol (Raft term validation), monotonic fencing tokens</td>
+            <td class="casc">Conflicting writes accepted by both old and new leader — data corruption</td>
+            <td class="troff">Fencing coordination adds overhead per write on the critical path</td>
+          </tr>
+          <tr>
+            <td>Consensus Failure</td>
+            <td>Network partition or high latency prevents consensus round from completing</td>
+            <td>Election timeout, write stalls with no progress</td>
+            <td>Retry election round, reduce network latency between quorum nodes</td>
+            <td>Co-locate quorum nodes in low-latency network, optimise log payload size</td>
+            <td class="casc">Write stalls — all writes queue up waiting for consensus that never completes</td>
+            <td class="troff">Lower quorum node count reduces latency but weakens durability guarantees</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Split Brain and Multi-Primary Failures</td></tr>
+          <tr>
+            <td>Split Brain Replication<span class="badge-crit">Must Know</span></td>
+            <td>Network partition splits cluster — both halves elect their own leader</td>
+            <td>Multiple active primaries, conflicting writes in WAL on both sides</td>
+            <td>Fence minority partition — refuse writes on the smaller side</td>
+            <td>Strong quorum: majority must agree before any leader election succeeds</td>
+            <td class="casc">Massive data conflicts on partition heal — both sides have incompatible history</td>
+            <td class="troff">Fencing minority reduces availability — minority side loses writes during partition</td>
+          </tr>
+          <tr>
+            <td>Dual Write Conflict</td>
+            <td>Multi-primary setup — two primaries accept writes to same key concurrently</td>
+            <td>Write conflict logs, version vector divergence</td>
+            <td>Conflict reconciliation using LWW (Last Write Wins) or CRDT merge</td>
+            <td>CRDT data structures, single-writer ownership per partition key</td>
+            <td class="casc">Corrupted business state — wrong value wins silently, other write lost</td>
+            <td class="troff">LWW can silently discard valid writes; CRDT restricts data structure choices</td>
+          </tr>
+          <tr>
+            <td>Partition Healing Conflict</td>
+            <td>Cluster reconnects after split brain — both sides have diverging histories</td>
+            <td>Diverging version vectors detected during reconciliation</td>
+            <td>Reconcile state using conflict resolution rules, audit and fix manually</td>
+            <td>Strong consistency to avoid split in first place, clear ownership rules</td>
+            <td class="casc">Long-term inconsistency during reconciliation — data in flux for hours</td>
+            <td class="troff">Strong consistency prevents split but reduces availability during partition</td>
+          </tr>
+          <tr>
+            <td>Stale Leader Writes During Failover</td>
+            <td>Old primary not fenced immediately — accepts writes while new primary is elected</td>
+            <td>Simultaneous writes from two nodes detected in log</td>
+            <td>Fencing tokens — new leader has higher epoch, old leader's writes rejected</td>
+            <td>Reliable failover orchestration with mandatory fencing before promotion</td>
+            <td class="casc">Silent data corruption — old primary writes overwrite or conflict with new leader</td>
+            <td class="troff">Mandatory fencing adds delay to failover path — increases MTTR</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Replication Ordering and Delivery Failures</td></tr>
+          <tr>
+            <td>Out-of-Order Replication<span class="badge-crit">Must Know</span></td>
+            <td>Parallel replication threads or network reordering delivers events out of sequence</td>
+            <td>Sequence number mismatch on replica, invalid state after apply</td>
+            <td>Replay replication log in strict order, buffer and reorder before apply</td>
+            <td>Ordered WAL shipping, per-key sequencing in replication pipeline</td>
+            <td class="casc">Invalid replica state — subsequent reads return logically impossible data</td>
+            <td class="troff">Strict ordering reduces replication parallelism and throughput</td>
+          </tr>
+          <tr>
+            <td>Missing Replication Events</td>
+            <td>Packet loss or crash drops events from replication stream</td>
+            <td>Sequence gaps detected in replica log, checksum mismatch</td>
+            <td>Replay WAL/binlog from the last confirmed position</td>
+            <td>Durable replication log, checksums per segment, ack before discard</td>
+            <td class="casc">Data inconsistency — replica missing writes, returns wrong data for affected keys</td>
+            <td class="troff">Durable logs with per-segment acks add storage and latency overhead</td>
+          </tr>
+          <tr>
+            <td>Duplicate Replication Events</td>
+            <td>Retry after uncertain ack — same event written to replica twice</td>
+            <td>Duplicate operations in replica log, duplicate-key errors</td>
+            <td>Idempotent replay — apply only if not already applied (check sequence ID)</td>
+            <td>Deduplication logic using sequence IDs, exactly-once replication</td>
+            <td class="casc">Double writes on replica — corrupted counters, double-charged payments</td>
+            <td class="troff">Deduplication adds per-event overhead and a dedup state store</td>
+          </tr>
+          <tr>
+            <td>Corrupted Replication Stream</td>
+            <td>Disk or network corruption introduces bad data into replication stream</td>
+            <td>Checksum mismatch on replica log segment</td>
+            <td>Re-fetch clean stream from primary, rebuild replica if severe</td>
+            <td>Stream checksums per segment, network integrity checks (TLS in transit)</td>
+            <td class="casc">Replica rebuild required — temporary reduction in replication redundancy</td>
+            <td class="troff">Checksum validation per segment adds minor read/write overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Replication Overload and Scaling Failures</td></tr>
+          <tr>
+            <td>Replication Storm<span class="badge-crit">Must Know</span></td>
+            <td>Large-scale re-sync after outage — all replicas rebuilding simultaneously</td>
+            <td>Network/disk IO spike across cluster during recovery</td>
+            <td>Throttle replication bandwidth, stagger replica recovery</td>
+            <td>Controlled repair scheduling, repair priority queues, rate limiting on rebuild</td>
+            <td class="casc">Cluster overload — live traffic degrades because replication consumes all IO</td>
+            <td class="troff">Throttling extends recovery window — longer reduced-redundancy exposure</td>
+          </tr>
+          <tr>
+            <td>Replica Rebuild Overload</td>
+            <td>Full re-sync after failure saturates primary's IO and network</td>
+            <td>Primary IO/network spike during replica rebuild</td>
+            <td>Incremental rebuild from snapshot, throttle rebuild bandwidth</td>
+            <td>Better snapshot strategy — frequent snapshots reduce rebuild data volume</td>
+            <td class="casc">Healthy primary slows down for live writes — all clients see latency increase</td>
+            <td class="troff">Throttling rebuild slows recovery; snapshots cost storage</td>
+          </tr>
+          <tr>
+            <td>Hot Replica</td>
+            <td>Uneven read distribution — all reads routed to one replica</td>
+            <td>One replica at 100% CPU/IO while others are idle</td>
+            <td>Rebalance read routing across replicas</td>
+            <td>Round-robin or load-aware read routing, connection pool balancing</td>
+            <td class="casc">Hot replica overloads and crashes — falls behind or fails entirely</td>
+            <td class="troff">Load-aware routing adds coordination overhead per read request</td>
+          </tr>
+          <tr>
+            <td>Cross-Region Sync Overload</td>
+            <td>Massive geo-replication — WAN link saturated by replication traffic</td>
+            <td>WAN saturation, cross-region lag growing despite best effort</td>
+            <td>Compress replication stream, batch updates before sending cross-region</td>
+            <td>Geo-aware replication design, dedicate WAN bandwidth for replication</td>
+            <td class="casc">Regional lag explodes — remote region data grows increasingly stale</td>
+            <td class="troff">Compression adds CPU overhead; batching increases replication latency</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Persistence and Recovery Failures</td></tr>
+          <tr>
+            <td>WAL Corruption<span class="badge-crit">Must Know</span></td>
+            <td>Disk crash or software bug corrupts the write-ahead log</td>
+            <td>Recovery failure on startup, WAL checksum error</td>
+            <td>Restore from last clean backup, rebuild from a healthy replica</td>
+            <td>WAL checksums, ECC storage, replica as WAL backup</td>
+            <td class="casc">Replica unrecoverable — must rebuild from scratch, long window of reduced redundancy</td>
+            <td class="troff">WAL checksum validation adds minor overhead per write operation</td>
+          </tr>
+          <tr>
+            <td>Snapshot Corruption</td>
+            <td>Snapshot interrupted or storage error — backup file is invalid</td>
+            <td>Snapshot checksum failure on restore attempt</td>
+            <td>Restore from previous valid snapshot, rebuild from primary</td>
+            <td>Snapshot validation on write, multiple snapshot generations retained</td>
+            <td class="casc">Slow rebuild from primary — extended window where replica count is reduced</td>
+            <td class="troff">Multiple snapshot generations cost significantly more storage</td>
+          </tr>
+          <tr>
+            <td>Replica Restore Failure</td>
+            <td>Backup is inconsistent or incompatible version — restore fails or produces wrong data</td>
+            <td>Restore mismatch, data integrity check fails after restore</td>
+            <td>Full rebuild from primary, use alternate backup</td>
+            <td>Backup testing — regular restore rehearsals with integrity validation</td>
+            <td class="casc">Reduced replica redundancy — primary exposed if it fails during recovery</td>
+            <td class="troff">Restore rehearsals add cost and operational complexity</td>
+          </tr>
+          <tr>
+            <td>Slow Replica Recovery</td>
+            <td>Huge WAL to replay after crash — replica takes too long to catch up</td>
+            <td>Long startup/recovery time, replica still behind after expected window</td>
+            <td>Restore from recent snapshot to reduce WAL replay volume</td>
+            <td>Incremental checkpoints, frequent snapshots, SSD storage for faster replay</td>
+            <td class="casc">Extended degraded mode — insufficient replicas for quorum during slow recovery</td>
+            <td class="troff">More checkpoints add IO overhead during normal operation</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Geo-Replication and Multi-Region Failures</td></tr>
+          <tr>
+            <td>Cross-Region Partition<span class="badge-crit">Must Know</span></td>
+            <td>WAN failure between regions — cross-region replication stream broken</td>
+            <td>Region sync failure alert, cross-region lag climbing indefinitely</td>
+            <td>Local region isolation — each region serves its own data independently</td>
+            <td>Multi-path WAN networking, replicate across at least 3 regions</td>
+            <td class="casc">Global inconsistency — regions diverge independently during partition</td>
+            <td class="troff">Multi-region replication adds cost, latency, and conflict resolution complexity</td>
+          </tr>
+          <tr>
+            <td>Geo-Replication Delay</td>
+            <td>High WAN latency — async replication to remote region takes seconds to minutes</td>
+            <td>Cross-region replication lag metrics, stale read reports from remote users</td>
+            <td>Route reads to local region, inform users of bounded staleness</td>
+            <td>Geo-partitioning — regions own their data locally, minimal cross-region sync</td>
+            <td class="casc">Stale global reads — decisions in remote region made on old primary-region data</td>
+            <td class="troff">Geo-partitioning requires careful schema and routing design</td>
+          </tr>
+          <tr>
+            <td>Region Failover Conflict</td>
+            <td>Multiple active regions — failover makes two regions both act as primary</td>
+            <td>Conflict detection during cross-region reconciliation</td>
+            <td>Region fencing — designate one region as authoritative</td>
+            <td>Single-writer region per data domain, clear failover ownership rules</td>
+            <td class="casc">Diverging global state — two regions independently update shared data</td>
+            <td class="troff">Single-writer region reduces write locality for users in other regions</td>
+          </tr>
+          <tr>
+            <td>Global Metadata Inconsistency</td>
+            <td>Region config/schema drifts — different regions have different routing or schema</td>
+            <td>Config mismatch between regions, routing errors for cross-region requests</td>
+            <td>Metadata reconciliation from authoritative source region</td>
+            <td>Global consensus-backed metadata, GitOps config propagation</td>
+            <td class="casc">Incorrect routing — requests land in wrong region or fail with schema error</td>
+            <td class="troff">Global consensus for metadata adds coordination latency per config change</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Replication Failures for Interviews</p>
+      <div class="ncode"> 1. Replication lag         → sync replication on critical paths + bounded staleness
+ 2. Replica divergence      → quorum writes + read repair + checksums
+ 3. Split brain             → majority quorum + fencing tokens + consensus (Raft)
+ 4. Quorum loss             → RF>=3 + multi-AZ + read-only mode on quorum fail
+ 5. Stale reads             → read-your-writes + session consistency + primary routing
+ 6. Leader election failure → randomised timeout + stable quorum + co-located nodes
+ 7. Stale leader            → fencing tokens + epoch validation on every write
+ 8. Replication storm       → throttle rebuild + stagger recovery + rate limits
+ 9. Out-of-order replication → ordered WAL shipping + per-key sequencing
+10. Cross-region partition  → geo-partitioning + local reads + multi-path WAN</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="distributed-failures-table.html" class="text-indigo-600 font-semibold hover:underline">Distributed Failures</a> &nbsp;|&nbsp;
+      <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failures</a> &nbsp;|&nbsp;
+      <a href="mq-failures-table.html" class="text-sky-600 font-semibold hover:underline">Message Queue Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Replication Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Replicas diverge?            → quorum writes + read repair + checksums
+2. Lag affect correctness?      → sync on critical paths + bounded staleness
+3. Split brain possible?        → majority quorum + fencing + consensus protocol
+4. Failover corrupt data?       → fencing tokens + epoch validation + drain
+5. Rebuild overload cluster?    → throttle + stagger + incremental from snapshot
+6. Ordering break?              → ordered WAL + per-key sequencing
+7. Geo lag increase risk?       → geo-partition + local reads + multi-path WAN
+8. Quorum strong enough?        → n/2+1 majority + multi-AZ placement
+9. Sync or async?               → async=fast+stale | sync=slow+consistent</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Replication Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Replication Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Replication lag</td><td>Stale reads system-wide → wrong business decisions at scale</td></tr>
+          <tr><td>Split brain</td><td>Conflicting writes accepted → data corruption on partition heal</td></tr>
+          <tr><td>Replica rebuild storm</td><td>Network/disk saturated → live traffic latency degrades</td></tr>
+          <tr><td>Leader failure</td><td>Write unavailability → producers queue → timeout → retry storm</td></tr>
+          <tr><td>Out-of-order replication</td><td>Invalid replica state → downstream reads logically impossible data</td></tr>
+          <tr><td>Quorum loss</td><td>Cluster becomes read-only → write backlog builds → pipeline stalls</td></tr>
+          <tr><td>Cross-region lag</td><td>Global inconsistency → remote region decisions on stale data</td></tr>
+          <tr><td>Failed failover</td><td>Extended outage → all writes blocked → service unavailability</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Sync vs Async Replication — The Core Trade-off</p>
+      <div class="ncode">Async replication: low latency + high throughput | stale reads + data loss on crash
+Sync replication:  strong consistency + no data loss | high write latency + availability risk
+
+Where to use sync:
+  financial transactions | inventory updates | auth state | primary elections
+
+Where to use async:
+  analytics pipelines | search indexes | read replicas | geo-mirrors | audit logs
+
+Hybrid (best of both):
+  sync to quorum (min 2 replicas) → ack write
+  async to remaining replicas → improve durability without full sync penalty</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Replication Failures Reduce to 5 States</p>
+      <div class="ncode">1. Replicas unavailable  → crash / AZ outage / quorum loss
+2. Replicas lagging      → slow network / heavy write burst / async delay
+3. Replicas diverging    → missed events / out-of-order / partial replication
+4. Multiple leaders      → split brain / dual write / stale leader
+5. Recovery failed       → WAL corruption / bad snapshot / slow rebuild
+
+Most dangerous combo: split brain + replica divergence
+  multiple truths created → silent corruption → extremely difficult reconciliation</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#1a2e05;border:1px solid #3f6212;">
+      <p class="text-xs font-bold text-lime-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-lime-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-lime-200">Diverge Safe?</p>
+          <p class="text-xs text-lime-400 mt-0.5">Quorum writes + read repair</p>
+        </div>
+        <div class="bg-lime-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-lime-200">Split Brain?</p>
+          <p class="text-xs text-lime-400 mt-0.5">Majority quorum + fencing</p>
+        </div>
+        <div class="bg-lime-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-lime-200">Lag Correct?</p>
+          <p class="text-xs text-lime-400 mt-0.5">Sync on critical + bounded staleness</p>
+        </div>
+        <div class="bg-lime-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-lime-200">Recovery Safe?</p>
+          <p class="text-xs text-lime-400 mt-0.5">Throttle + snapshot + fencing</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

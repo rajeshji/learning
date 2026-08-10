@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NAT, Firewalls, Proxies &amp; Packet Filtering — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.93rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+
+    .flow-box { background:#ede9fe; border:2px solid #7c3aed; border-radius:8px; padding:8px 18px; text-align:center; font-weight:700; color:#4c1d94; font-size:0.95rem; }
+    .flow-arrow { text-align:center; color:#7c3aed; font-size:1.3rem; margin:2px 0; }
+
+    .component-card { background:#faf5ff; border:1px solid #ede9fe; border-radius:8px; padding:16px 20px; margin-bottom:10px; border-left:4px solid #7c3aed; }
+    .component-title { color:#7c3aed; font-weight:700; font-size:1rem; margin-bottom:6px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">NAT, Firewalls, Proxies &amp; Packet Filtering</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">NAT, Firewalls, Proxies &amp; Packet Filtering</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Networking &amp; Security</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Why Care -->
+    <div class="nc">
+      <div class="section-badge">WHY IT MATTERS</div>
+      <div class="nh">Why Should a Staff Engineer Care?</div>
+      <p class="text-gray-700 mb-3">Every packet in a distributed system passes through multiple networking layers before reaching its destination.</p>
+      <div class="flex flex-col items-center gap-1 mb-4" style="max-width:280px;">
+        <div class="flow-box w-full">Client</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box w-full">NAT Gateway</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box w-full">Firewall</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box w-full">Reverse Proxy / LB</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box w-full">Application Service</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box w-full">Database / Cache</div>
+      </div>
+      <p class="text-gray-700 mb-3">Each component influences:</p>
+      <ul class="dot-ul">
+        <li>Security</li>
+        <li>Latency</li>
+        <li>Scalability</li>
+        <li>Reliability</li>
+        <li>Observability</li>
+        <li>Connection reuse</li>
+      </ul>
+      <div class="ntip">A Staff Engineer understands not only <strong>what each component does</strong>, but also <strong>how they interact and fail under production load</strong>.</div>
+    </div>
+
+    <!-- NAT -->
+    <div class="nc">
+      <div class="section-badge">NAT</div>
+      <div class="nh">1. NAT — Network Address Translation</div>
+      <p class="text-gray-700 mb-3">NAT translates <strong>private IP addresses</strong> into <strong>public IP addresses</strong>, allowing private networks to communicate with external networks.</p>
+      <div class="ncode">Private:  192.168.1.10:56000
+           ↓  NAT Gateway
+Public:   203.0.113.5:40123
+           ↓  Internet
+
+NAT maintains a connection tracking table mapping
+internal (IP:port) → external (IP:port).</div>
+
+      <p class="text-gray-700 mb-3 mt-4"><strong>Why NAT Exists:</strong></p>
+      <ul class="dot-ul mb-4">
+        <li>Conserves IPv4 addresses</li>
+        <li>Hides internal network topology</li>
+        <li>Allows private subnets to access the Internet</li>
+        <li>Supports multi-tenant cloud environments</li>
+      </ul>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Type</th><th>Purpose</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>SNAT</strong></td><td>Translate source IP</td><td>Outbound Internet access</td></tr>
+          <tr><td><strong>DNAT</strong></td><td>Translate destination IP</td><td>Public LB → private service</td></tr>
+          <tr><td><strong>PAT</strong></td><td>Share one public IP via different ports</td><td>Home routers</td></tr>
+          <tr><td><strong>NAT64</strong></td><td>IPv6 ↔ IPv4 translation</td><td>Dual-stack networks</td></tr>
+        </tbody>
+      </table>
+
+      <p class="text-gray-700 mb-2"><strong>Common NAT Issues:</strong></p>
+      <table class="nt mb-4">
+        <thead><tr><th>Problem</th><th>Cause</th></tr></thead>
+        <tbody>
+          <tr><td>Idle connections drop</td><td>NAT idle timeout expires</td></tr>
+          <tr><td>Port exhaustion</td><td>Too many outbound connections</td></tr>
+          <tr><td>Hard-to-debug networking</td><td>Address translation hides original endpoints</td></tr>
+          <tr><td>Connection tracking overflow</td><td>Large fan-out traffic</td></tr>
+        </tbody>
+      </table>
+
+      <div class="ntip">
+        <strong>Staff Engineer Insights:</strong>
+        <ul class="dot-ul mt-1">
+          <li>Use <strong>connection pooling</strong> to reduce connection churn against NAT</li>
+          <li>Tune <strong>Keep-Alive</strong> below NAT idle timeout (typically &lt;30–60 s)</li>
+          <li>Scale NAT gateways for high outbound traffic</li>
+          <li>Monitor connection tracking table utilization</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Firewalls -->
+    <div class="nc">
+      <div class="section-badge">FIREWALLS</div>
+      <div class="nh">2. Firewalls</div>
+      <p class="text-gray-700 mb-3">A firewall enforces security policies by <strong>allowing or blocking traffic</strong> based on predefined rules.</p>
+      <div class="ncode">Packet Arrives
+  → Match Rule
+  → ALLOW  |  DROP  |  REJECT</div>
+
+      <table class="nt mb-4 mt-4">
+        <thead><tr><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Stateless</strong></td><td>Evaluates each packet independently — no connection tracking</td></tr>
+          <tr><td><strong>Stateful</strong></td><td>Tracks connection state; allows return traffic automatically</td></tr>
+          <tr><td><strong>NGFW</strong></td><td>Deep packet inspection + application-layer awareness</td></tr>
+          <tr><td><strong>WAF</strong></td><td>Protects HTTP/HTTPS apps — inspects Layer 7 content (SQL injection, XSS, etc.)</td></tr>
+        </tbody>
+      </table>
+
+      <p class="text-gray-700 mb-2"><strong>Common rule match criteria:</strong> Source IP · Destination IP · Port · Protocol · TCP flags · Connection state</p>
+
+      <div class="ncode">Example — allow HTTPS only:
+  TCP dst-port 443 → ALLOW
+  Everything else  → DROP</div>
+
+      <div class="ntip mt-3">
+        <strong>Staff Engineer Insights — Use firewalls to:</strong>
+        <ul class="dot-ul mt-1">
+          <li>Isolate network tiers (Internet-facing, app tier, DB tier)</li>
+          <li>Enforce least privilege between services</li>
+          <li>Control east-west traffic inside a VPC/cluster</li>
+          <li>Restrict database access to application subnets only</li>
+          <li>Use WAF for Internet-facing APIs to stop OWASP Top 10 attacks</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Proxies -->
+    <div class="nc">
+      <div class="section-badge">PROXIES</div>
+      <div class="nh">3. Proxies</div>
+      <p class="text-gray-700 mb-3">A proxy sits between clients and servers, forwarding requests on behalf of one side. It can route traffic, cache responses, terminate TLS, authenticate users, rate limit, and log requests.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="component-card">
+          <div class="component-title">Forward Proxy</div>
+          <div class="ncode" style="font-size:0.82rem;">Client
+  ↓
+Proxy
+  ↓
+Internet</div>
+          <p class="text-gray-600 text-sm mt-2">Outbound traffic control, corporate filtering.</p>
+        </div>
+        <div class="component-card">
+          <div class="component-title">Reverse Proxy</div>
+          <div class="ncode" style="font-size:0.82rem;">Client
+  ↓
+Reverse Proxy
+  ↓
+Backends</div>
+          <p class="text-gray-600 text-sm mt-2">Used by nearly every production app. <span class="nkw"><span>NGINX</span></span><span class="nkw"><span>Envoy</span></span><span class="nkw"><span>HAProxy</span></span></p>
+        </div>
+        <div class="component-card">
+          <div class="component-title">Service Mesh Proxy</div>
+          <div class="ncode" style="font-size:0.82rem;">Service
+  ↓
+Sidecar
+  ↓
+Network</div>
+          <p class="text-gray-600 text-sm mt-2">mTLS, retries, tracing, routing. <span class="nkw"><span>Envoy</span></span><span class="nkw"><span>Istio</span></span></p>
+        </div>
+      </div>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Advantage</th><th>Trade-off</th></tr></thead>
+        <tbody>
+          <tr><td>Better security (TLS offload, auth)</td><td>Additional network hop</td></tr>
+          <tr><td>Centralized policies</td><td>More infrastructure to manage</td></tr>
+          <tr><td>Easier TLS certificate management</td><td>Potential single point of failure</td></tr>
+          <tr><td>Improved observability (access logs, metrics)</td><td>Added latency (1–5 ms typical)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="ntip">
+        <strong>Staff Engineer Insights:</strong>
+        <ul class="dot-ul mt-1">
+          <li>Reuse upstream connections via proxy connection pools to avoid handshake storms</li>
+          <li>Terminate TLS at trusted proxy layers — don't re-encrypt unnecessarily</li>
+          <li>Deploy multiple proxy instances with health checks to eliminate single points of failure</li>
+          <li>Use sidecar proxies (Envoy/Istio) for zero-trust mTLS between microservices</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Packet Filtering -->
+    <div class="nc">
+      <div class="section-badge">PACKET FILTERING</div>
+      <div class="nh">4. Packet Filtering</div>
+      <p class="text-gray-700 mb-3">Packet filtering examines packet headers and decides whether to allow or block traffic. It runs at the kernel level — extremely fast with very low overhead.</p>
+
+      <p class="text-gray-700 mb-2"><strong>Typically filters on:</strong> Source IP · Destination IP · Port · Protocol · Connection state</p>
+
+      <div class="ncode">Rule example:
+  TCP dst-port 22  → ALLOW  (SSH)
+  Everything else  → DROP</div>
+
+      <p class="text-gray-700 mb-2 mt-4"><strong>Where it runs:</strong></p>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <span class="nkw"><span>iptables</span></span>
+        <span class="nkw"><span>nftables</span></span>
+        <span class="nkw"><span>eBPF</span></span>
+        <span class="nkw"><span>Cloud Security Groups</span></span>
+        <span class="nkw"><span>K8s Network Policies</span></span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">✅ Advantages</p>
+          <ul class="dot-ul">
+            <li>Very fast — kernel-level enforcement</li>
+            <li>Low overhead</li>
+            <li>Strong first line of defense</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-red-700 mb-2">⚠️ Limitations</p>
+          <ul class="dot-ul">
+            <li>Cannot inspect encrypted payloads</li>
+            <li>Limited application-layer awareness</li>
+            <li>Large rule sets become hard to manage</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ntip mt-3">Packet filtering is best for: host protection, network segmentation, microsegmentation, and early rejection of malicious traffic before it reaches application layers.</div>
+    </div>
+
+    <!-- Comparison -->
+    <div class="nc">
+      <div class="section-badge">COMPARISON</div>
+      <div class="nh">Component Comparison</div>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>NAT</th><th>Firewall</th><th>Proxy</th><th>Packet Filter</th></tr></thead>
+        <tbody>
+          <tr><td>Primary Purpose</td><td>Address translation</td><td>Security policy</td><td>Traffic management</td><td>Packet control</td></tr>
+          <tr><td>OSI Layer</td><td>L3–L4</td><td>L3–L7</td><td>L7</td><td>L3–L4</td></tr>
+          <tr><td>Stateful</td><td>Yes</td><td>Usually</td><td>Yes</td><td>Optional</td></tr>
+          <tr><td>Adds Latency</td><td>Very Low</td><td>Low–Medium</td><td>Medium (~1–5 ms)</td><td>Very Low</td></tr>
+          <tr><td>Connection Tracking</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Optional</td></tr>
+          <tr><td>Observability</td><td>Low</td><td>Medium</td><td>High</td><td>Low</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Request Flow -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION FLOW</div>
+      <div class="nh">Real Production Request Flow</div>
+      <div class="ncode">Client
+  ↓ Internet
+NAT Gateway       → Address translation
+  ↓
+Firewall          → Security enforcement (allow/drop)
+  ↓
+Load Balancer     → Health-aware routing
+  ↓
+Reverse Proxy     → TLS, caching, auth, rate limit
+  ↓
+Application       → Business logic
+  ↓
+Packet Filter     → Low-level network filtering
+  ↓
+Database</div>
+      <p class="text-gray-600 text-sm mt-3">Each layer has a distinct responsibility. Overlapping layers provide defense in depth.</p>
+    </div>
+
+    <!-- System Design Applications -->
+    <div class="nc">
+      <div class="section-badge">SYSTEM DESIGN</div>
+      <div class="nh">System Design Applications</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>How Used</th></tr></thead>
+        <tbody>
+          <tr><td>Public API</td><td>Reverse proxy + firewall + WAF</td></tr>
+          <tr><td>Kubernetes</td><td>NAT + Network Policies + Service Mesh (Envoy/Istio)</td></tr>
+          <tr><td>CDN</td><td>Reverse proxy + caching + DDoS protection</td></tr>
+          <tr><td>Private VPC</td><td>NAT Gateway for outbound traffic</td></tr>
+          <tr><td>Banking System</td><td>Firewall segmentation + WAF + strict egress rules</td></tr>
+          <tr><td>Multi-region Service</td><td>Proxies + health-aware routing</td></tr>
+          <tr><td>Internal Services</td><td>Packet filtering + Cloud Security Groups</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Failure Scenarios -->
+    <div class="nc">
+      <div class="section-badge">FAILURE MODES</div>
+      <div class="nh">Common Failure Scenarios</div>
+      <table class="nt">
+        <thead><tr><th>Symptom</th><th>Likely Cause</th></tr></thead>
+        <tbody>
+          <tr><td>Idle connections reset</td><td>NAT timeout expired</td></tr>
+          <tr><td>Cannot reach backend</td><td>Firewall rule misconfiguration</td></tr>
+          <tr><td>High API latency</td><td>Overloaded reverse proxy</td></tr>
+          <tr><td>Connection refused</td><td>Packet filtering blocked port</td></tr>
+          <tr><td>Ephemeral port exhaustion</td><td>NAT connection churn — too many short-lived connections</td></tr>
+          <tr><td>Unexpected 403/blocked traffic</td><td>WAF or firewall policy triggered</td></tr>
+          <tr><td>Intermittent microservice failures</td><td>Service mesh proxy issues (mTLS cert expiry, config drift)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Debugging &amp; Observability Tools</div>
+      <table class="nt">
+        <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>iptables -L</code> / <code>nft list ruleset</code></td><td>Inspect packet filtering rules</td></tr>
+          <tr><td><code>tcpdump</code></td><td>Capture live packets</td></tr>
+          <tr><td><code>Wireshark</code></td><td>Analyze captured packet flows</td></tr>
+          <tr><td><code>ss</code> / <code>netstat</code></td><td>View TCP connections and socket state</td></tr>
+          <tr><td><code>traceroute</code></td><td>Trace network path and identify drops</td></tr>
+          <tr><td>Cloud Firewall Logs</td><td>Verify allow/deny decisions</td></tr>
+          <tr><td>Proxy Metrics (Envoy, NGINX)</td><td>Latency, retries, error rates, connection reuse</td></tr>
+          <tr><td>NAT Gateway Metrics</td><td>Active connections, port usage, packet drops</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Best Practices -->
+    <div class="nc">
+      <div class="section-badge">BEST PRACTICES</div>
+      <div class="nh">Best Practices</div>
+      <table class="nt">
+        <thead><tr><th>Component</th><th>Recommendation</th></tr></thead>
+        <tbody>
+          <tr><td>NAT</td><td>Use connection pooling; tune keep-alive below NAT idle timeout</td></tr>
+          <tr><td>Firewall</td><td>Apply least-privilege rules; regularly audit and version-control policies</td></tr>
+          <tr><td>Proxy</td><td>Reuse backend connections; enable health checks; avoid unnecessary proxy hops</td></tr>
+          <tr><td>Packet Filtering</td><td>Keep rules minimal, automated, and well-documented</td></tr>
+          <tr><td>All Layers</td><td>Monitor latency, dropped packets, connection counts, and error rates</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Interview Questions -->
+    <div class="nc">
+      <div class="section-badge">INTERVIEW PREP</div>
+      <div class="nh">Common Interview Questions</div>
+      <ol class="list-decimal pl-5 space-y-2 text-gray-700">
+        <li>Why is NAT necessary in cloud environments?</li>
+        <li>What is the difference between SNAT and DNAT?</li>
+        <li>How does a stateful firewall differ from a stateless firewall?</li>
+        <li>Why are reverse proxies widely used in production?</li>
+        <li>What responsibilities should an API Gateway handle?</li>
+        <li>How does packet filtering differ from firewall inspection?</li>
+        <li>Why do idle TCP connections sometimes fail behind NAT?</li>
+        <li>When would you use a WAF instead of a network firewall?</li>
+        <li>How do proxies improve observability?</li>
+        <li>How would you secure communication between microservices?</li>
+      </ol>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt">
+        <thead><tr><th>Level</th><th>Thinking Pattern</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Junior</strong></td>
+            <td>"I opened port 443 in the firewall. The service is reachable now."</td>
+          </tr>
+          <tr>
+            <td><strong>Senior</strong></td>
+            <td>"I configure Security Groups to allow only necessary ports, use a reverse proxy for TLS termination, and put databases in private subnets behind NAT."</td>
+          </tr>
+          <tr>
+            <td><strong>Staff</strong></td>
+            <td>"I design defense-in-depth: NAT for private networking with connection pooling and keep-alive tuned below NAT timeout; stateful firewalls + WAF at the perimeter; reverse proxies for TLS offload, routing, caching, and rate limiting; packet filtering at the host/pod level via iptables or eBPF; and service mesh mTLS for zero-trust east-west security. I instrument each layer with metrics and logs so I can distinguish 'blocked by firewall' from 'dropped by NAT' from 'proxy overloaded' during incidents."</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ntip">
+        <strong>Key Takeaways:</strong>
+        <ul class="dot-ul mt-2">
+          <li><strong>NAT</strong> enables private networking and IPv4 conservation but introduces connection tracking, idle timeouts, and potential port exhaustion — requiring careful keep-alive and pooling strategies.</li>
+          <li><strong>Firewalls</strong> enforce security boundaries using least-privilege policies; stateful firewalls track connection state to simplify secure communication.</li>
+          <li><strong>Proxies</strong> provide routing, TLS termination, caching, authentication, rate limiting, and observability — central to modern API gateways, CDNs, and service meshes.</li>
+          <li><strong>Packet filtering</strong> is the lightweight, kernel-level foundation for network security, efficiently allowing or denying traffic based on packet metadata.</li>
+          <li>In system design interviews, explain how these components <strong>work together</strong>, discuss their <strong>latency and operational trade-offs</strong>, and describe how you monitor, tune, and troubleshoot them in production.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/45a161d8-dae0-45e3-a00b-1137a9d04553.png"
+           alt="NAT, Firewalls, Proxies and Packet Filtering Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

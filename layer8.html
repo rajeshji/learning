@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Layer 8 — Evolution, Cost &amp; Design Philosophy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .dot-list { list-style:disc; padding-left:1.25rem; }
+    .dot-list li { line-height:1.85; break-inside:avoid; }
+    .dot-list li::marker { color:var(--dot,#b45309); }
+    @media(min-width:640px){ .two-col{ columns:2; column-gap:1.75rem; } }
+    .section-block { scroll-margin-top:5rem; }
+    .toc-link { display:block; padding:.24rem .6rem; border-radius:.4rem; font-size:.7rem;
+                color:#64748b; transition:all .15s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .toc-link:hover { background:#fffbeb; color:#b45309; }
+    .sub-h { font-size:.7rem; font-weight:700; letter-spacing:.06em;
+             text-transform:uppercase; margin-top:.9rem; margin-bottom:.4rem; }
+    .staff-note { background:#faf5ff; border-left:3px solid #9333ea;
+                  padding:.55rem .85rem; border-radius:.5rem; font-size:.78rem;
+                  color:#6b21a8; margin-top:.75rem; line-height:1.6; }
+    .badge-tag { font-size:.6rem; font-weight:600; background:#f1f5f9;
+                 color:#64748b; padding:.1em .5em; border-radius:999px; vertical-align:middle; }
+    th { background:#f8fafc; font-size:.72rem; font-weight:700; color:#475569;
+         text-transform:uppercase; letter-spacing:.05em; padding:.5rem .8rem; talign:left; }
+    td { font-size:.82rem; color:#374151; padding:.45rem .8rem; vertical-align:top;
+         border-top:1px solid #f1f5f9; }
+    strong { color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="foundation.html"
+       class="flex items-center gap-1.5 text-amber-700 hover:text-amber-900 font-semibold
+              bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-amber-800 font-semibold">Layer 8 — Evolution, Cost &amp; Design Philosophy</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 py-8 flex gap-7 items-start">
+
+  <!-- SIDEBAR TOC -->
+  <nav class="hidden xl:block w-52 shrink-0 sticky top-20 self-start">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p class="text-[0.68rem] font-bold text-gray-400 uppercase tracking-widest mb-2">12 Topics</p>
+      <a href="#s01" class="toc-link">01 &middot; Evolutionary Architecture</a>
+      <a href="#s02" class="toc-link">02 &middot; Change-Ready Design</a>
+      <a href="#s03" class="toc-link">03 &middot; Tech Debt Management</a>
+      <a href="#s04" class="toc-link">04 &middot; Evolution Strategies</a>
+      <a href="#s05" class="toc-link">05 &middot; Fitness &amp; Improvement</a>
+      <a href="#s06" class="toc-link">06 &middot; Engineering Economics</a>
+      <a href="#s07" class="toc-link">07 &middot; Cost Optimization</a>
+      <a href="#s08" class="toc-link">08 &middot; Trade-off Frameworks</a>
+      <a href="#s09" class="toc-link">09 &middot; Design Philosophy</a>
+      <a href="#s10" class="toc-link">10 &middot; Org &amp; Team Alignment</a>
+      <a href="#s11" class="toc-link">11 &middot; Knowledge Continuity</a>
+      <a href="#s12" class="toc-link">12 &middot; Ethical &amp; Sustainable</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 min-w-0 space-y-5 pb-16">
+
+    <!-- S01 EVOLUTIONARY ARCHITECTURE -->
+    <div id="s01" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-emerald-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-black text-xs shrink-0">01</span>
+        <h2 class="font-bold text-gray-800 text-lg">Evolutionary Architecture Foundations</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#059669">
+        <li><strong>Evolutionary Architecture</strong> — systems that support incremental, guided change</li>
+        <li>Architecture as a living organism — adaptation, feedback loops, refactoring cycles</li>
+        <li>Architectural drift vs erosion — how design diverges over time</li>
+        <li>Fitness functions — quantitative signals of architectural health (latency, coupling, cost)</li>
+        <li>Architecture fitness automation — CI pipelines that measure modularity score</li>
+        <li>Guided evolution — using metrics to steer refactoring over intuition</li>
+        <li>Change amplification — minimizing surface area of change per evolution step</li>
+      </ul>
+      <p class="staff-note">Staff focus — you design systems with the <em>explicit intent to change them later safely and cheaply.</em></p>
+    </div>
+
+    <!-- S02 CHANGE-READY DESIGN -->
+    <div id="s02" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-700 font-black text-xs shrink-0">02</span>
+        <h2 class="font-bold text-gray-800 text-lg">Change-Ready Design Principles</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Separation of Concerns — divide responsibilities for independent evolution</li>
+        <li>High Cohesion, Loose Coupling — design for independent deployability</li>
+        <li>Single Responsibility Principle — prevent logic sprawl</li>
+        <li>Stable Interfaces, Volatile Implementations — refactor without breaking contracts</li>
+        <li>API Versioning &amp; Compatibility — safe backward-compatible evolution</li>
+        <li>Schema evolution — expand–contract pattern for non-breaking DB migrations</li>
+        <li>Dependency inversion — invert control to reduce framework coupling</li>
+        <li>Port and Adapter (Hexagonal) architecture — replace implementations easily</li>
+        <li>Feature toggles / flags — progressive rollouts and safe experimentation</li>
+      </ul>
+      <p class="staff-note">Staff insight — your systems must <em>enable frequent change</em> without loss of reliability.</p>
+    </div>
+
+    <!-- S03 TECH DEBT -->
+    <div id="s03" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-orange-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-700 font-black text-xs shrink-0">03</span>
+        <h2 class="font-bold text-gray-800 text-lg">Technical Debt Management</h2>
+      </div>
+      <p class="sub-h text-orange-600">Debt Types</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ea580c">
+        <li><strong>Intentional Debt</strong> — conscious trade-off for speed; must be tracked</li>
+        <li><strong>Accidental Debt</strong> — emergent from poor practices or shortcuts</li>
+        <li><strong>Architectural Debt</strong> — structural misalignment with business/scaling</li>
+        <li><strong>Process Debt</strong> — slow CI/CD, manual testing, poor deployment discipline</li>
+        <li><strong>Cultural Debt</strong> — lack of ownership, unclear docs, outdated patterns</li>
+      </ul>
+      <p class="sub-h text-orange-600">Debt Management Framework</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ea580c">
+        <li>Maintain a Tech Debt Register with quantified risk &amp; payoff</li>
+        <li>Tech Debt Interest Rate — effort wasted over time due to inaction</li>
+        <li>Architectural Fitness Metrics — modularity, cyclomatic complexity, dependency churn</li>
+        <li>Governance cycles for debt prioritization</li>
+      </ul>
+      <p class="staff-note">Staff focus — understand <em>which debt to pay first</em> and <em>which to strategically defer</em> — like a financial investor managing risk.</p>
+    </div>
+
+    <!-- S04 EVOLUTION STRATEGIES TABLE -->
+    <div id="s04" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-amber-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-black text-xs shrink-0">04</span>
+        <h2 class="font-bold text-gray-800 text-lg">Architectural Evolution Strategies</h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
+        <table class="w-full text-left">
+          <thead><tr><th>Strategy</th><th>Description</th><th>When to Use</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Strangler Fig Pattern</strong></td><td>Gradually replace legacy parts with new systems</td><td>Legacy modernization</td></tr>
+            <tr><td><strong>Parallel Run / Shadow Launch</strong></td><td>Run new system alongside old one</td><td>Validate correctness during migration</td></tr>
+            <tr><td><strong>Anti-Corruption Layer (ACL)</strong></td><td>Translate old domain models to new ones</td><td>Integrate with legacy APIs</td></tr>
+            <tr><td><strong>Replatforming</strong></td><td>Move infra (VM &rarr; containers, on-prem &rarr; cloud)</td><td>Infra modernization</td></tr>
+            <tr><td><strong>Rehosting / Lift &amp; Shift</strong></td><td>Move without code change</td><td>Fast but limited payoff</td></tr>
+            <tr><td><strong>Refactoring</strong></td><td>Internal improvements without external change</td><td>Reduce complexity</td></tr>
+            <tr><td><strong>Re-architecture</strong></td><td>Rebuild system structure</td><td>When scaling or reliability breaks</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="staff-note">Staff capability — choose the right <em>evolution path</em> balancing business pressure, cost, and risk.</p>
+    </div>
+
+    <!-- S05 FITNESS & IMPROVEMENT -->
+    <div id="s05" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-green-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 font-black text-xs shrink-0">05</span>
+        <h2 class="font-bold text-gray-800 text-lg">Architectural Fitness &amp; Continuous Improvement</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Defining measurable architecture KPIs — modularity, deploy frequency, coupling index</li>
+        <li>Creating automated architecture fitness pipelines</li>
+        <li>Identifying and monitoring architecture entropy over time</li>
+        <li>Implementing feedback loops for architecture reviews</li>
+        <li>Architecture linting &amp; structure analysis — jQAssistant, ArchUnit</li>
+        <li>Continuous modernization — incremental adaptation vs massive rewrites</li>
+      </ul>
+    </div>
+
+    <!-- S06 ENGINEERING ECONOMICS -->
+    <div id="s06" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-yellow-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 font-black text-xs shrink-0">06</span>
+        <h2 class="font-bold text-gray-800 text-lg">Engineering Economics &amp; Cost Modeling</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ca8a04">
+        <li><strong>TCO (Total Cost of Ownership)</strong> = build + run + evolve + people cost</li>
+        <li>Marginal Cost per Request / User — understanding cost elasticity at scale</li>
+        <li>OPEX vs CAPEX trade-offs — serverless vs managed infra</li>
+        <li>Cost of Complexity — system sprawl &amp; cognitive/operational overhead</li>
+        <li>Cost of Delay (CoD) — quantifying economic loss from slow delivery</li>
+        <li>ROI (Return on Investment) for technical initiatives</li>
+        <li>Economic value of reliability — SLI improvement vs downtime cost</li>
+        <li>FinOps — engineering + finance collaboration for cloud efficiency</li>
+      </ul>
+      <p class="staff-note">Staff expectation — tie every architectural proposal to measurable <strong>cost and value impact</strong>.</p>
+    </div>
+
+    <!-- S07 COST OPTIMIZATION TABLE -->
+    <div id="s07" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-amber-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-black text-xs shrink-0">07</span>
+        <h2 class="font-bold text-gray-800 text-lg">Cost Optimization Strategies</h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
+        <table class="w-full text-left">
+          <thead><tr><th>Domain</th><th>Optimization Techniques</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Compute</strong></td><td>Autoscaling, spot instances, instance right-sizing</td></tr>
+            <tr><td><strong>Storage</strong></td><td>Tiering (hot/warm/cold), compression, deduplication</td></tr>
+            <tr><td><strong>Network</strong></td><td>CDNs, caching, compression, region peering</td></tr>
+            <tr><td><strong>Data</strong></td><td>Partitioning by access pattern, TTL-based cleanup</td></tr>
+            <tr><td><strong>Observability</strong></td><td>Log sampling, data retention policies</td></tr>
+            <tr><td><strong>DevOps</strong></td><td>CI/CD optimization, build caching</td></tr>
+            <tr><td><strong>AI / ML</strong></td><td>Model quantization, GPU sharing</td></tr>
+            <tr><td><strong>License / SaaS</strong></td><td>Evaluate managed vs in-house trade-offs</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="staff-note">Staff insight — every reliability and scaling decision should include <em>cost elasticity analysis.</em></p>
+    </div>
+
+    <!-- S08 TRADE-OFF FRAMEWORKS -->
+    <div id="s08" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-indigo-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">08</span>
+        <h2 class="font-bold text-gray-800 text-lg">Trade-off Analysis &amp; Decision Frameworks</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>ADR (Architecture Decision Record)</li>
+        <li>RFC (Request for Comments) process</li>
+        <li>Trade-off matrix — cost, risk, maintainability, performance</li>
+        <li>Decision impact mapping — short-term vs long-term consequences</li>
+        <li>Reversibility heuristic — prefer reversible decisions under uncertainty</li>
+        <li>Satisficing principle — "good enough now" beats "perfect never"</li>
+        <li>Economic prioritization — minimize total system cost over time</li>
+      </ul>
+      <p class="staff-note">Staff mastery — be able to <strong>defend architectural trade-offs</strong> with data and clarity.</p>
+    </div>
+
+    <!-- S09 DESIGN PHILOSOPHY TABLE -->
+    <div id="s09" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-violet-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 text-violet-700 font-black text-xs shrink-0">09</span>
+        <h2 class="font-bold text-gray-800 text-lg">Design Philosophy <span class="badge-tag ml-1">Staff Mindset</span></h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
+        <table class="w-full text-left">
+          <thead><tr><th>Principle</th><th>Description</th><th>Applied Behavior</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Simplicity Scales</strong></td><td>Complexity compounds cost</td><td>Prefer minimal viable architecture</td></tr>
+            <tr><td><strong>Optimize for Change</strong></td><td>Change is inevitable</td><td>Modular, replaceable designs</td></tr>
+            <tr><td><strong>Cost is a Feature</strong></td><td>Efficiency is reliability</td><td>Treat cost visibility as system health</td></tr>
+            <tr><td><strong>Design for Humans</strong></td><td>Developer experience = reliability</td><td>Simplify operational workflows</td></tr>
+            <tr><td><strong>YAGNI</strong></td><td>Avoid speculative architecture</td><td>Build for current validated needs</td></tr>
+            <tr><td><strong>You Build It, You Run It</strong></td><td>Ownership mindset</td><td>Foster DevOps accountability</td></tr>
+            <tr><td><strong>Measure Everything</strong></td><td>Metrics &gt; intuition</td><td>Quantify architectural health</td></tr>
+            <tr><td><strong>Empower Teams, Not Frameworks</strong></td><td>People outlast technology</td><td>Design for ownership, not dependency</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="staff-note">Staff behavior — make architectural decisions that <em>align people, cost, and technology.</em></p>
+    </div>
+
+    <!-- S10 ORG & TEAM ALIGNMENT -->
+    <div id="s10" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-blue-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black text-xs shrink-0">10</span>
+        <h2 class="font-bold text-gray-800 text-lg">Organizational Evolution &amp; Team Alignment</h2>
+      </div>
+      <p class="sub-h text-blue-600">Conway's Law &amp; Team Topologies</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#2563eb">
+        <li>Conway's Law — architecture mirrors organizational communication</li>
+        <li>Stream-aligned teams</li>
+        <li>Enabling teams</li>
+        <li>Platform teams</li>
+        <li>Complicated subsystem teams</li>
+      </ul>
+      <p class="sub-h text-blue-600">Socio-Technical Systems</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#2563eb">
+        <li>Balancing people structure and code structure</li>
+        <li>Cognitive load management — avoid overwhelming teams</li>
+        <li>Autonomy vs Alignment — safe local innovation via clear interfaces</li>
+        <li>Org-level architectural governance — lightweight, trust-based</li>
+      </ul>
+    </div>
+
+    <!-- S11 KNOWLEDGE CONTINUITY -->
+    <div id="s11" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-slate-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-black text-xs shrink-0">11</span>
+        <h2 class="font-bold text-gray-800 text-lg">Knowledge Continuity &amp; Architectural Governance</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>Architecture review boards (ARB)</li>
+        <li>Architecture Decision Records (ADRs) lifecycle</li>
+        <li>Tech Radar — tracking maturity and deprecation</li>
+        <li>Documentation automation — diagrams-as-code, architecture indexes</li>
+        <li>Architecture scorecards for teams</li>
+        <li>Mentorship &amp; knowledge sharing rituals</li>
+        <li>Cultural evolution toward "Architect as Coach" model</li>
+      </ul>
+    </div>
+
+    <!-- S12 ETHICAL & SUSTAINABLE -->
+    <div id="s12" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-pink-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100 text-pink-700 font-black text-xs shrink-0">12</span>
+        <h2 class="font-bold text-gray-800 text-lg">Ethical &amp; Sustainable Design Thinking</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ec4899">
+        <li>Environmental cost awareness — carbon-aware computing</li>
+        <li>Designing for inclusive, accessible systems</li>
+        <li>Ethical trade-offs — privacy, transparency, bias mitigation</li>
+        <li>Socioeconomic impact of architecture decisions</li>
+        <li>Human-centered reliability — design for ops and customer empathy</li>
+      </ul>
+      <p class="staff-note">Staff responsibility — you design not just systems, but <em>ecosystems</em> — sustainable for people, planet, and product.</p>
+    </div>
+
+  </main>
+</div>
+  <script src="layer-utils.js"></script>
+</body>
+</html>

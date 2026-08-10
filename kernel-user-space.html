@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kernel vs User Space</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .formula{ background:#0f172a; color:#38bdf8; font-family:'Courier New',monospace;
+              font-size:.9rem; font-weight:700; text-align:center;
+              border-radius:.65rem; padding:.85rem 1.25rem; letter-spacing:.02em; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+    .mc { border-radius:.85rem; padding:1rem 1.1rem; flex:1; min-width:0; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Kernel vs User Space</span>
+  </div>
+</header>
+
+<!-- PAGE TITLE -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Kernel vs User Space</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Two Worlds &bull; Ring 0 / Ring 3 &bull; System Calls &bull; Zero-Copy &bull; DPDK</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TEXT TAB ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">Every OS divides execution into two worlds. Without this separation, one buggy app could crash the entire machine, corrupt another process's memory, or let malware read passwords from RAM.</p>
+      <div class="ncode">Applications   Chrome | Java | Redis | PostgreSQL | Kafka
+                   (User Space — Ring 3)
+───────────────────────────────────────────────────────
+                   System Call Boundary
+───────────────────────────────────────────────────────
+OS Kernel      Scheduler | Memory Mgr | FS | TCP/IP
+               Device Drivers | Interrupt Handling
+                   (Kernel Space — Ring 0)
+───────────────────────────────────────────────────────
+Hardware       CPU | RAM | SSD | NIC | GPU</div>
+      <p class="ntip mt-2">Applications <strong>request</strong> kernel services. The kernel <strong>decides</strong> whether to allow them. Think: kernel = CEO of the OS. Every app must ask before using company resources.</p>
+    </div>
+
+    <!-- Why It Exists + User / Kernel Space -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Why This Separation Exists</p>
+        <p class="sub-h">Without it</p>
+        <ul class="dot-ul">
+          <li class="text-red-700">One app could overwrite another's memory</li>
+          <li class="text-red-700">Malware could read passwords directly from RAM</li>
+          <li class="text-red-700">A buggy driver could destroy the filesystem</li>
+        </ul>
+        <p class="sub-h">With it</p>
+        <ul class="dot-ul">
+          <li class="text-green-700">Process isolation — crash one app, OS survives</li>
+          <li class="text-green-700">Security — hardware access is gated</li>
+          <li class="text-green-700">Stability — kernel validates every request</li>
+        </ul>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">User Space vs Kernel Space</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Property</th><th>User Space</th><th>Kernel Space</th></tr></thead>
+          <tbody>
+            <tr><td>Ring</td><td>Ring 3</td><td>Ring 0</td></tr>
+            <tr><td>Privilege</td><td>Restricted</td><td>Full</td></tr>
+            <tr><td>Hardware access</td><td>No (via syscall)</td><td>Direct</td></tr>
+            <tr><td>Memory isolation</td><td>Per-process</td><td>Shared</td></tr>
+            <tr><td>If it crashes</td><td>Only that process</td><td>Whole OS</td></tr>
+            <tr><td>Examples</td><td>Java, Redis, Nginx</td><td>Scheduler, TCP/IP</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Ring 0 vs Ring 3 -->
+    <div class="nc">
+      <p class="nh">Ring 0 vs Ring 3 — CPU Hardware Enforcement</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <div class="ncode">Ring 3  (User Space)
+  Chrome | Redis | Java | Python
+  ─ Cannot execute privileged instructions
+  ─ Cannot access hardware directly
+  ─ Cannot read kernel memory
+
+Ring 0  (Kernel Space)
+  Scheduler | Memory Mgr | Drivers
+  ─ Can execute privileged instructions
+  ─ Can configure hardware
+  ─ Can modify page tables
+  ─ Can control interrupts</div>
+        </div>
+        <div class="space-y-2">
+          <p class="ntip">This is enforced in <strong>hardware</strong>, not software. The CPU physically prevents Ring 3 code from running privileged instructions. No OS policy can bypass it.</p>
+          <div class="bg-blue-50 border border-blue-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-blue-700 mb-1">Why does Ring 1 and Ring 2 exist?</p>
+            <p class="text-xs text-gray-600">Historically reserved for device drivers and hypervisors. Modern x86 OSes (Linux, Windows) only use Ring 0 and Ring 3 in practice. Hypervisors use Ring -1 (VMX root mode).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Calls -->
+    <div class="nc">
+      <p class="nh">System Calls — The Official Bridge</p>
+      <p class="nq">Applications cannot touch hardware, so how does a Java app read a file? How does Redis send a packet? The answer is a <strong>System Call</strong> — the only safe entry point into the kernel.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+        <div>
+          <p class="sub-h">Common System Calls</p>
+          <table class="nt">
+            <thead><tr><th>Syscall</th><th>What It Does</th></tr></thead>
+            <tbody>
+              <tr><td><code>read()</code> / <code>write()</code></td><td>File / socket I/O</td></tr>
+              <tr><td><code>send()</code> / <code>recv()</code></td><td>Network send / receive</td></tr>
+              <tr><td><code>open()</code> / <code>close()</code></td><td>Open / close file descriptors</td></tr>
+              <tr><td><code>mmap()</code></td><td>Map memory / files</td></tr>
+              <tr><td><code>fork()</code> / <code>exec()</code></td><td>Create / replace processes</td></tr>
+              <tr><td><code>epoll_wait()</code></td><td>Async I/O event monitoring</td></tr>
+              <tr><td><code>ioctl()</code></td><td>Device control</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="sub-h">System Call Flow</p>
+          <div class="ncode">Application calls read(file)
+  ↓
+Trap instruction issued
+  ↓
+CPU: Ring 3 → Ring 0
+  (save registers, switch stack)
+  ↓
+Kernel validates request
+  ↓
+Filesystem locates file
+  ↓
+Disk Driver reads disk
+  ↓
+Kernel copies data to user buf
+  ↓
+CPU: Ring 0 → Ring 3
+  (restore registers)
+  ↓
+Application receives data</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why Syscalls Are Expensive + Staff Engineer view -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Why System Calls Are Expensive</p>
+        <p class="text-xs text-gray-600 mb-2">A normal function call stays in User Space. A syscall triggers a <strong>mode switch</strong>:</p>
+        <div class="ncode" style="font-size:.72rem">Save registers
+  ↓ Change privilege mode (R3 → R0)
+  ↓ Switch kernel stack
+  ↓ Execute kernel code
+  ↓ Restore registers
+  ↓ Return to User Space (R0 → R3)</div>
+        <p class="ntip mt-2">Millions of unnecessary mode switches = significant CPU overhead and latency. This is why batching I/O and using async APIs matters.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Why Staff Engineers Care</p>
+        <div class="bg-red-50 border border-red-100 rounded-lg p-3 mb-2">
+          <p class="text-xs font-bold text-red-700 mb-0.5">Junior Engineer</p>
+          <p class="text-xs text-gray-600">"The application is slow."</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 mb-1">Staff Engineer asks</p>
+          <ul class="dot-ul">
+            <li>How many syscalls happen per request?</li>
+            <li>How many context switches occur?</li>
+            <li>How much time is in kernel mode vs user mode?</li>
+            <li>Can we eliminate kernel crossings entirely?</li>
+            <li>Can I/O ops be batched or made async?</li>
+            <li>Is zero-copy applicable here?</li>
+          </ul>
+        </div>
+        <p class="ntip mt-2">Reducing kernel crossings often improves performance more than optimizing business logic.</p>
+      </div>
+    </div>
+
+    <!-- Normal I/O vs Zero-Copy -->
+    <div class="nc">
+      <p class="nh">Normal I/O vs Zero-Copy I/O</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div>
+          <p class="sub-h text-red-600">Traditional I/O — Multiple Copies</p>
+          <div class="ncode" style="font-size:.72rem">Disk
+  ↓ Kernel Buffer       (copy 1)
+  ↓ User Buffer         (copy 2)
+  ↓ Kernel Socket Buf   (copy 3)
+  ↓ NIC
+  ↓ Network
+
+Each copy consumes CPU + memory
+bandwidth + cache.</div>
+          <div class="bg-red-50 border border-red-100 rounded-lg p-2 mt-2">
+            <p class="text-xs font-bold text-red-700">Impact: CPU up, latency up, throughput down</p>
+          </div>
+        </div>
+        <div>
+          <p class="sub-h text-green-600">Zero-Copy — Direct Transfer</p>
+          <div class="ncode" style="font-size:.72rem">Disk
+  ↓ Kernel Buffer
+  ↓ NIC  (DMA direct transfer)
+  ↓ Network
+
+No User Space copy.
+No unnecessary CPU involvement.</div>
+          <div class="bg-green-50 border border-green-100 rounded-lg p-2 mt-2">
+            <p class="text-xs font-bold text-green-700 mb-1">Benefits: Lower CPU, higher throughput, lower latency</p>
+            <p class="text-xs text-gray-600">Used by: <strong>Nginx</strong> (<code>sendfile()</code>), <strong>Kafka</strong>, high-perf proxies, <strong>io_uring</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kernel Networking vs User-Space Networking -->
+    <div class="nc">
+      <p class="nh">Kernel Networking vs User-Space Networking (DPDK / RDMA)</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-2">Kernel Networking (Traditional)</p>
+          <div class="ncode" style="font-size:.7rem; background:#1e3a5f; color:#93c5fd; padding:.6rem .8rem">App
+  ↓ send()
+  ↓ Kernel TCP/IP Stack
+  ↓ NIC Driver
+  ↓ NIC
+  ↓ Network</div>
+          <div class="mt-2 space-y-1">
+            <p class="text-xs text-green-700 font-medium">+ Secure + Portable + Stable + Multi-tenant</p>
+            <p class="text-xs text-red-600 font-medium">- System calls, context switches, memory copies, interrupt overhead</p>
+          </div>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-xl p-3">
+          <p class="text-xs font-black text-violet-700 mb-2">User-Space Networking (DPDK / RDMA)</p>
+          <div class="ncode" style="font-size:.7rem; padding:.6rem .8rem">App
+  ↓ DPDK / RDMA (poll mode)
+  ↓ NIC  (kernel bypassed)
+  ↓ Network</div>
+          <div class="mt-2 space-y-1">
+            <p class="text-xs text-green-700 font-medium">+ Ultra-low latency + Millions of pkt/sec + No syscalls, no interrupts</p>
+            <p class="text-xs text-red-600 font-medium">- Complex, less safe, dedicated HW required</p>
+          </div>
+          <p class="sub-h">Used In</p>
+          <p class="text-xs text-gray-600">High-Frequency Trading &bull; AI Clusters &bull; Telecom &bull; Packet Processing &bull; Storage Fabric</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full Architecture + Staff Mental Model -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">How Everything Connects</p>
+        <div class="ncode">User Space (Ring 3)
+  Java | Redis | PostgreSQL | Nginx
+  read() | send() | mmap() | open()
+         |
+         v System Call Boundary
+─────────────────────────────────
+Kernel Space (Ring 0)
+  Scheduler  |  Memory Manager
+  Virtual Memory  |  File System
+  TCP/IP Stack  |  Device Drivers
+─────────────────────────────────
+Hardware Layer
+  CPU | RAM | SSD | NIC | GPU</div>
+        <p class="ntip mt-2">Every file read, network request, process creation, or memory allocation crosses this boundary through a system call.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">The Universal Request Path</p>
+        <div class="ncode">Application
+  ↓ System Call (Ring 3 → Ring 0)
+  ↓ Kernel validates + routes
+  ↓ Driver (FS / Net / Block)
+  ↓ Hardware (Disk / NIC / RAM)
+  ↓ Driver returns result
+  ↓ Kernel copies to user buffer
+  ↓ Application (Ring 0 → Ring 3)</div>
+        <p class="sub-h">Observability Tools</p>
+        <table class="nt">
+          <thead><tr><th>Tool</th><th>What It Shows</th></tr></thead>
+          <tbody>
+            <tr><td><code>strace</code></td><td>Trace all system calls</td></tr>
+            <tr><td><code>perf</code></td><td>CPU usage, kernel time</td></tr>
+            <tr><td><code>top / htop</code></td><td>User vs system CPU %</td></tr>
+            <tr><td><code>bcc / bpftrace</code></td><td>eBPF kernel tracing</td></tr>
+            <tr><td><code>iostat</code></td><td>Disk I/O &amp; wait time</td></tr>
+            <tr><td><code>ss / netstat</code></td><td>Network connections</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Staff Engineer Mental Model Questions -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Mental Model — Questions to Always Ask</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0.5 mt-1">
+        <p class="text-sm text-green-700 font-medium"> Can this kernel crossing be avoided?</p>
+        <p class="text-sm text-green-700 font-medium"> Can multiple I/O ops be batched?</p>
+        <p class="text-sm text-green-700 font-medium"> Can data avoid unnecessary copies?</p>
+        <p class="text-sm text-green-700 font-medium"> Can the networking path be simplified?</p>
+        <p class="text-sm text-green-700 font-medium"> Can async I/O reduce blocking? (<code>io_uring</code>)</p>
+        <p class="text-sm text-green-700 font-medium"> Is zero-copy applicable here?</p>
+        <p class="text-sm text-green-700 font-medium"> How many syscalls happen per request?</p>
+        <p class="text-sm text-green-700 font-medium"> What % of CPU time is in kernel mode?</p>
+      </div>
+      <p class="ntip mt-3">The best-performing systems are not just those with fast algorithms — they are those that <strong>minimize expensive interactions between User Space, the Kernel, and hardware</strong>.</p>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">User Space      Ring 3 | Limited privileges | Per-process isolation
+                 Applications (Chrome, Java, Redis, PostgreSQL)
+
+Kernel Space    Ring 0 | Full hardware access | Shared by all processes
+                Scheduler | Memory Mgr | FS | TCP/IP | Drivers
+
+System Calls    Official User-to-Kernel boundary crossing
+                Expensive: mode switch, register save/restore
+
+Zero-Copy       sendfile() / io_uring — skip User Space buffer
+                Nginx, Kafka use this — lower CPU, higher throughput
+
+DPDK / RDMA     Bypass kernel networking entirely
+                Ultra-low latency — HFT, AI, Telecom
+
+Golden Rule     Cross the boundary only when needed.
+                Reduce copies, reduce syscalls, reduce context switches.</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>User Space</strong> — application logic runs in safe, isolated processes</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Kernel Space</strong> — manages CPU, memory, FS, networking, devices</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>System Calls</strong> — the only sanctioned bridge, and they cost CPU</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Zero-Copy / DPDK</strong> — optimize or bypass to minimize boundary cost</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Understanding when the User–Kernel boundary is crossed, why it costs CPU cycles, and how technologies like zero-copy, io_uring, DPDK, and eBPF reduce those interactions — that is what distinguishes a Staff Engineer from someone who only knows application-level programming.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== IMAGE TAB ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/KernelUserSpace/kernel-user-space.png"
+           alt="Kernel vs User Space visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

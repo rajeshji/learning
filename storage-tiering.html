@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Storage Tiering: Hot / Warm / Cold — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Storage Tiering</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Storage Tiering — Hot / Warm / Cold</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Right data on the right storage at the right cost — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq"><strong>5–10% of data is hot, 20–30% warm, 60–80% cold.</strong> Keeping everything on SSDs wastes money. Keeping everything on HDDs kills performance. Storage tiering puts the right data on the right medium automatically.</p>
+      <div class="nkw mt-3">
+        <span>🔥 Hot</span>
+        <span>🌤 Warm</span>
+        <span>❄ Cold</span>
+        <span>Lifecycle Policy</span>
+        <span>Heat Score</span>
+        <span>S3 / Glacier</span>
+        <span>ILM</span>
+        <span>Cost Optimization</span>
+      </div>
+    </div>
+
+    <!-- Hardware Spectrum -->
+    <div class="nc">
+      <p class="nh">Storage Hardware Spectrum</p>
+      <table class="nt">
+        <thead><tr><th>Storage</th><th>Latency</th><th>Cost</th><th>Capacity</th></tr></thead>
+        <tbody>
+          <tr><td>DRAM</td><td>Nanoseconds</td><td>Very High</td><td>Low</td></tr>
+          <tr><td>NVMe SSD</td><td>Microseconds</td><td>High</td><td>Medium</td></tr>
+          <tr><td>SATA SSD</td><td>0.5–2 ms</td><td>Medium</td><td>High</td></tr>
+          <tr><td>HDD</td><td>5–15 ms</td><td>Low</td><td>Very High</td></tr>
+          <tr><td>Object Storage</td><td>10–100 ms</td><td>Very Low</td><td>Massive</td></tr>
+          <tr><td>Archive / Tape</td><td>Seconds–Hours</td><td>Lowest</td><td>Virtually Unlimited</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Using a single storage type is never optimal. Tiering uses the right hardware for each access pattern.</p>
+    </div>
+
+    <!-- Three Tiers -->
+    <div class="nc">
+      <p class="nh">The Three Storage Tiers</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p class="text-base mb-1">🔥</p>
+          <p class="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">Hot Tier</p>
+          <ul class="dot-ul" style="margin-bottom:.5rem">
+            <li>Active DB rows</li>
+            <li>User sessions</li>
+            <li>Shopping carts</li>
+            <li>Current Kafka logs</li>
+            <li>Active ES shards</li>
+          </ul>
+          <p class="text-xs text-gray-500">NVMe / Premium SSD<br/>Lowest latency · Highest cost</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-base mb-1">🌤</p>
+          <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Warm Tier</p>
+          <ul class="dot-ul" style="margin-bottom:.5rem">
+            <li>Last month's orders</li>
+            <li>Historical dashboards</li>
+            <li>Search indexes</li>
+            <li>Recent logs</li>
+            <li>Analytics datasets</li>
+          </ul>
+          <p class="text-xs text-gray-500">HDD / Object Storage<br/>Balanced cost · Read-heavy</p>
+        </div>
+        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+          <p class="text-base mb-1">❄</p>
+          <p class="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">Cold Tier</p>
+          <ul class="dot-ul" style="margin-bottom:.5rem">
+            <li>Backups</li>
+            <li>Compliance records</li>
+            <li>Audit logs</li>
+            <li>Archived videos</li>
+            <li>Historical telemetry</li>
+          </ul>
+          <p class="text-xs text-gray-500">Glacier / Tape<br/>Lowest cost · High latency</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier Characteristics Table -->
+    <div class="nc">
+      <p class="nh">Tier Characteristics</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>🔥 Hot</th><th>🌤 Warm</th><th>❄ Cold</th></tr></thead>
+        <tbody>
+          <tr><td>Access Frequency</td><td>Very High</td><td>Medium</td><td>Very Low</td></tr>
+          <tr><td>Latency</td><td>&lt;1 ms</td><td>5–20 ms</td><td>Seconds–Hours</td></tr>
+          <tr><td>Cost</td><td>Highest</td><td>Medium</td><td>Lowest</td></tr>
+          <tr><td>Capacity</td><td>Small</td><td>Large</td><td>Massive</td></tr>
+          <tr><td>Updates</td><td>Frequent</td><td>Occasional</td><td>Rare</td></tr>
+          <tr><td>Compression</td><td>Minimal</td><td>Moderate</td><td>Aggressive</td></tr>
+          <tr><td>Hardware</td><td>DRAM, NVMe</td><td>SATA SSD, HDD</td><td>Glacier, Tape</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Data Lifecycle & Policies -->
+    <div class="nc">
+      <p class="nh">Data Lifecycle &amp; Migration Policies</p>
+      <p class="text-sm text-gray-600 mb-2">Data naturally cools over time. Systems migrate it based on:</p>
+      <div class="ncode">Age-based:
+  < 7 days  → Hot   (NVMe SSD)
+  7–90 days → Warm  (HDD / Object)
+  > 90 days → Cold  (Glacier/Tape)
+
+Access-based:
+  > 100 reads/day → Hot
+  1–100 reads/day → Warm
+  < 1 read/month  → Cold
+
+Business rules:
+  Customer invoices → Warm after 30 days
+  Audit logs        → Cold after 90 days
+  Backups           → Archive after 1 year</div>
+      <p class="ntip">Most production systems combine age + access frequency policies. Add a minimum residency time (hysteresis) to avoid frequent oscillation between tiers.</p>
+    </div>
+
+    <!-- Automatic Tiering -->
+    <div class="nc">
+      <p class="nh">Automatic Tiering — Heat Score</p>
+      <p class="text-sm text-gray-600 mb-2">Systems assign every object a "temperature" score and migrate transparently:</p>
+      <div class="ncode">Heat Score = Read Count + Write Count + Recency + Business Priority
+
+High score → promote to Hot (NVMe SSD)
+Low score  → demote to Warm or Cold
+
+Monitor Usage → Calculate Heat Score
+→ Choose Tier → Move Data → Update Metadata
+→ Application never notices</div>
+    </div>
+
+    <!-- Cloud Mapping -->
+    <div class="nc">
+      <p class="nh">Cloud Provider Tier Mapping</p>
+      <table class="nt">
+        <thead><tr><th>Tier</th><th>AWS</th><th>Azure</th><th>GCP</th></tr></thead>
+        <tbody>
+          <tr><td>🔥 Hot</td><td>S3 Standard</td><td>Hot Blob</td><td>Standard</td></tr>
+          <tr><td>🌤 Warm</td><td>S3 Standard-IA</td><td>Cool Blob</td><td>Nearline</td></tr>
+          <tr><td>❄ Cold</td><td>Glacier</td><td>Archive Blob</td><td>Coldline</td></tr>
+          <tr><td>❄❄ Archive</td><td>Glacier Deep Archive</td><td>Archive</td><td>Archive</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-violet-700">Elasticsearch — Index Lifecycle Management (ILM)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Hot Node   → recent logs (NVMe, fast indexing)
+↓ Warm Node  → 7–30 days (lower cost)
+↓ Cold Node  → 30–90 days (read-only)
+↓ Frozen Node → archive (object storage)</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Kafka — Tiered Storage</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Recent partitions → Local SSD (fast consumer reads)
+Old segments     → Object storage (S3) — infinite retention</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Prometheus + Thanos</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Last 7 days → Local SSD (fast queries)
+Older       → Object storage (S3/GCS)</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Banking Database</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Current month  → NVMe SSD (active transactions)
+Last year      → HDD (occasional queries)
+Older 7+ years → Archive storage (compliance)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Caching vs Tiering -->
+    <div class="nc">
+      <p class="nh">Caching vs Tiering — Key Distinction</p>
+      <table class="nt">
+        <thead><tr><th>Aspect</th><th>Caching</th><th>Tiering</th></tr></thead>
+        <tbody>
+          <tr><td>Data Action</td><td>Copies data</td><td>Moves data</td></tr>
+          <tr><td>Duration</td><td>Temporary</td><td>Permanent (policy-driven)</td></tr>
+          <tr><td>Goal</td><td>Improve latency</td><td>Optimize cost</td></tr>
+          <tr><td>Eviction</td><td>Anytime (LRU/LFU)</td><td>Only via lifecycle policy</td></tr>
+          <tr><td>Source still available</td><td>Yes</td><td>No (data has moved)</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Caching accelerates access. Tiering optimizes storage economics. They are complementary, not alternatives.</p>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Should we use SSD or HDD?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">How many days should data stay on SSD?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Which data generates business value?</li>
+            <li>What are the latency SLAs per tier?</li>
+            <li>What is the actual access distribution?</li>
+            <li>Can migrations happen transparently?</li>
+            <li>Time-based or heat-score-based migration?</li>
+            <li>What if cold data suddenly becomes hot?</li>
+            <li>How do we prevent tier oscillation (hysteresis)?</li>
+            <li>How do we monitor storage efficiency over time?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">SSD Storage Full</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Old data never migrated off hot tier &nbsp;·&nbsp; <strong>Fix:</strong> Implement automatic lifecycle policies</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Analytics Queries</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Frequently queried data demoted to cold storage &nbsp;·&nbsp; <strong>Fix:</strong> Adjust heat thresholds or cache popular datasets</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High Storage Costs</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> All data stored on premium SSD by default &nbsp;·&nbsp; <strong>Fix:</strong> Introduce hot/warm/cold tiering with lifecycle policies</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Unexpected Retrieval Delays</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Cold archive retrieval takes minutes/hours &nbsp;·&nbsp; <strong>Fix:</strong> Communicate SLA clearly or pre-warm required datasets</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Tier Oscillation</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Objects repeatedly moving between hot and warm &nbsp;·&nbsp; <strong>Fix:</strong> Add hysteresis (minimum residency time before migration)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Workload</th><th>Recommended Tier</th></tr></thead>
+        <tbody>
+          <tr><td>Active OLTP database</td><td>🔥 Hot (NVMe SSD)</td></tr>
+          <tr><td>Search indexes (recent)</td><td>🔥 Hot → 🌤 Warm via ILM</td></tr>
+          <tr><td>Recent logs (&lt;30 days)</td><td>🌤 Warm</td></tr>
+          <tr><td>Historical analytics</td><td>🌤 Warm</td></tr>
+          <tr><td>Session / cache</td><td>🔥 Hot (DRAM)</td></tr>
+          <tr><td>Backups</td><td>❄ Cold</td></tr>
+          <tr><td>Compliance / audit data</td><td>❄ Cold</td></tr>
+          <tr><td>Media archive</td><td>❄ Cold</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">5–10% hot · 20–30% warm · 60–80% cold
+→ Tiering matches storage cost to access frequency.
+
+Hot   → NVMe/SSD: &lt;1ms, highest cost, active data
+Warm  → HDD/Object: 5–20ms, medium cost, periodic access
+Cold  → Glacier/Tape: seconds–hours, lowest cost, archive
+
+Migration policies:
+  Age-based:    time since creation
+  Access-based: read/write frequency
+  Heat score:   composite (reads + recency + priority)
+  Business:     regulatory retention rules
+  Hysteresis:   minimum residency prevents oscillation
+
+Caching ≠ Tiering:
+  Cache = copy, temporary, latency goal
+  Tier  = move, permanent, cost goal
+
+Cloud: S3→Glacier, Elasticsearch ILM, Kafka tiered storage,
+       Prometheus+Thanos, database partitioning all use tiering.
+
+Staff monitors: SSD utilization, cold retrieval latency,
+                cost per GB per tier, heat score distribution.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/822b3826-c83b-4d7f-a25d-bb8eaf171788.png"
+        alt="Storage Tiering Hot Warm Cold visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

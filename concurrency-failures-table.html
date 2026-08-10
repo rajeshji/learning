@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Concurrency and Race Condition Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#5b21b6; border-bottom-color:#5b21b6; }
+    .tab-btn:hover:not(.active) { color:#2e1065; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#ede9fe; border:1px solid #c4b5fd; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#5b21b6; margin-bottom:.6rem; }
+    .ncode{ background:#2e1065; color:#ddd6fe; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #c4b5fd; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#4c1d95; color:#ddd6fe; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f5f3ff; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#5b21b6; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fef2f2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#4c1d95; color:#ddd6fe; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#4c1d95; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-violet-900 hover:text-violet-950 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-900 font-semibold">Concurrency and Race Condition Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Concurrency and Race Condition Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 36 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Concurrency Failures Are the Hardest Bugs to Find</p>
+      <div class="ncode">Concurrency bugs are non-deterministic — they appear under load, not in unit tests.
+They depend on exact thread scheduling, CPU caching, and network timing.
+By the time you investigate, the interleaving that caused the bug is gone.
+
+Root causes reduce to one thing:
+  Multiple agents (threads / processes / services) sharing mutable state
+  without sufficient coordination</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Classic Race Conditions</td></tr>
+          <tr>
+            <td>Check-Then-Act Race<span class="badge-crit">Must Know</span></td>
+            <td>Thread A reads state (check), Thread B modifies it, Thread A acts on stale read — decision wrong</td>
+            <td>Intermittent wrong outcomes under concurrent load; hard to reproduce in tests</td>
+            <td>Replace check-then-act with atomic compare-and-swap (CAS) or lock the check and act together</td>
+            <td>Atomic operations, optimistic locking, database-level constraints as last guard</td>
+            <td class="casc">Data corruption — two threads believe they have exclusive access simultaneously</td>
+            <td class="troff">CAS loops under high contention spin and waste CPU; locks serialise throughput</td>
+          </tr>
+          <tr>
+            <td>Read-Modify-Write Race<span class="badge-crit">Must Know</span></td>
+            <td>Two threads: both read value X, both compute X+1, both write X+1 — one increment lost</td>
+            <td>Counter or balance drifting lower than expected under load</td>
+            <td>Use atomic increment (AtomicInteger, Redis INCR, DB UPDATE with +1)</td>
+            <td>Atomic read-modify-write primitives; never read-then-write for increments</td>
+            <td class="casc">Inventory or balance undercounting — lost updates accumulate silently</td>
+            <td class="troff">Atomic RMW on a hot key becomes a serialisation bottleneck at very high concurrency</td>
+          </tr>
+          <tr>
+            <td>TOCTOU — Time of Check to Time of Use<span class="badge-crit">Must Know</span></td>
+            <td>Validation happens at T1, action happens at T2 — state changes between T1 and T2</td>
+            <td>Actions succeed that should have been rejected (e.g. overdraft after balance check)</td>
+            <td>Perform validation and action in a single atomic transaction or under a lock</td>
+            <td>Optimistic locking with version check at write, database-level constraint enforcement</td>
+            <td class="casc">Security bypass — attacker exploits window between check and use to slip invalid state</td>
+            <td class="troff">Atomic validation+action in DB transactions adds latency vs split read-write paths</td>
+          </tr>
+          <tr>
+            <td>ABA Problem in Lock-Free Structures</td>
+            <td>CAS sees value A, assumes state unchanged — but state went A→B→A — CAS succeeds on wrong state</td>
+            <td>Subtle wrong results in lock-free data structure under high concurrency</td>
+            <td>Use tagged CAS (version counter alongside value) to detect the A→B→A sequence</td>
+            <td>Tagged pointers or version stamps in all CAS operations on mutable structures</td>
+            <td class="casc">Silent data structure corruption — wrong node removed or linked in lock-free list</td>
+            <td class="troff">Version stamps add memory overhead per node; tagged CAS requires wider atomic operations</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Lost Update and Write Skew</td></tr>
+          <tr>
+            <td>Lost Update<span class="badge-crit">Must Know</span></td>
+            <td>Two transactions read the same row, both compute new value, second commit overwrites first — first change lost</td>
+            <td>Update appears to succeed but prior change missing; balance or count wrong</td>
+            <td>Retry with fresh read; use optimistic locking (version field check on write)</td>
+            <td>Optimistic locking (version field), pessimistic locking (SELECT FOR UPDATE), atomic SQL UPDATE</td>
+            <td class="casc">Data integrity violation — financial, inventory, or state data silently incorrect</td>
+            <td class="troff">SELECT FOR UPDATE serialises all writers; optimistic locking causes retries under contention</td>
+          </tr>
+          <tr>
+            <td>Write Skew<span class="badge-crit">Must Know</span></td>
+            <td>Two transactions each read overlapping data and write non-overlapping rows — combined result violates constraint</td>
+            <td>Database constraint not violated per-row but business invariant broken (e.g. two doctors both go off-call)</td>
+            <td>Serialisable isolation level or explicit application-level lock on the shared read set</td>
+            <td>SERIALIZABLE isolation, SELECT FOR UPDATE on all rows read that influence the write decision</td>
+            <td class="casc">Business logic violation that database constraints cannot catch — silent corrupt state</td>
+            <td class="troff">SERIALIZABLE isolation significantly reduces concurrency throughput</td>
+          </tr>
+          <tr>
+            <td>Phantom Read Leading to Wrong Decision</td>
+            <td>Transaction T1 reads a range — T2 inserts row in that range — T1 re-reads, sees different count</td>
+            <td>Business logic acting on stale aggregate count; result depends on read timing</td>
+            <td>REPEATABLE READ or SERIALIZABLE isolation; predicate lock on range</td>
+            <td>SERIALIZABLE isolation; COUNT with explicit locks; avoid range-based decisions in concurrent paths</td>
+            <td class="casc">Wrong allocation decisions — over-issuing limited resources based on stale count</td>
+            <td class="troff">Predicate locking reduces write throughput for all inserts into locked range</td>
+          </tr>
+          <tr>
+            <td>Dirty Write Overwrite</td>
+            <td>Transaction A starts writing a row — Transaction B also writes same row before A commits — B overwritten by A commit</td>
+            <td>B's change silently gone; race only detectable by comparing before/after values</td>
+            <td>Ensure all engines use write locking (never allow uncommitted write to be overwritten)</td>
+            <td>Database-level write locking (all ACID-compliant DBs prevent this by default — watch for NoSQL)</td>
+            <td class="casc">Silent data loss — B's committed value replaced without trace</td>
+            <td class="troff">Write locks add contention; in NoSQL systems you must implement this yourself</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Deadlocks and Livelocks</td></tr>
+          <tr>
+            <td>Classic Deadlock — Circular Lock Wait<span class="badge-crit">Must Know</span></td>
+            <td>Transaction A holds lock on row 1, waits for row 2; Transaction B holds row 2, waits for row 1</td>
+            <td>Deadlock detection log entry; both transactions aborted and retried</td>
+            <td>Abort one transaction (database auto-detects), retry with backoff</td>
+            <td>Consistent global lock ordering — always acquire locks in the same order across all code paths</td>
+            <td class="casc">Throughput drops as deadlock frequency increases under load — repeated abort-retry cycles</td>
+            <td class="troff">Global lock ordering constrains code structure; may require refactoring query access patterns</td>
+          </tr>
+          <tr>
+            <td>Distributed Deadlock<span class="badge-crit">Must Know</span></td>
+            <td>Service A holds resource X waiting for Y on Service B; B holds Y waiting for X — across service boundaries</td>
+            <td>Both services stuck indefinitely — no timeout fires because timeout set too long</td>
+            <td>Timeout on all cross-service lock waits, abort and retry with backoff</td>
+            <td>Timeout on every distributed lock acquisition, avoid holding locks while calling external services</td>
+            <td class="casc">Both services completely frozen — no requests on either complete until timeout fires</td>
+            <td class="troff">Short lock timeouts abort valid slow operations; long timeouts allow deadlock to persist</td>
+          </tr>
+          <tr>
+            <td>Livelock — Infinite Courtesy Loop</td>
+            <td>Thread A detects conflict, backs off; Thread B also backs off; both retry at same time — repeat forever</td>
+            <td>High CPU with no forward progress; lock acquisition attempts firing but never succeeding</td>
+            <td>Add randomised jitter to retry interval to break synchronisation</td>
+            <td>Full jitter on all lock retry intervals, exponential backoff with random seed</td>
+            <td class="casc">CPU exhaustion without any work completing — threads busy but useless</td>
+            <td class="troff">Jitter makes worst-case retry latency less predictable</td>
+          </tr>
+          <tr>
+            <td>Lock Ordering Violation Introducing Deadlock</td>
+            <td>Two code paths acquire the same locks in different order — deadlock possible whenever both run concurrently</td>
+            <td>Intermittent deadlock errors under concurrent load at specific code paths</td>
+            <td>Enforce consistent lock ordering between both code paths</td>
+            <td>Static analysis for lock ordering, documented lock hierarchy, code review for lock acquisition order</td>
+            <td class="casc">Production deadlock frequency grows as traffic increases — problem hidden at low load</td>
+            <td class="troff">Enforcing lock ordering may require restructuring queries or request handling logic</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Double Spending and Financial Race Conditions</td></tr>
+          <tr>
+            <td>Payment Double-Spend Race<span class="badge-crit">Must Know</span></td>
+            <td>User submits payment twice quickly — both requests check balance simultaneously, both see sufficient funds, both deduct</td>
+            <td>Account balance below expected, double debit in transaction history</td>
+            <td>Idempotency key on payment endpoint — second request returns cached first result</td>
+            <td>Idempotency key + deduplication store, SELECT FOR UPDATE on balance row, database constraint</td>
+            <td class="casc">Financial loss — both payments processed, account overdrafted or double-charged</td>
+            <td class="troff">Idempotency key store adds storage overhead; SELECT FOR UPDATE serialises all payments</td>
+          </tr>
+          <tr>
+            <td>Inventory Oversell<span class="badge-crit">Must Know</span></td>
+            <td>100 users simultaneously buy last item — all see stock=1, all decrement to 0, all succeed — 100 orders for 1 item</td>
+            <td>Orders exceed available stock; fulfilment failures; negative inventory count</td>
+            <td>Reserve stock with atomic decrement and check (UPDATE ... WHERE stock &gt; 0 RETURNING stock)</td>
+            <td>Atomic SQL UPDATE with WHERE stock &gt; 0, database CHECK constraint on stock &gt;= 0, optimistic locking</td>
+            <td class="casc">Customer fulfilment failures at scale — all 100 users must be notified and refunded</td>
+            <td class="troff">Serialised stock update limits purchase throughput for high-demand items</td>
+          </tr>
+          <tr>
+            <td>Coupon or Voucher Double-Use</td>
+            <td>User submits coupon redemption twice simultaneously — both requests see coupon as unused, both mark used</td>
+            <td>Coupon applied multiple times in audit log, discount given twice</td>
+            <td>Idempotency key + single atomic mark-as-used with unique constraint</td>
+            <td>Unique constraint on redemption record, atomic check-and-mark, idempotency key per redemption</td>
+            <td class="casc">Financial loss from repeated discount application across concurrent redemption paths</td>
+            <td class="troff">Unique constraint causes second request to fail rather than return graceful response</td>
+          </tr>
+          <tr>
+            <td>Rate Limit Race Condition — Token Bucket</td>
+            <td>Two concurrent requests both read token count as 1, both pass rate limit check, both consume the token</td>
+            <td>More requests succeeding than rate limit allows under concurrent load</td>
+            <td>Atomic token decrement (Redis DECR then check, not check then DECR)</td>
+            <td>Redis atomic DECR+check, distributed rate limiter with atomic operations, per-node local limit</td>
+            <td class="casc">Backend overloaded by requests that should have been rate-limited</td>
+            <td class="troff">Atomic distributed rate limiting adds latency; local-only limiting cannot enforce global quotas</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Duplicate Processing and Idempotency Failures</td></tr>
+          <tr>
+            <td>At-Least-Once Delivery Without Idempotency<span class="badge-crit">Must Know</span></td>
+            <td>Message queue delivers same message twice (retry after timeout) — consumer processes it twice</td>
+            <td>Duplicate records, double-applied side effects, duplicate emails or charges</td>
+            <td>Detect duplicate by message ID at consumer, skip if already processed</td>
+            <td>Idempotent consumer design with deduplication store keyed on message ID</td>
+            <td class="casc">Double charges, duplicate notifications, double-applied inventory changes at scale</td>
+            <td class="troff">Deduplication store adds storage and lookup overhead per message</td>
+          </tr>
+          <tr>
+            <td>Retry Without Idempotency Key<span class="badge-crit">Must Know</span></td>
+            <td>Client retries API call after network timeout — server processed original, retry creates second action</td>
+            <td>Duplicate operations in audit log, user sees two of same action</td>
+            <td>Detect duplicate by request ID, return cached result of first execution</td>
+            <td>Idempotency key on all mutating endpoints, request deduplication at API layer</td>
+            <td class="casc">Double payment, double order, double state change on every retry</td>
+            <td class="troff">Idempotency key TTL determines how long dedup cache must be retained</td>
+          </tr>
+          <tr>
+            <td>Event Replay Causing Duplicate State</td>
+            <td>Event stream replayed for recovery — event handlers not idempotent — state applied twice</td>
+            <td>State values doubled, duplicate records, business metrics showing 2× expected</td>
+            <td>Reset state to snapshot before replay, use idempotent apply functions</td>
+            <td>Event sourcing with idempotent apply, sequence number tracking per aggregate</td>
+            <td class="casc">Corrupt aggregate state — all business operations on affected entities return wrong results</td>
+            <td class="troff">Idempotent event apply is harder to implement for operations with side effects</td>
+          </tr>
+          <tr>
+            <td>Cache Population Race — Multiple Writers</td>
+            <td>Multiple threads all miss cache simultaneously — all fetch from DB and all write to cache — last write wins</td>
+            <td>Multiple DB queries for same key at cache miss; no data loss but extra DB load</td>
+            <td>Single-flight (only one thread fetches; others wait for result)</td>
+            <td>Single-flight / request coalescing pattern, probabilistic early expiry to stagger misses</td>
+            <td class="casc">DB thundering herd on cache miss — each additional concurrent thread adds one DB query</td>
+            <td class="troff">Single-flight increases latency for all waiters; timeout on the fetching thread blocks them all</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Lock Contention and Starvation</td></tr>
+          <tr>
+            <td>Hot Lock — Serialised Throughput<span class="badge-crit">Must Know</span></td>
+            <td>All threads must acquire lock on a single hot resource — parallelism collapses to single-threaded</td>
+            <td>Throughput ceiling despite adding threads; CPU low, lock wait metrics high</td>
+            <td>Partition the resource so locks are held on shards, not the whole resource</td>
+            <td>Striped locking (lock striping), sharded counters, CRDTs for commutative updates</td>
+            <td class="casc">Throughput limit reached — adding concurrency makes performance worse via contention</td>
+            <td class="troff">Striped locking requires aggregating across stripes for global counts</td>
+          </tr>
+          <tr>
+            <td>Reader-Writer Starvation</td>
+            <td>Continuous stream of readers or writers starves the other side — starvation under sustained load</td>
+            <td>Writers waiting indefinitely (reader starvation) or reads timing out under heavy write load</td>
+            <td>Use fair read-write lock with queue, apply rate limiting to dominant side</td>
+            <td>Fair RWLock with FIFO acquisition queue, reader-writer balance monitoring</td>
+            <td class="casc">One side of workload stalled — writes backed up or reads timing out completely</td>
+            <td class="troff">Fair locks have higher overhead than unfair locks; fairness reduces throughput slightly</td>
+          </tr>
+          <tr>
+            <td>Lock Convoy</td>
+            <td>One thread holds lock for long time — all other threads queue up — when released, one acquires, rest wait again</td>
+            <td>High average lock wait time, threads piling up in lock queue, throughput much lower than expected</td>
+            <td>Reduce critical section duration, move work outside lock scope</td>
+            <td>Minimise lock scope, avoid I/O inside locks, lock-free alternatives where possible</td>
+            <td class="casc">Throughput collapses to rate of slowest critical section execution</td>
+            <td class="troff">Extracting work outside locks adds code complexity and potential state inconsistency windows</td>
+          </tr>
+          <tr>
+            <td>Priority Inversion Via Lock</td>
+            <td>Low-priority thread holds lock needed by high-priority thread — high-priority blocked behind low-priority</td>
+            <td>High-priority tasks unexpectedly delayed; SLA violation despite low system load</td>
+            <td>Priority inheritance — boost low-priority holder to priority of waiter</td>
+            <td>Priority inheritance protocol in scheduler, avoid locks shared between different priority levels</td>
+            <td class="casc">SLA violation — high-priority work delayed by low-priority background work</td>
+            <td class="troff">Priority inheritance adds scheduler complexity; avoiding shared locks limits design flexibility</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Memory Visibility Failures</td></tr>
+          <tr>
+            <td>Visibility Failure — Stale Cache Line<span class="badge-crit">Must Know</span></td>
+            <td>Thread A writes value — Thread B running on different CPU core reads stale value from its cache</td>
+            <td>Non-deterministic stale reads in shared memory; value appears unwritten to other threads</td>
+            <td>Use volatile / memory fence / atomic operations to force cache coherence</td>
+            <td>volatile keyword (Java), atomic variables, memory barriers at write and read sites</td>
+            <td class="casc">Silent wrong behaviour — threads computing on stale state, producing incorrect results</td>
+            <td class="troff">Memory fences prevent CPU reordering optimisations, reducing instruction throughput</td>
+          </tr>
+          <tr>
+            <td>Instruction Reordering by CPU or Compiler</td>
+            <td>CPU or compiler reorders instructions for performance — dependent code sees inconsistent state</td>
+            <td>Non-deterministic wrong results under load, only on specific hardware architectures</td>
+            <td>Insert appropriate memory barriers (acquire/release semantics)</td>
+            <td>Use language-level synchronisation primitives that include barriers, do not hand-roll</td>
+            <td class="casc">Subtle correctness violations — state appears initialised to one thread but not another</td>
+            <td class="troff">Barriers are architecture-specific; over-use of barriers harms CPU pipeline efficiency</td>
+          </tr>
+          <tr>
+            <td>Double-Checked Locking Bug</td>
+            <td>Singleton pattern checks null without lock, then locks, then checks again — reordering causes partially-initialised object to be seen</td>
+            <td>NullPointerException or corrupted singleton state under race</td>
+            <td>Use volatile on instance field, or use language-guaranteed lazy init (Holder pattern)</td>
+            <td>volatile singleton field (Java), Initialization-on-Demand Holder idiom, or enum singleton</td>
+            <td class="casc">Corrupted singleton used by all callers — system-wide incorrect behaviour from one race</td>
+            <td class="troff">Holder pattern adds indirection; volatile prevents some CPU optimisations on hot path</td>
+          </tr>
+          <tr>
+            <td>False Sharing — Cache Line Contention</td>
+            <td>Two unrelated variables in same CPU cache line — writes to one invalidate the other thread's cache for both</td>
+            <td>Unexpected cache miss storm despite seemingly independent data; performance degrades with more cores</td>
+            <td>Pad variables to separate cache lines (64-byte alignment)</td>
+            <td>Align hot variables to cache line boundaries, use @Contended (Java), structure padding</td>
+            <td class="casc">Performance degrades as core count increases — the opposite of expected scaling</td>
+            <td class="troff">Cache line padding wastes memory proportional to number of hot variables padded</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Distributed Concurrency Failures</td></tr>
+          <tr>
+            <td>Distributed Lock Not Acquired — Split Brain Write<span class="badge-crit">Must Know</span></td>
+            <td>Two services both fail to see each other's lock — both acquire "exclusive" lock and write simultaneously</td>
+            <td>Conflicting writes on same resource, data divergence detected on read</td>
+            <td>Fence with epoch/fencing token — only holder of highest token can write</td>
+            <td>Fencing tokens in all write paths, storage layer validates token before accepting write</td>
+            <td class="casc">Silent data corruption — both writes succeed, final state is undefined</td>
+            <td class="troff">Fencing token validation requires storage layer cooperation — cannot add after the fact</td>
+          </tr>
+          <tr>
+            <td>CAS Loop Spinning Under High Contention<span class="badge-crit">Must Know</span></td>
+            <td>Many threads/services compete on same CAS — losers spin and retry — CPU saturated with failed CAS attempts</td>
+            <td>CPU high with low useful throughput, CAS failure rate metric high</td>
+            <td>Add backoff + jitter between CAS retries, consider lock-based approach for high contention</td>
+            <td>Exponential backoff on CAS failure, partition the contested resource to reduce contention</td>
+            <td class="casc">CPU saturation — most CPU cycles wasted on failed CAS with no work done</td>
+            <td class="troff">Backoff reduces throughput under low contention; partitioning adds coordination overhead</td>
+          </tr>
+          <tr>
+            <td>Distributed TOCTOU — Validate Then Modify</td>
+            <td>Service A validates a distributed resource at T1, service B modifies it at T2, service A acts at T3 on now-invalid state</td>
+            <td>Action succeeds that should have been rejected; business constraint violated</td>
+            <td>Re-validate inside atomic transaction with the modify step</td>
+            <td>Optimistic locking across distributed boundary, saga compensation if post-write validation fails</td>
+            <td class="casc">Invalid state committed that cannot be easily undone without compensating transaction</td>
+            <td class="troff">Re-validation inside transaction increases transaction scope and DB contention</td>
+          </tr>
+          <tr>
+            <td>Optimistic Lock Contention Thrash</td>
+            <td>High write concurrency on same record — all writers optimistically lock, all but one fail — retry storm</td>
+            <td>High version conflict rate in metrics, latency growing with concurrency</td>
+            <td>Reduce write concurrency on hot record, switch to pessimistic lock for known hot paths</td>
+            <td>Pre-partition hot records, limit concurrent writers per record, apply backoff on conflict</td>
+            <td class="casc">Retry storm — every failed optimistic write immediately retries, amplifying contention</td>
+            <td class="troff">Pessimistic lock on hot record serialises all writers — single-threaded throughput</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Database Transaction Anomalies</td></tr>
+          <tr>
+            <td>Serialisation Failure Under Concurrent Writes<span class="badge-crit">Must Know</span></td>
+            <td>SERIALIZABLE isolation detects that concurrent execution is not equivalent to any serial order — aborts</td>
+            <td>Serialisation error returned to application; transaction abort rate high under load</td>
+            <td>Retry aborted transaction with backoff</td>
+            <td>Idempotent transaction design, retry with exponential backoff, reduce transaction scope</td>
+            <td class="casc">Retry storm — high abort rate causes all writers to retry simultaneously</td>
+            <td class="troff">SERIALIZABLE isolation has highest abort rate under concurrency vs weaker isolation levels</td>
+          </tr>
+          <tr>
+            <td>Long Transaction Blocking Others<span class="badge-crit">Must Know</span></td>
+            <td>Transaction holds locks for seconds (user-interactive or slow query) — all concurrent writers queue behind it</td>
+            <td>Lock wait spike, high query latency for all concurrent writers</td>
+            <td>Kill long-running transaction, apply statement timeout</td>
+            <td>Statement timeout, short transaction design, avoid user input inside transaction boundary</td>
+            <td class="casc">All writers on affected rows stalled — throughput collapses for duration of long transaction</td>
+            <td class="troff">Aggressive statement timeout aborts valid slow analytical queries</td>
+          </tr>
+          <tr>
+            <td>Select-For-Update Deadlock Pattern</td>
+            <td>Two transactions use SELECT FOR UPDATE on multiple rows in different order — deadlock</td>
+            <td>Deadlock detection error in DB log, one transaction aborted</td>
+            <td>Retry aborted transaction, rewrite to acquire locks in consistent order</td>
+            <td>Consistent row locking order (order by primary key), minimise rows locked per transaction</td>
+            <td class="casc">Frequent deadlocks under load cause high retry rate and latency increase</td>
+            <td class="troff">Ordering locks by PK constrains query structure — may require additional sort steps</td>
+          </tr>
+          <tr>
+            <td>Read-Committed Gap Allowing Double Booking</td>
+            <td>READ COMMITTED isolation allows phantom inserts between reads — concurrent bookings both see availability</td>
+            <td>Two bookings for same slot both succeed; duplicate reservation detected post-commit</td>
+            <td>Unique constraint on (resource, time_slot) catches duplicate at commit</td>
+            <td>Unique constraint as last-resort guard, SERIALIZABLE isolation, application-level advisory lock</td>
+            <td class="casc">Double-booked resources, customer dissatisfaction, manual remediation required</td>
+            <td class="troff">SERIALIZABLE isolation significantly reduces booking throughput under concurrency</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Concurrency Failures for Interviews</p>
+      <div class="ncode"> 1. Check-then-act race     → CAS / lock the check+act together / DB constraints
+ 2. Lost update             → optimistic lock (version field) / SELECT FOR UPDATE
+ 3. Write skew              → SERIALIZABLE isolation / SELECT FOR UPDATE on all reads
+ 4. Classic deadlock        → consistent global lock ordering / detect + retry
+ 5. Payment double-spend    → idempotency key + dedup store / atomic balance check
+ 6. Inventory oversell      → UPDATE...WHERE stock > 0 / DB CHECK constraint
+ 7. At-least-once duplicate → idempotent consumer / dedup by message ID
+ 8. Hot lock serialisation  → lock striping / sharded counters / CRDTs
+ 9. Distributed TOCTOU      → optimistic lock + re-validate at write time
+10. Long transaction blocks → statement timeout / avoid user I/O inside transactions</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Concurrency Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Is any check-then-act non-atomic?    → attacker or race will exploit the gap
+2. Can two writers update the same row?  → need optimistic or pessimistic lock
+3. Are all mutating endpoints idempotent? → retries and at-least-once delivery cause duplicates
+4. Do lock acquisitions have a consistent order? → inconsistent order = eventual deadlock
+5. Is any shared counter incremented non-atomically? → read-modify-write loses updates
+6. Can a transaction hold locks while waiting on user? → all other writers stall
+7. Does the DB isolation level match the invariant? → READ COMMITTED allows write skew
+8. Are all financial operations protected by constraints? → DB constraints as last guard
+9. Is TOCTOU possible across service boundaries? → validate AND modify must be atomic</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Concurrency Prevention Toolbox — Match Problem to Tool</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Problem</th><th>Tool</th><th>When to Use</th></tr></thead>
+        <tbody>
+          <tr><td>Concurrent increment</td><td>Atomic RMW (Redis INCR / AtomicInteger / SQL UPDATE+1)</td><td>Always for counters — never read-then-write</td></tr>
+          <tr><td>Lost update</td><td>Optimistic lock (version field in UPDATE WHERE)</td><td>Low contention, reads >> writes</td></tr>
+          <tr><td>Lost update (high contention)</td><td>SELECT FOR UPDATE / pessimistic lock</td><td>Known hot rows, financial updates</td></tr>
+          <tr><td>Write skew</td><td>SERIALIZABLE isolation + predicate lock</td><td>Multi-row invariants, scheduling, booking</td></tr>
+          <tr><td>Duplicate API call</td><td>Idempotency key + dedup store</td><td>All mutating endpoints reachable by retry</td></tr>
+          <tr><td>Duplicate message</td><td>Idempotent consumer + message ID dedup</td><td>All queue consumers receiving at-least-once</td></tr>
+          <tr><td>Deadlock</td><td>Consistent lock order + timeout + retry</td><td>Any multi-resource lock acquisition</td></tr>
+          <tr><td>Hot lock bottleneck</td><td>Lock striping / sharding / CRDTs</td><td>High-concurrency counters and aggregates</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Concurrency Failures Reduce to 3 Root Causes</p>
+      <div class="ncode">1. Shared mutable state  → multiple agents can modify the same thing
+2. Non-atomic operation  → check + act not done together as one unit
+3. Wrong isolation level → DB sees intermediate state from another transaction
+
+Fix in this order:
+  1. Eliminate sharing     → immutable data, event sourcing, share nothing
+  2. Make operations atomic → CAS, transactions, idempotency keys
+  3. Raise isolation level → REPEATABLE READ or SERIALIZABLE where needed
+
+The most dangerous concurrency failure:
+  Payment or inventory race under concurrent load
+  because: data looks correct until you count the money</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#2e1065;border:1px solid #4c1d95;">
+      <p class="text-xs font-bold text-violet-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-violet-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-200">Atomic</p>
+          <p class="text-xs text-violet-400 mt-0.5">Check+act must be one unit.</p>
+        </div>
+        <div class="bg-violet-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-200">Idempotent</p>
+          <p class="text-xs text-violet-400 mt-0.5">All mutations safe to retry.</p>
+        </div>
+        <div class="bg-violet-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-200">Order locks</p>
+          <p class="text-xs text-violet-400 mt-0.5">Consistent order, every path.</p>
+        </div>
+        <div class="bg-violet-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-200">Constrain DB</p>
+          <p class="text-xs text-violet-400 mt-0.5">DB constraints as last guard.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

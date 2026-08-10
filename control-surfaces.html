@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Control Surfaces &amp; Observability — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.65rem .95rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.65rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .75rem; text-align:left; }
+    .nt td{ padding:.4rem .75rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span{ background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+               padding:.22em .7em; border-radius:999px; }
+    .pill-obs  { background:#dbeafe; color:#1e40af; }
+    .pill-ctrl { background:#dcfce7; color:#166534; }
+    .dot-ul { list-style:disc; padding-left:1.2rem; }
+    .dot-ul li{ font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Control Surfaces &amp; Observability</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Control Surfaces &amp; Observability</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Interview notes &mdash; Senior / Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ══════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Definition -->
+    <div class="nc">
+      <p class="nh">Core Definition</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <p class="nq"><strong>Observability</strong> tells you <em>what is happening.</em></p>
+        <p class="nq" style="border-color:#16a34a;background:#dcfce7;color:#166534"><strong>Control Surfaces</strong> let you <em>change what is happening.</em></p>
+      </div>
+      <p class="ntip">Most systems have excellent monitoring. Very few have enough controls to respond to problems. A Staff Engineer always asks both questions.</p>
+    </div>
+
+    <!-- Car Analogy -->
+    <div class="nc">
+      <p class="nh">The Car Analogy</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2">Dashboard = Observability</p>
+          <div class="ncode">Speedometer
+Fuel Gauge
+Engine Temp
+GPS</div>
+          <p class="text-xs text-gray-500 mt-2">Only <strong>shows</strong> information.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-2">Controls = Control Surfaces</p>
+          <div class="ncode" style="color:#86efac">Steering Wheel
+Brake
+Accelerator
+Gear Shift</div>
+          <p class="text-xs text-gray-500 mt-2">Actually <strong>changes</strong> the car's behavior.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <p class="nh">Observability — What You Can Measure</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Signals</p>
+          <div class="nkw">
+            <span class="pill-obs" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">CPU</span>
+            <span class="pill-obs" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Memory</span>
+            <span class="pill-obs" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Latency</span>
+            <span class="pill-obs" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Error Rate</span>
+            <span class="pill-obs" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Queue Length</span>
+            <span class="pill-obs" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">DB Connections</span>
+            <span class="pill-obs" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Cache Hit Ratio</span>
+            <span class="pill-obs" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Network Traffic</span>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Typical Tools</p>
+          <div class="nkw">
+            <span>Prometheus</span><span>Grafana</span><span>OpenTelemetry</span>
+            <span>Splunk</span><span>Dynatrace</span><span>ELK Stack</span>
+          </div>
+        </div>
+      </div>
+      <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+        <div class="bg-blue-50 rounded-lg p-2"><p class="text-xs font-bold text-blue-700">Metrics</p><p class="text-xs text-gray-500">CPU, latency, QPS</p></div>
+        <div class="bg-blue-50 rounded-lg p-2"><p class="text-xs font-bold text-blue-700">Logs</p><p class="text-xs text-gray-500">Events &amp; errors</p></div>
+        <div class="bg-blue-50 rounded-lg p-2"><p class="text-xs font-bold text-blue-700">Traces</p><p class="text-xs text-gray-500">Request flow</p></div>
+        <div class="bg-blue-50 rounded-lg p-2"><p class="text-xs font-bold text-blue-700">Profiles</p><p class="text-xs text-gray-500">CPU/Mem hotspots</p></div>
+      </div>
+    </div>
+
+    <!-- Control Surfaces -->
+    <div class="nc">
+      <p class="nh">Control Surfaces — Knobs You Can Turn</p>
+      <div class="nkw">
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Auto Scaling</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Rate Limiter</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Circuit Breaker</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Retry Count</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Thread Pool Size</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Kafka Consumer Count</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Cache TTL</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Feature Flag</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">LB Weights</span>
+        <span class="pill-ctrl" style="border-radius:999px;padding:.22em .7em;font-size:.68rem;font-weight:600;">Request Timeout</span>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet Table -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <table class="nt">
+        <thead><tr><th>Observability Signal</th><th>Control Surface Response</th></tr></thead>
+        <tbody>
+          <tr><td>CPU Usage</td><td>Auto Scaling</td></tr>
+          <tr><td>Latency</td><td>Increase Pods</td></tr>
+          <tr><td>Queue Length</td><td>Add Consumers</td></tr>
+          <tr><td>Error Rate</td><td>Circuit Breaker</td></tr>
+          <tr><td>Cache Hit Ratio</td><td>Cache TTL</td></tr>
+          <tr><td>DB Connections</td><td>Connection Pool Size</td></tr>
+          <tr><td>Retry Count</td><td>Retry Policy</td></tr>
+          <tr><td>Memory Usage</td><td>GC Tuning</td></tr>
+          <tr><td>Traffic</td><td>Rate Limiter</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real Example -->
+    <div class="nc">
+      <p class="nh">Real Production Example — Traffic Spike</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1">What you observe</p>
+          <div class="ncode">CPU     &#8593;
+Latency &#8593;
+Queue   &#8593;
+Errors  &#8593;</div>
+          <p class="text-xs text-gray-500 mt-2">These tell you <strong>what is wrong.</strong></p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-1">What you control</p>
+          <div class="ncode" style="color:#86efac">Scale Pods
+Add Consumers
+Enable Rate Limiter
+Open Circuit Breaker
+Reduce Retry Count</div>
+          <p class="text-xs text-gray-500 mt-2">These change <strong>system behavior.</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kafka Queue Example -->
+    <div class="nc">
+      <p class="nh">Common Interview Example — Kafka Lag</p>
+      <div class="ncode">Queue Length &#8593;
+  &#8595; Consumer Lag &#8593;
+  &#8595; Latency &#8593;
+  &#8595; Errors &#8593;</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+        <div>
+          <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1">Observability</p>
+          <ul class="dot-ul"><li>Queue Length</li><li>Consumer Lag</li><li>Error Rate</li></ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-1">Control Surfaces</p>
+          <ul class="dot-ul">
+            <li>Increase Consumers</li>
+            <li>Increase Partition Count</li>
+            <li>Scale Consumer Pods</li>
+            <li>Reduce Producer Rate</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Mindset -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="space-y-2">
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-gray-400 mt-0.5 w-12 shrink-0">Junior</span>
+          <p class="text-sm text-gray-500">CPU is 95%</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-blue-500 mt-0.5 w-12 shrink-0">Senior</span>
+          <p class="text-sm text-gray-600">Database is overloaded</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-violet-700 mt-0.5 w-12 shrink-0">Staff</span>
+          <p class="text-sm text-violet-800 font-medium">Which control surface reduces CPU without causing downstream failures?</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design Principle -->
+    <div class="nc">
+      <p class="nh">Design Principle — Observe &rarr; Understand &rarr; Control &rarr; Verify</p>
+      <div class="ncode">Observe
+  &#8595; Understand
+  &#8595; Control
+  &#8595; Verify</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <p class="ntip" style="margin-top:0">If you <strong>cannot observe</strong> a problem, you won't know it exists.</p>
+        <p class="ntip" style="margin-top:0;border-color:#16a34a;background:#dcfce7;color:#166534">If you <strong>cannot control</strong> it, you cannot recover from it.</p>
+      </div>
+    </div>
+
+    <!-- Interview Ready Notes -->
+    <div class="nc">
+      <p class="nh">Interview Ready Notes</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+        <div>
+          <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2">Observability Signals</p>
+          <ul class="dot-ul"><li>Metrics (CPU, latency, QPS)</li><li>Logs (events)</li><li>Traces (request flow)</li><li>Profiles (CPU/Mem hotspots)</li></ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-2">Control Surfaces</p>
+          <ul class="dot-ul"><li>Auto Scaling</li><li>Rate Limiting</li><li>Circuit Breaker</li><li>Retry Policy</li><li>Cache TTL</li></ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Never deploy a feature without asking:</strong><br/>
+        &bull; Can I <strong>measure</strong> it? (Observability)<br/>
+        &bull; Can I <strong>control</strong> it? (Control Surface)<br/>
+        &bull; Can I <strong>verify the effect</strong> after making a change?
+      </p>
+    </div>
+
+    <!-- One-Line Summary -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">One-Line Summary</p>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        Observability answers <em>"What is happening?"</em> while Control Surfaces answer
+        <em>"What can I change?"</em> &mdash; Great systems provide both.
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ══════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ══════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/ControlSurfaces/control-surfaces.png"
+        alt="Control Surfaces &amp; Observability visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+        onerror="this.style.display='none';document.getElementById('img-missing').style.display='flex';"
+      />
+      <!-- shown only if image file is missing -->
+      <div id="img-missing"
+           style="display:none"
+           class="flex-col items-center justify-center min-h-64 text-center gap-4 py-12">
+        <div class="w-14 h-14 rounded-xl bg-violet-100 flex items-center justify-center mx-auto">
+          <svg class="w-7 h-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14
+                 m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <p class="font-semibold text-gray-600 text-sm">Image not found</p>
+        <p class="text-xs text-gray-400">
+          Save the image as<br/>
+          <code class="text-violet-600">images/foundation/l1/ControlSurfaces/control-surfaces.png</code>
+        </p>
+      </div>
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

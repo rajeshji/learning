@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Object Pooling &amp; Caching — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* warn card */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Object Pooling &amp; Caching</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Object Pooling &amp; Caching</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Reducing allocation churn — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="text-sm text-gray-600 mb-2">Every request creates temporary objects. Without optimization, this produces continuous allocation → GC → fragmentation → latency spikes.</p>
+      <p class="nq"><strong>Allocate less. Reuse more.</strong> Two techniques address this: <strong>Object Pooling</strong> (reuse objects) and <strong>Caching</strong> (reuse data and computation results).</p>
+      <div class="nkw mt-3">
+        <span>Lower CPU</span>
+        <span>Reduced GC Pressure</span>
+        <span>Better Cache Locality</span>
+        <span>Predictable P99</span>
+        <span>Higher Throughput</span>
+      </div>
+    </div>
+
+    <!-- Two Strategies -->
+    <div class="nc">
+      <p class="nh">Two Optimization Strategies</p>
+      <table class="nt">
+        <thead><tr><th>Technique</th><th>Reuses</th><th>Goal</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Object Pooling</strong></td><td>Objects</td><td>Reduce allocations &amp; GC</td></tr>
+          <tr><td><strong>Caching</strong></td><td>Data / Results</td><td>Reduce computation &amp; I/O</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">They are complementary — pooling reduces <em>how often</em> you allocate; caching reduces <em>how much work</em> you do.</p>
+    </div>
+
+    <!-- Why Allocation Churn Matters -->
+    <div class="nc">
+      <p class="nh">Why Allocation Churn Matters</p>
+      <p class="text-sm text-gray-600 mb-2">Millions of heap allocations per second cause:</p>
+      <div class="nkw mb-3">
+        <span>Minor GC frequency ↑</span>
+        <span>CPU on allocation work</span>
+        <span>Cache locality ↓</span>
+        <span>Fragmentation ↑</span>
+        <span>P95/P99 latency ↑</span>
+      </div>
+      <div class="ncode">Without pooling:
+Allocate → Use → GC → Allocate → Use → GC (repeat)
+
+With pooling:
+Borrow → Use → Return → Borrow → Use → Return</div>
+    </div>
+
+    <!-- Object Pool Lifecycle -->
+    <div class="nc">
+      <p class="nh">Object Pool Lifecycle</p>
+      <div class="ncode">App Starts → Pool Creates Objects
+↓
+Thread Borrows Object
+↓
+Business Logic Executes
+↓
+Reset Object State
+↓
+Return Object to Pool
+↓
+Another Thread Reuses It</div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Pool types</p>
+      <table class="nt">
+        <thead><tr><th>Pool Type</th><th>Best Use Case</th></tr></thead>
+        <tbody>
+          <tr><td>Fixed-size</td><td>Real-time systems</td></tr>
+          <tr><td>Elastic</td><td>Web servers</td></tr>
+          <tr><td>Thread-local</td><td>High-QPS services (no locking)</td></tr>
+          <tr><td>Global Concurrent</td><td>Shared application resources</td></tr>
+          <tr><td>Off-heap</td><td>Databases &amp; networking</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pooling Trade-offs -->
+    <div class="nc">
+      <p class="nh">Pooling Trade-offs</p>
+      <p class="text-sm text-gray-600 mb-2">A poorly implemented pool can perform <em>worse</em> than allocating new objects.</p>
+      <table class="nt">
+        <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td class="text-orange-600 font-medium">Pool Exhaustion</td><td>Objects not returned</td><td>Monitor active count</td></tr>
+          <tr><td class="text-orange-600 font-medium">Memory Leak</td><td>Borrowed object retained</td><td>Always release objects</td></tr>
+          <tr><td class="text-orange-600 font-medium">Stale Data</td><td>Object not reset</td><td>Clear state before reuse</td></tr>
+          <tr><td class="text-orange-600 font-medium">Lock Contention</td><td>Shared pool</td><td>Thread-local pools</td></tr>
+          <tr><td class="text-orange-600 font-medium">Memory Waste</td><td>Oversized pool</td><td>Tune pool size</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Caching -->
+    <div class="nc">
+      <p class="nh">Caching — Reuse Expensive Results</p>
+      <div class="ncode">Without cache:
+Request → Database → Business Logic → Response (slow)
+
+With cache:
+Request → Cache Hit → Return Immediately (fast)</div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Cache types</p>
+      <table class="nt">
+        <thead><tr><th>Cache</th><th>Stores</th></tr></thead>
+        <tbody>
+          <tr><td>In-memory (Guava, Caffeine)</td><td>Java objects</td></tr>
+          <tr><td>Distributed (Redis, Memcached)</td><td>Serialized data</td></tr>
+          <tr><td>Local config cache</td><td>Configuration values</td></tr>
+          <tr><td>CPU Cache</td><td>Instructions &amp; data</td></tr>
+          <tr><td>Page Cache</td><td>File contents</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Thread-Local Pools -->
+    <div class="nc">
+      <p class="nh">Thread-Local Pools</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1">Shared Pool</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">Shared Pool
+↓ (lock required)
+Thread 1, Thread 2, Thread 3</div>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Thread-Local Pool</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">Thread 1 → Pool 1
+Thread 2 → Pool 2
+Thread 3 → Pool 3</div>
+        </div>
+      </div>
+      <p class="ntip">Thread-local pools: no locking, better CPU cache locality, higher scalability.</p>
+    </div>
+
+    <!-- Runtime Support -->
+    <div class="nc">
+      <p class="nh">Runtime Built-in Pooling</p>
+      <table class="nt">
+        <thead><tr><th>Runtime</th><th>Built-in Pooling</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Java</strong></td><td>Commons Pool, ThreadLocal, ByteBuffer pools, HikariCP</td></tr>
+          <tr><td><strong>Go</strong></td><td><code>sync.Pool</code></td></tr>
+          <tr><td><strong>.NET</strong></td><td><code>ArrayPool&lt;T&gt;</code>, <code>ObjectPool&lt;T&gt;</code></td></tr>
+          <tr><td><strong>C++</strong></td><td>Slab allocator, jemalloc arenas</td></tr>
+          <tr><td><strong>Rust</strong></td><td>Arena allocators</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-violet-700">Netty — ByteBuf Pooling</p>
+          <p class="text-xs text-gray-600 mt-0.5">Pools ByteBuf objects instead of allocating <code>new ByteBuffer()</code> per request. Result: lower GC, lower latency, better throughput.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">HikariCP — Connection Pool</p>
+          <p class="text-xs text-gray-600 mt-0.5">DB connections involve TCP + auth + session setup. HikariCP reuses them. Connection setup happens only once; subsequent requests borrow and return.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Kafka — Buffer Pooling</p>
+          <p class="text-xs text-gray-600 mt-0.5">Pools network and compression buffers. Result: stable throughput, lower allocation rate, lower GC frequency.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Redis — Data Caching</p>
+          <p class="text-xs text-gray-600 mt-0.5">Caches frequently accessed values. Eliminates repeated DB calls, object creation, and network round trips. Memory ↑, latency ↓.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- When NOT to Pool -->
+    <div class="nc">
+      <p class="nh">When NOT to Pool</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-red-700 mb-1">Don't pool</p>
+          <ul class="dot-ul">
+            <li>Small immutable objects</li>
+            <li>Strings</li>
+            <li>Lightweight DTOs</li>
+            <li>Short-lived objects</li>
+          </ul>
+          <p class="text-xs text-gray-500 mt-1">Modern allocators &amp; GCs handle these well.</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-green-700 mb-1">Do pool</p>
+          <ul class="dot-ul">
+            <li>Large buffers</li>
+            <li>DB / network connections</li>
+            <li>Compression contexts</li>
+            <li>Parsers / serializers</li>
+            <li>Large reusable arrays</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monitoring -->
+    <div class="nc">
+      <p class="nh">Monitoring &amp; Tuning Metrics</p>
+      <table class="nt">
+        <thead><tr><th>Metric</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Allocation Rate</td><td>Detect allocation churn</td></tr>
+          <tr><td>Pool Utilization</td><td>Measure efficiency</td></tr>
+          <tr><td>Borrow Latency</td><td>Detect contention</td></tr>
+          <tr><td>Active Objects</td><td>Pool exhaustion signal</td></tr>
+          <tr><td>Idle Objects</td><td>Memory waste signal</td></tr>
+          <tr><td>Cache Hit Rate</td><td>Cache effectiveness</td></tr>
+          <tr><td>GC Time</td><td>Allocation pressure</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Tune pools using <strong>production telemetry</strong>, not assumptions.</p>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Can we use an object pool?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Will pooling reduce GC?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is allocation actually the bottleneck?</li>
+            <li>Are GC pauses affecting SLA?</li>
+            <li>Is object creation expensive?</li>
+            <li>Is contention worse than allocation?</li>
+            <li>Should the pool be thread-local?</li>
+            <li>Is cache hit rate high enough?</li>
+            <li>Can profiling prove the improvement?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">High Minor GC Frequency</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Millions of temporary allocations &nbsp;·&nbsp; <strong>Fix:</strong> Reuse buffers or reduce allocation rate</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Connection Creation Bottleneck</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Opening DB connections per request &nbsp;·&nbsp; <strong>Fix:</strong> Use HikariCP or equivalent connection pool</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Pool Exhaustion</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Objects not returned &nbsp;·&nbsp; <strong>Fix:</strong> Monitor active count, investigate leaks</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Cache Miss Storm</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Cold cache or wrong TTL &nbsp;·&nbsp; <strong>Fix:</strong> Tune cache size, preload hot data, optimize eviction</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High CPU Despite Pooling</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Lock contention on shared pool &nbsp;·&nbsp; <strong>Fix:</strong> Partition or use thread-local pools</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>Database connections</td><td>Connection Pool (HikariCP)</td></tr>
+          <tr><td>Network buffers</td><td>Object Pool</td></tr>
+          <tr><td>Serialization buffers</td><td>Thread-local Pool</td></tr>
+          <tr><td>Frequently accessed data</td><td>Cache (Caffeine / Redis)</td></tr>
+          <tr><td>Static configuration</td><td>In-memory Cache</td></tr>
+          <tr><td>Tiny temporary objects</td><td>Let GC handle them</td></tr>
+          <tr><td>High-concurrency services</td><td>Thread-local Pool + Cache</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Measure allocation rate</li>
+        <li class="text-sm text-gray-700">✅ Measure GC pause time</li>
+        <li class="text-sm text-gray-700">✅ Check pool utilization (active vs idle)</li>
+        <li class="text-sm text-gray-700">✅ Measure cache hit ratio</li>
+        <li class="text-sm text-gray-700">✅ Monitor allocator contention</li>
+        <li class="text-sm text-gray-700">✅ Ensure objects are reset before reuse</li>
+        <li class="text-sm text-gray-700">✅ Benchmark before and after pooling</li>
+        <li class="text-sm text-gray-700">✅ Tune pool size using production metrics</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Object Pooling
+• Reuse expensive mutable objects (buffers, connections, parsers).
+• Lower allocator overhead, GC frequency, and tail latency.
+• Thread-local pools eliminate contention.
+• Always reset state before returning to pool.
+
+Caching
+• Reuse frequently accessed data or computation results.
+• Reduces CPU, DB calls, and network requests.
+• Monitor hit rate — low hit rate = wasted memory.
+
+When NOT to pool
+• Small, short-lived, immutable objects → let GC handle.
+• Only pool: large buffers, connections, parsers, compression.
+
+Staff focus
+• Measure allocation rate, GC time, pool utilization,
+  cache hit ratio, and P99 latency.
+• Benchmark before optimizing. Never assume.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/1b9b34bf-2a65-470a-b910-cd21177813b1.png"
+        alt="Object Pooling &amp; Caching visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

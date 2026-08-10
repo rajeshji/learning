@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memory Leak Detection — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d95; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* warn card */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Memory Leak Detection</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Memory Leak Detection</h1>
+      <p class="text-xs text-gray-400 mt-0.5">valgrind, jmap, pmap, top — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="text-sm text-gray-600 mb-2">When memory is never released, the application grows continuously until performance drops, GC pauses increase, swapping begins, OOM occurs, or Kubernetes kills the container.</p>
+      <p class="nq">Memory leak detection identifies <strong>where memory is retained and why it cannot be reclaimed.</strong></p>
+      <div class="ncode">Allocate Memory → Use Memory → Object No Longer Needed
+         ↓
+Reference Still Exists → GC Cannot Free → Memory Grows → OOM</div>
+    </div>
+
+    <!-- What is a Memory Leak -->
+    <div class="nc">
+      <p class="nh">What is a Memory Leak?</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">Native (C/C++)</p>
+          <p class="text-sm text-red-800">Memory allocated via <code>malloc()</code>/<code>new</code> is never released. Memory permanently leaks.</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1">Managed (Java/Go/.NET)</p>
+          <p class="text-sm text-orange-800">Objects remain reachable via references — GC cannot free them. More accurately called <strong>Memory Retention</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory Growth vs Leak -->
+    <div class="nc">
+      <p class="nh">Memory Growth vs Memory Leak</p>
+      <p class="text-sm text-gray-600 mb-2">Not every growing process has a leak. Staff Engineers distinguish normal growth first.</p>
+      <table class="nt">
+        <thead><tr><th>Situation</th><th>Memory Leak?</th></tr></thead>
+        <tbody>
+          <tr><td>Growing Page Cache</td><td>❌ No</td></tr>
+          <tr><td>jemalloc Arena Growth</td><td>❌ Usually No</td></tr>
+          <tr><td>JVM Heap Growth with Stable Live Set</td><td>❌ Normal</td></tr>
+          <tr><td>Cache Without Eviction</td><td class="text-red-600 font-medium">✅ Yes</td></tr>
+          <tr><td>Static Map Continuously Growing</td><td class="text-red-600 font-medium">✅ Yes</td></tr>
+          <tr><td><code>malloc()</code> Without <code>free()</code></td><td class="text-red-600 font-medium">✅ Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Types of Leaks -->
+    <div class="nc">
+      <p class="nh">Types of Memory Leaks</p>
+      <table class="nt">
+        <thead><tr><th>Type</th><th>Runtime</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Native Leak</td><td>C/C++</td><td>Missing <code>free()</code></td></tr>
+          <tr><td>Managed Leak</td><td>JVM / Go / .NET</td><td>Objects still referenced</td></tr>
+          <tr><td>Resource Leak</td><td>All</td><td>File descriptors, sockets</td></tr>
+          <tr><td>Cache Leak</td><td>All</td><td>Unbounded cache</td></tr>
+          <tr><td>Listener Leak</td><td>Java / .NET</td><td>Event listeners never removed</td></tr>
+          <tr><td>Thread Leak</td><td>All</td><td>Threads never terminate</td></tr>
+          <tr><td>Native Buffer Leak</td><td>JVM</td><td>DirectByteBuffer not released</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Investigation Flow -->
+    <div class="nc">
+      <p class="nh">Investigation Flow — Outside to Inside</p>
+      <div class="ncode">System Metrics (top/RSS)
+↓
+Process Memory (pmap)
+↓
+Heap Growth (jstat / pprof)
+↓
+Heap Snapshot (jmap / heapdump)
+↓
+Object Retention (Dominator Tree)
+↓
+Allocation Site (GC Root Path)
+↓
+Root Cause → Fix → Validate</div>
+      <p class="ntip"><strong>Never start by reading code.</strong> Start with measurements.</p>
+    </div>
+
+    <!-- OS Level: top/pmap -->
+    <div class="nc">
+      <p class="nh">OS-Level Detection — top, pmap, /proc</p>
+      <p class="text-sm text-gray-600 mb-2">First confirm whether process memory is actually growing.</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Metric</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><strong>RSS</strong></td><td>Actual physical memory in use</td></tr>
+          <tr><td><strong>VIRT</strong></td><td>Virtual address space size</td></tr>
+          <tr><td><strong>%MEM</strong></td><td>Process memory as % of total</td></tr>
+          <tr><td><strong>SWAP</strong></td><td>Swapped-out memory</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode"># Live process overview
+top / htop
+
+# Memory mappings per segment
+pmap -x &lt;PID&gt;
+
+# Detailed mappings
+/proc/&lt;PID&gt;/smaps
+
+# System-wide memory
+/proc/meminfo</div>
+      <p class="ntip">A continuously increasing <strong>RSS</strong> often indicates a leak or memory retention.</p>
+    </div>
+
+    <!-- Valgrind -->
+    <div class="nc">
+      <p class="nh">Valgrind — Native C/C++ Leak Detection</p>
+      <p class="text-sm text-gray-600 mb-2">Gold standard for native memory leaks. Intercepts <code>malloc()</code>, <code>calloc()</code>, <code>realloc()</code>, and <code>free()</code>.</p>
+      <div class="ncode">valgrind --leak-check=full ./my-app</div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Leak categories reported</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Category</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td class="text-red-600 font-medium">Definitely lost</td><td>No pointer exists — true leak</td></tr>
+          <tr><td class="text-orange-600">Indirectly lost</td><td>Lost via another lost block</td></tr>
+          <tr><td>Possibly lost</td><td>Interior pointer — may be lost</td></tr>
+          <tr><td>Reachable</td><td>Still referenced at exit</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip"><strong>Trade-off:</strong> 20–50× slower execution. Use in testing/CI, not production.</p>
+    </div>
+
+    <!-- Modern Native Alternatives -->
+    <div class="nc">
+      <p class="nh">Modern Native Alternatives</p>
+      <table class="nt">
+        <thead><tr><th>Tool</th><th>Best For</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Heaptrack</strong></td><td>Allocation profiling — much faster than Valgrind</td></tr>
+          <tr><td><strong>AddressSanitizer (ASan)</strong></td><td>Leak + corruption detection — suitable for CI</td></tr>
+          <tr><td><strong>LeakSanitizer (LSan)</strong></td><td>Fast leak detection standalone</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- JVM: jmap -->
+    <div class="nc">
+      <p class="nh">JVM — jmap, jcmd, jstat</p>
+      <div class="ncode"># Capture heap dump
+jmap -dump:live,file=heap.hprof &lt;PID&gt;
+
+# Live heap histogram
+jmap -histo:live &lt;PID&gt;
+
+# GC stats over time
+jstat -gcutil &lt;PID&gt; 1000
+
+# Heap dump via jcmd
+jcmd &lt;PID&gt; GC.heap_dump /tmp/heap.hprof</div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Heap dump analysis tools</p>
+      <div class="nkw">
+        <span>Eclipse MAT</span>
+        <span>VisualVM</span>
+        <span>YourKit</span>
+        <span>IntelliJ Profiler</span>
+      </div>
+    </div>
+
+    <!-- Heap Dump Analysis -->
+    <div class="nc">
+      <p class="nh">Heap Dump Analysis — Key Concepts</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Shallow Size</strong></td><td>Memory of the object itself</td></tr>
+          <tr><td><strong>Retained Size</strong></td><td>All memory freed if this object were collected</td></tr>
+          <tr><td><strong>Dominator Tree</strong></td><td>Objects responsible for largest retained memory</td></tr>
+          <tr><td><strong>GC Root Path</strong></td><td>Why the object is still alive</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode">Example: GC Root Path
+Static Map → Cache → User Objects → Memory Never Released
+
+Removing the static reference frees thousands of objects.</div>
+      <p class="ntip">The <strong>Dominator Tree</strong> is usually the fastest path to identifying the leak source.</p>
+    </div>
+
+    <!-- Go -->
+    <div class="nc">
+      <p class="nh">Go — pprof Heap Profiling</p>
+      <div class="ncode"># HTTP endpoint (add to main):
+import _ "net/http/pprof"
+
+# Capture heap profile:
+go tool pprof http://localhost:6060/debug/pprof/heap
+
+# Useful metrics:
+# alloc_space, inuse_space, inuse_objects</div>
+      <div class="nkw mt-2">
+        <span>Heap size</span>
+        <span>Allocation rate</span>
+        <span>Live objects</span>
+        <span>Goroutine count</span>
+      </div>
+    </div>
+
+    <!-- .NET -->
+    <div class="nc">
+      <p class="nh">.NET — dotnet-counters, PerfView</p>
+      <div class="ncode">dotnet-counters monitor --process-id &lt;PID&gt;
+dotnet-trace collect --process-id &lt;PID&gt;</div>
+      <div class="nkw mt-2">
+        <span>Managed Heap Size</span>
+        <span>GC Collections</span>
+        <span>LOH Usage</span>
+        <span>Object Retention</span>
+      </div>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-violet-700">Spring Boot — Cache Without Eviction</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">RSS grows hourly
+→ jmap heap dump
+→ Eclipse MAT Dominator Tree
+→ ConcurrentHashMap (unbounded cache)
+→ Add size limit / LRU eviction</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">C++ Service — Missing free()</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">RSS continuously grows (no GC)
+→ Valgrind --leak-check=full
+→ "Definitely Lost" reported
+→ Missing free() in request handler
+→ Fix: RAII / smart pointers</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Go Service — Global Variable</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem;margin-top:.4rem">Heap grows after traffic spikes
+→ pprof heap profile
+→ Large slice in global variable
+→ Remove global reference → GC collects</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Memory keeps increasing.</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Is there a heap leak?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is RSS increasing or only heap?</li>
+            <li>Is this Page Cache or application memory?</li>
+            <li>Is the leak native or managed?</li>
+            <li>Is memory retained intentionally?</li>
+            <li>Are GC roots preventing reclamation?</li>
+            <li>Is allocator fragmentation involved?</li>
+            <li>Is the container close to its memory limit?</li>
+            <li>Is this expected growth under load?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-orange-800">RSS Continuously Growing</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Native memory leak or allocator growth &nbsp;·&nbsp; <strong>Fix:</strong> Inspect <code>pmap</code>, heap dump, allocator stats</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">JVM Heap Never Shrinks</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Retained objects &nbsp;·&nbsp; <strong>Fix:</strong> Analyze heap dump with Eclipse MAT Dominator Tree</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High RSS but Stable Heap</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Native memory leak or allocator fragmentation &nbsp;·&nbsp; <strong>Fix:</strong> Check DirectByteBuffers, malloc arenas, jemalloc stats</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Kubernetes OOMKilled</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Container exceeds memory limit &nbsp;·&nbsp; <strong>Fix:</strong> Capture heap dump before restart; review off-heap usage</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Tool</th></tr></thead>
+        <tbody>
+          <tr><td>OS Memory Growth</td><td><code>top</code>, <code>htop</code>, <code>ps</code></td></tr>
+          <tr><td>Memory Mappings</td><td><code>pmap</code>, <code>/proc/PID/smaps</code></td></tr>
+          <tr><td>Native Leak</td><td>Valgrind, Heaptrack, ASan</td></tr>
+          <tr><td>JVM Leak</td><td><code>jmap</code>, <code>jcmd</code>, Eclipse MAT</td></tr>
+          <tr><td>Go Leak</td><td><code>pprof</code></td></tr>
+          <tr><td>.NET Leak</td><td>PerfView, <code>dotnet-counters</code></td></tr>
+          <tr><td>Production Monitoring</td><td>Prometheus + Grafana + JFR / pprof</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tool Comparison -->
+    <div class="nc">
+      <p class="nh">Tool Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Tool</th><th>Runtime</th><th>Purpose</th><th>Best For</th></tr></thead>
+        <tbody>
+          <tr><td><code>top</code></td><td>All</td><td>Process memory overview</td><td>First diagnosis</td></tr>
+          <tr><td><code>pmap</code></td><td>Linux</td><td>Memory mapping</td><td>Heap vs native split</td></tr>
+          <tr><td>Valgrind</td><td>C/C++</td><td>Precise leak detection</td><td>Native applications</td></tr>
+          <tr><td>Heaptrack</td><td>C/C++</td><td>Allocation profiling</td><td>Performance analysis</td></tr>
+          <tr><td><code>jmap</code></td><td>JVM</td><td>Heap dump</td><td>Java memory leaks</td></tr>
+          <tr><td>Eclipse MAT</td><td>JVM</td><td>Heap analysis</td><td>Retained objects</td></tr>
+          <tr><td><code>pprof</code></td><td>Go</td><td>Heap profiling</td><td>Go services</td></tr>
+          <tr><td>PerfView</td><td>.NET</td><td>Heap &amp; GC analysis</td><td>.NET applications</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Check RSS using <code>top</code></li>
+        <li class="text-sm text-gray-700">✅ Compare RSS vs Heap usage</li>
+        <li class="text-sm text-gray-700">✅ Inspect memory maps (<code>pmap</code>, <code>smaps</code>)</li>
+        <li class="text-sm text-gray-700">✅ Capture heap dump or allocation profile</li>
+        <li class="text-sm text-gray-700">✅ Analyze retained objects (Dominator Tree)</li>
+        <li class="text-sm text-gray-700">✅ Follow GC Root paths to allocation site</li>
+        <li class="text-sm text-gray-700">✅ Identify and fix root cause</li>
+        <li class="text-sm text-gray-700">✅ Verify memory stabilizes after deploy</li>
+        <li class="text-sm text-gray-700">✅ Monitor long-running memory trends</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Memory Leaks
+• Native: malloc() without free() → permanent loss.
+• Managed: objects reachable → GC cannot collect.
+• Not every growth is a leak (page cache, arenas).
+
+Investigation Order
+• OS level (top/pmap) → Runtime (jmap/pprof) → Analysis.
+• Never start with code. Start with measurements.
+
+Key Techniques
+• Dominator Tree → fastest path to leak source.
+• GC Root Path → explains why object is alive.
+• Retained Size → total memory freed if object removed.
+
+Tools
+• Native: Valgrind, Heaptrack, ASan.
+• JVM: jmap, jcmd, Eclipse MAT.
+• Go: pprof (/debug/pprof/heap).
+• .NET: PerfView, dotnet-counters.
+
+Staff workflow
+• Measure → Capture → Analyze → Identify → Fix → Validate.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/904c9fd8-3efa-48c8-a71b-944824451328.png"
+        alt="Memory Leak Detection visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tail Latency vs Mean Latency</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+    .sub-h { font-size:.62rem; font-weight:700; text-transform:uppercase;
+             letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    /* percentile bar */
+    .pct-row { display:flex; align-items:center; gap:.6rem; margin-bottom:.35rem; }
+    .pct-label{ font-size:.72rem; font-weight:700; width:2.8rem; shrink:0; }
+    .pct-bar  { height:.55rem; border-radius:999px; }
+    .pct-val  { font-size:.72rem; color:#374151; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 px items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Tail Latency vs Mean Latency</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Tail Latency vs Mean Latency</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Average looks good. Tail tells the truth.</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TEXT TAB ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core + Golden Rule -->
+    <div class="nc">
+      <p class="nh">Golden Rule</p>
+      <p class="nq">Mean latency tells how the <strong>average</strong> request performs. Tail latency tells how the <strong>slowest</strong> requests perform. Production systems care more about tail latency.</p>
+      <p class="ntip mt-3">Interview answer: <strong>Always optimize tail latency (P95/P99)</strong> — users experience the slowest requests, not the average.</p>
+    </div>
+
+    <!-- Quick Comparison -->
+    <div class="nc">
+      <p class="nh">Quick Comparison</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Feature</th><th>Mean Latency</th><th>Tail Latency</th></tr></thead>
+        <tbody>
+          <tr><td>Definition</td><td>Average response time</td><td>Slowest % of requests</td></tr>
+          <tr><td>Represents</td><td>Typical request</td><td>Worst-case request</td></tr>
+          <tr><td>Metric</td><td>Average</td><td>P95, P99, P99.9</td></tr>
+          <tr><td>Affected by</td><td>All requests</td><td>Outliers only</td></tr>
+          <tr><td>User Experience</td><td>Sometimes misleading</td><td>Real user experience</td></tr>
+          <tr><td>Interview Weight</td><td>Medium</td><td><strong>Very High</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- The 100-request example -->
+    <div class="nc">
+      <p class="nh">The Classic Example — 100 Requests</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <table class="nt mb-3">
+            <thead><tr><th>Requests</th><th>Response Time</th></tr></thead>
+            <tbody>
+              <tr><td>95 requests</td><td>20 ms</td></tr>
+              <tr><td>4 requests</td><td>80 ms</td></tr>
+              <tr><td><strong>1 request</strong></td><td><strong>2500 ms</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="space-y-2">
+          <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+            <p class="text-xs text-green-600 font-bold uppercase tracking-wide mb-1">Mean Latency</p>
+            <p class="text-2xl font-black text-green-700">~45 ms</p>
+            <p class="text-xs text-green-500">Looks great!</p>
+          </div>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+            <p class="text-xs text-red-600 font-bold uppercase tracking-wide mb-1">Tail Latency</p>
+            <p class="text-sm font-bold text-red-700">P95 = 80 ms &nbsp;&bull;&nbsp; P99 = <span class="text-lg">2500 ms</span></p>
+            <p class="text-xs text-red-500 mt-1">One user waited 2.5 seconds — that's what they remember.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tail Latency Amplification -->
+    <div class="nc">
+      <p class="nh">Tail Latency Amplification</p>
+      <p class="text-sm text-gray-600 mb-3">In distributed systems, a request calls multiple services. One slow dependency delays the entire request.</p>
+      <div class="ncode">Search API
+  &darr; calls 20 Microservices
+  &darr; 19 respond in 20 ms
+  &darr; 1 responds in 900 ms
+  &darr;
+  Total Request = 900 ms   (user feels this, not the 20 ms average)</div>
+      <p class="ntip mt-3">The user experiences the <strong>slowest</strong> service, not the average of all services.</p>
+    </div>
+
+    <!-- Where it comes from -->
+    <div class="nc">
+      <p class="nh">Where Tail Latency Comes From</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">GC pauses</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">Lock contention</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">Network retries</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">Disk I/O</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">Cache misses</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">Slow DB queries</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">Queue buildup</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">CPU contention</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs font-semibold text-red-600">Cross-region calls</p></div>
+      </div>
+    </div>
+
+    <!-- How to Measure -->
+    <div class="nc">
+      <p class="nh">How to Measure — Percentiles</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <table class="nt">
+          <thead><tr><th>Percentile</th><th>Meaning</th><th>Typical Value</th></tr></thead>
+          <tbody>
+            <tr><td><strong>P50</strong></td><td>Median user</td><td>20 ms</td></tr>
+            <tr><td><strong>P90</strong></td><td>Fast majority</td><td>60 ms</td></tr>
+            <tr><td><strong>P95</strong></td><td>Common SLO target</td><td>80 ms</td></tr>
+            <tr><td><strong>P99</strong></td><td>Tail latency</td><td>500 ms</td></tr>
+            <tr><td><strong>P99.9</strong></td><td>Extreme outliers</td><td>3000 ms</td></tr>
+          </tbody>
+        </table>
+        <div>
+          <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Typical Dashboard</p>
+          <div class="pct-row"><span class="pct-label text-green-600">P50</span><div class="pct-bar bg-green-400" style="width:10%"></div><span class="pct-val">20 ms</span></div>
+          <div class="pct-row"><span class="pct-label text-blue-600">P95</span><div class="pct-bar bg-blue-400" style="width:28%"></div><span class="pct-val">80 ms</span></div>
+          <div class="pct-row"><span class="pct-label text-orange-600">P99</span><div class="pct-bar bg-orange-400" style="width:60%"></div><span class="pct-val">500 ms</span></div>
+          <div class="pct-row"><span class="pct-label text-red-600">P99.9</span><div class="pct-bar bg-red-500" style="width:100%"></div><span class="pct-val">3000 ms</span></div>
+          <p class="text-xs text-gray-400 mt-2">Notice how P99 and P99.9 are far above the mean.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to Reduce -->
+    <div class="nc">
+      <p class="nh">How to Reduce Tail Latency</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Technique</th><th>Why It Helps</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Caching</strong></td><td>Avoid slow database calls on every request</td></tr>
+          <tr><td><strong>Hedged Requests</strong></td><td>Send backup request to another replica; take first response</td></tr>
+          <tr><td><strong>Request Timeouts</strong></td><td>Prevent indefinite waiting on slow dependencies</td></tr>
+          <tr><td><strong>Circuit Breakers</strong></td><td>Fail fast on unhealthy services; stop amplification</td></tr>
+          <tr><td><strong>Load Balancing</strong></td><td>Avoid routing to overloaded instances</td></tr>
+          <tr><td><strong>Connection Pooling</strong></td><td>Reduce connection setup delays</td></tr>
+          <tr><td><strong>Async Processing</strong></td><td>Remove blocking operations from critical path</td></tr>
+          <tr><td><strong>Data Locality</strong></td><td>Keep compute close to data to reduce network RTT</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Interview Q&As -->
+    <div class="nc">
+      <p class="nh">Interview Q&amp;A</p>
+      <div class="space-y-3 mt-1">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Q: Which metric is more important — mean or tail latency?</p>
+          <p class="text-xs text-red-400 line-through mb-1">Poor: Average latency.</p>
+          <p class="text-xs text-green-700 font-medium">Good: Tail latency (P95/P99). User experience is determined by the slowest requests, and distributed systems amplify outliers through fan-out.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Q: Why does Google optimize P99 instead of average latency?</p>
+          <p class="text-xs text-green-700 font-medium">A: A single slow dependency delays the entire request. Optimising only the average hides these outliers. Improving P99 directly improves the experience of the slowest users, who often have the most visibility (e.g. checkout, search).</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Q: Why does scaling not always improve latency?</p>
+          <p class="text-xs text-green-700 font-medium">A: The bottleneck moves to another component (DB, network, locks, GC). Tail latency increases due to contention and queuing — USL applies.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Engineer Thinking Progression</p>
+      <div class="space-y-2 mt-1">
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-gray-400 w-16 shrink-0 mt-0.5">Junior</span>
+          <p class="text-sm text-gray-500">Average latency is 40 ms — looks fine.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-blue-500 w-16 shrink-0 mt-0.5">Senior</span>
+          <p class="text-sm text-gray-600">P95 is increasing — something is wrong.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-violet-600 w-16 shrink-0 mt-0.5">Staff</span>
+          <p class="text-sm text-violet-800 font-medium">What is causing the P99 spike? GC, lock contention, database, or network? How do we isolate those outliers?</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company focus -->
+    <div class="nc">
+      <p class="nh">How Top Companies Focus</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Company</th><th>Focus</th></tr></thead>
+        <tbody>
+          <tr><td>Google Search</td><td>P99 Latency</td></tr>
+          <tr><td>Amazon Checkout</td><td>P99 + Availability</td></tr>
+          <tr><td>Netflix</td><td>Tail Latency + Resilience</td></tr>
+          <tr><td>Uber</td><td>Tail Latency for Trip Matching</td></tr>
+          <tr><td>LinkedIn</td><td>Tail Latency for Search</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">Mean Latency
+  &bull; Average response time
+  &bull; Can hide slow outliers
+  &bull; Useful for overall trends only
+
+Tail Latency
+  &bull; P95 / P99 / P99.9
+  &bull; Represents slowest users
+  &bull; Critical for production SLOs
+  &bull; Primary SLA/SLO metric
+
+Golden Rule: Optimize P99, not just the average.
+Remember:   Measure &rarr; Analyze &rarr; Optimize &rarr; Validate</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Mindset</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+        <p class="text-xs text-white">What is our P99 latency?</p>
+        <p class="text-xs text-white">Which component contributes most to the tail?</p>
+        <p class="text-xs text-white">How does tail latency propagate across microservices?</p>
+        <p class="text-xs text-white">Which techniques reduce tail latency without increasing cost?</p>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        Mean latency tells you how the system performs on average.
+        <strong class="text-yellow-300">Tail latency tells you how your slowest users experience the system.</strong>
+        In distributed systems, optimizing P99 is usually far more important than optimizing the mean.
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== IMAGE TAB ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/TailLatency/tail-latency.png"
+           alt="Tail Latency vs Mean Latency visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

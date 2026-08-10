@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snapshotting & Backups (RTO/RPO) — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Snapshots & Backups (RTO/RPO)</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Snapshotting & Backups (RTO/RPO Definitions)</h1>
+      <p class="text-xs text-gray-400 mt-0.5">How production systems protect data, recover from failures, and meet business recovery objectives</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">Production systems will eventually fail — disk failures, bugs, human mistakes, ransomware, datacenter outages. Every critical system needs four protection layers: <strong>Replication → Snapshots → Backups → Archive</strong>. Each solves a different recovery problem.</p>
+      <div class="ncode">Live Data
+  ↓
+Replication     (High Availability)
+  ↓
+Snapshots       (Fast Rollback)
+  ↓
+Backups         (Disaster Recovery)
+  ↓
+Archive         (Long-term Retention)</div>
+      <div class="nkw mt-3">
+        <span>RPO</span>
+        <span>RTO</span>
+        <span>Snapshot</span>
+        <span>Backup</span>
+        <span>Replication</span>
+        <span>WAL</span>
+        <span>3-2-1 Rule</span>
+        <span>Disaster Recovery</span>
+      </div>
+    </div>
+
+    <!-- RPO & RTO -->
+    <div class="nc">
+      <p class="nh">RPO & RTO — The Business Contract</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="bg-violet-50 rounded-lg p-4 border border-violet-100">
+          <p class="text-sm font-bold text-violet-700 mb-2">RPO — Recovery Point Objective</p>
+          <p class="text-xs text-gray-600 mb-2"><em>"How much data loss is acceptable?"</em></p>
+          <p class="text-xs text-gray-500">The maximum age of files that must be recovered from backup storage for normal operations to resume. Lower RPO → more frequent backups or WAL shipping.</p>
+          <p class="text-xs font-bold text-violet-600 mt-2">Example: RPO = 15 min → max 15 min of data lost</p>
+        </div>
+        <div class="bg-violet-50 rounded-lg p-4 border border-violet-100">
+          <p class="text-sm font-bold text-violet-700 mb-2">RTO — Recovery Time Objective</p>
+          <p class="text-xs text-gray-600 mb-2"><em>"How quickly must the service recover?"</em></p>
+          <p class="text-xs text-gray-500">The maximum tolerable length of time that a system can be offline after a failure. Lower RTO → standby infrastructure, automation, fast restore paths.</p>
+          <p class="text-xs font-bold text-violet-600 mt-2">Example: RTO = 30 min → service back in 30 min</p>
+        </div>
+      </div>
+      <table class="nt mt-3">
+        <thead><tr><th>System</th><th>Typical RPO</th><th>Typical RTO</th></tr></thead>
+        <tbody>
+          <tr><td>Banking / Trading</td><td>0–1 second</td><td>&lt;5 minutes</td></tr>
+          <tr><td>Payment Systems</td><td>&lt;1 minute</td><td>&lt;5 minutes</td></tr>
+          <tr><td>E-commerce</td><td>5–15 minutes</td><td>&lt;15 minutes</td></tr>
+          <tr><td>Internal Services</td><td>Hours</td><td>Hours</td></tr>
+          <tr><td>Archive / Compliance</td><td>Days</td><td>Days</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Reducing RPO requires more frequent snapshots, WAL shipping, or continuous replication. Reducing RTO requires automated failover, standby systems, and fast restore paths. Both together drive infrastructure cost.</p>
+    </div>
+
+    <!-- Four Mechanisms -->
+    <div class="nc">
+      <p class="nh">Core Concepts</p>
+      <table class="nt">
+        <thead><tr><th>Concept</th><th>Purpose</th><th>RTO</th><th>RPO</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Snapshot</strong></td><td>Point-in-time copy, fast rollback</td><td>Minutes</td><td>Minutes</td></tr>
+          <tr><td><strong>Backup</strong></td><td>Independent copy, disaster recovery</td><td>Hours</td><td>Hours</td></tr>
+          <tr><td><strong>Replication</strong></td><td>Live copy, high availability</td><td>Seconds</td><td>Seconds</td></tr>
+          <tr><td><strong>Archive</strong></td><td>Long-term, low-cost, compliance</td><td>Hours–Days</td><td>Days</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Snapshot Internals -->
+    <div class="nc">
+      <p class="nh">Snapshot Internals</p>
+      <p class="text-sm text-gray-600 mb-2">Modern snapshots are space-efficient using incremental techniques:</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Copy-on-Write (CoW)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Original Block
+↓
+Copy old block first
+↓
+Write new data in place</div>
+          <p class="text-xs text-gray-500 mt-1">Used by: ZFS, Btrfs, LVM</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Redirect-on-Write (RoW)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Original Block
+↓
+Allocate new block
+↓
+Update metadata pointer</div>
+          <p class="text-xs text-gray-500 mt-1">Used by: AWS EBS, NetApp WAFL</p>
+        </div>
+      </div>
+      <p class="ntip">Both techniques store only changed blocks, making snapshots incremental and storage-efficient. The snapshot metadata points to unchanged blocks in the original volume.</p>
+    </div>
+
+    <!-- Backup Types -->
+    <div class="nc">
+      <p class="nh">Backup Types</p>
+      <table class="nt">
+        <thead><tr><th>Type</th><th>What is Backed Up</th><th>Storage</th><th>Restore Speed</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Full</strong></td><td>Everything</td><td>Largest</td><td>Fastest</td></tr>
+          <tr><td><strong>Incremental</strong></td><td>Changes since last backup</td><td>Smallest</td><td>Slower (chain)</td></tr>
+          <tr><td><strong>Differential</strong></td><td>Changes since last full</td><td>Medium</td><td>Balanced</td></tr>
+          <tr><td><strong>Continuous</strong></td><td>Every change via WAL/logs</td><td>Medium</td><td>Fast + flexible</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Continuous backup via WAL shipping provides the lowest RPO (near-zero) since every committed transaction is streamed to the backup location. Used by PostgreSQL, MySQL, and most production databases.</p>
+    </div>
+
+    <!-- Snapshot vs Backup -->
+    <div class="nc">
+      <p class="nh">Snapshot vs Backup</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Snapshot</th><th>Backup</th></tr></thead>
+        <tbody>
+          <tr><td>Recovery Speed</td><td>Very Fast (minutes)</td><td>Slower (hours)</td></tr>
+          <tr><td>Storage Location</td><td>Same system (local)</td><td>Remote / offsite</td></tr>
+          <tr><td>Cost</td><td>Lower</td><td>Higher</td></tr>
+          <tr><td>Retention</td><td>Short (days–weeks)</td><td>Long (months–years)</td></tr>
+          <tr><td>Disaster Recovery</td><td>Limited</td><td>Excellent</td></tr>
+          <tr><td>Rollback (mistakes)</td><td>Excellent</td><td>Moderate</td></tr>
+          <tr><td>Corruption protection</td><td>Partial (same storage)</td><td>Full (independent)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Replication vs Backup -->
+    <div class="nc">
+      <p class="nh">Replication vs Backup — Critical Distinction</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Replication</th><th>Backup</th></tr></thead>
+        <tbody>
+          <tr><td>Type</td><td>Live copy</td><td>Independent copy</td></tr>
+          <tr><td>Purpose</td><td>High Availability</td><td>Disaster Recovery</td></tr>
+          <tr><td>Data corruption</td><td>Propagates immediately</td><td>Preserves historical state</td></tr>
+          <tr><td>Failover</td><td>Fast (seconds)</td><td>Slow (hours)</td></tr>
+          <tr><td>Retention</td><td>Current state only</td><td>Historical versions</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip"><strong>Replication does NOT replace backups.</strong> If corrupted data is replicated, every replica becomes corrupted too. A backup is the final line of defense for data recovery.</p>
+    </div>
+
+    <!-- 3-2-1 Rule -->
+    <div class="nc">
+      <p class="nh">The 3-2-1 Backup Rule</p>
+      <div class="ncode">3 Copies of Data
+  ↓
+2 Different Storage Media
+  ↓
+1 Copy Offsite (or air-gapped)</div>
+      <p class="text-sm text-gray-600 mt-2">Example:</p>
+      <ul class="dot-ul mt-1">
+        <li>Production database (primary)</li>
+        <li>Local NVMe snapshot</li>
+        <li>Encrypted backup in S3 Glacier (offsite)</li>
+      </ul>
+    </div>
+
+    <!-- Disaster Recovery Flow -->
+    <div class="nc">
+      <p class="nh">Disaster Recovery Flow</p>
+      <div class="ncode">Failure Detected
+  ↓
+Can Replica Take Over?
+  → YES: Automatic Failover (RTO: seconds)
+  → NO ↓
+Restore Latest Snapshot
+  → Clean? → Application Online (RTO: minutes)
+  → Corrupted ↓
+Restore Backup + Replay WAL
+  → Application Online (RTO: hours)
+  ↓
+Post-Incident: Root cause + DR drill review</div>
+    </div>
+
+    <!-- Cloud Mapping -->
+    <div class="nc">
+      <p class="nh">Cloud Provider Support</p>
+      <table class="nt">
+        <thead><tr><th>Platform</th><th>Snapshot</th><th>Backup</th></tr></thead>
+        <tbody>
+          <tr><td>AWS</td><td>EBS Snapshots</td><td>AWS Backup / S3 Glacier</td></tr>
+          <tr><td>Azure</td><td>Managed Disk Snapshots</td><td>Recovery Services Vault</td></tr>
+          <tr><td>Google Cloud</td><td>Persistent Disk Snapshots</td><td>Backup & DR / Cloud Storage</td></tr>
+          <tr><td>Kubernetes</td><td>CSI Volume Snapshot</td><td>Velero</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-violet-700">PostgreSQL — Point-in-Time Recovery</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Base backup (pg_basebackup)
+  + WAL streaming → continuous backup
+  → Restore: base + replay WAL to any point in time
+  → RPO: near-zero  RTO: minutes to hours</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">AWS EBS — Incremental Snapshots</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Volume → Incremental snapshot stored in S3
+  → Only changed blocks since last snapshot
+  → Fast restore: new EBS volume from snapshot
+  → Cross-region copy for DR</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Elasticsearch — Snapshot Repository</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Index segments → Incremental snapshot → S3/GCS
+  → Restore: specific indices or entire cluster
+  → ILM manages retention automatically</div>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Kubernetes — Velero</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">CSI volume snapshots + Kubernetes object backup
+  → Stored in object storage (S3/GCS/Azure Blob)
+  → Restore full cluster or namespaces selectively</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Trade-offs -->
+    <div class="nc">
+      <p class="nh">Performance vs Cost Trade-offs</p>
+      <table class="nt">
+        <thead><tr><th>Strategy</th><th>Cost</th><th>RTO</th><th>RPO</th></tr></thead>
+        <tbody>
+          <tr><td>Snapshot Only</td><td>Low</td><td>Fast</td><td>Medium</td></tr>
+          <tr><td>Backup Only</td><td>Medium</td><td>Slow</td><td>High</td></tr>
+          <tr><td>Replication Only</td><td>High</td><td>Very Fast</td><td>Very Low</td></tr>
+          <tr><td>Snapshot + Backup</td><td>Medium</td><td>Fast</td><td>Low</td></tr>
+          <tr><td>Replication + Snapshot + Backup</td><td>Highest</td><td>Best</td><td>Best</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Should we take backups?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">How often should backups run?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>What RPO does the business require?</li>
+            <li>What RTO is contractually guaranteed?</li>
+            <li>Is replication truly sufficient (or do we need backups)?</li>
+            <li>How are backups validated after creation?</li>
+            <li>Are backups immutable (ransomware-proof)?</li>
+            <li>Are backups encrypted at rest and in transit?</li>
+            <li>Can we restore in another region?</li>
+            <li>When did we last run a DR drill?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Snapshot Lost</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Storage array failure &nbsp;·&nbsp; <strong>Fix:</strong> Maintain independent offsite backups; never rely on snapshots alone</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Data Corruption Propagated</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Application bug replicated to all replicas immediately &nbsp;·&nbsp; <strong>Fix:</strong> Restore from immutable backup or replay WAL to pre-corruption point</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Disaster Recovery</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> No snapshots; relying solely on large full backup restore &nbsp;·&nbsp; <strong>Fix:</strong> Use snapshots with incremental WAL backups to reduce RTO</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Backup Restore Failure</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Backups never tested; silent corruption or format changes &nbsp;·&nbsp; <strong>Fix:</strong> Run regular automated restore drills; verify checksums</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Ransomware Attack</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> All production and backup data encrypted by attacker &nbsp;·&nbsp; <strong>Fix:</strong> Immutable, air-gapped, offsite backups (S3 Object Lock, WORM)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Requirement</th><th>Recommended Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>Fast rollback (mistakes)</td><td>Snapshot</td></tr>
+          <tr><td>Disaster recovery</td><td>Backup (offsite)</td></tr>
+          <tr><td>High availability</td><td>Replication</td></tr>
+          <tr><td>Compliance / audit</td><td>Archive</td></tr>
+          <tr><td>Low RPO (&lt;1 min)</td><td>Continuous WAL + Replication</td></tr>
+          <tr><td>Low RTO (&lt;5 min)</td><td>Automated Failover + Snapshots</td></tr>
+          <tr><td>Maximum resilience</td><td>Replication + Snapshots + Backups</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Readiness Checklist -->
+    <div class="nc">
+      <p class="nh">Production Readiness Checklist</p>
+      <ol class="list-decimal pl-4 space-y-1 mt-1">
+        <li class="text-xs text-gray-700">Define business RPO and RTO per service</li>
+        <li class="text-xs text-gray-700">Automate snapshot schedules (no manual steps)</li>
+        <li class="text-xs text-gray-700">Maintain encrypted, offsite backups</li>
+        <li class="text-xs text-gray-700">Use immutable backup storage (S3 Object Lock)</li>
+        <li class="text-xs text-gray-700">Replicate critical workloads for HA</li>
+        <li class="text-xs text-gray-700">Monitor backup job success/failure with alerts</li>
+        <li class="text-xs text-gray-700">Perform regular automated restore drills</li>
+        <li class="text-xs text-gray-700">Review and enforce retention policies</li>
+        <li class="text-xs text-gray-700">Validate backup integrity via checksums</li>
+        <li class="text-xs text-gray-700">Document and rehearse disaster recovery procedures</li>
+      </ol>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">RPO = max acceptable data loss
+RTO = max acceptable downtime
+→ These two metrics drive every DR design decision.
+
+Snapshot  = fast rollback    (same storage, minutes)
+Backup    = DR               (offsite, hours)
+Replication = HA             (live copy, seconds)
+Archive   = compliance       (cold, days)
+
+Replication ≠ Backup:
+  Corruption propagates to all replicas.
+  Backup is the final defense.
+
+Backup types:
+  Full        → simplest restore, largest storage
+  Incremental → smallest, slower restore chain
+  Differential→ balanced
+  Continuous  → WAL-based, lowest RPO
+
+3-2-1 Rule: 3 copies · 2 media · 1 offsite
+
+Production must-haves:
+  Immutable backups (ransomware proof)
+  Encrypted at rest + in transit
+  Regular restore drills (not just backups)
+  Automated monitoring of backup jobs</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/85bed436-7971-4223-932e-46cbfc7bacec.png"
+        alt="Snapshotting and Backups RTO RPO visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

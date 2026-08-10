@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>System Design Interview — Failure Framework</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .bucket { border-radius:1rem; padding:1.1rem 1.25rem; }
+    .tag { display:inline-block; font-size:.62rem; font-weight:700; border-radius:999px;
+           padding:.15em .6em; margin:.1rem .1rem 0 0; }
+    .mit { font-size:.68rem; font-family:'Courier New',monospace; line-height:1.9;
+           padding:.8rem 1rem; border-radius:.75rem; white-space:pre; overflow-x:auto; }
+    .trigger { font-size:.72rem; font-style:italic; opacity:.75; margin-top:.5rem; }
+    .section-hdr { font-size:.65rem; font-weight:800; letter-spacing:.12em;
+                   text-transform:uppercase; margin-bottom:1rem; }
+    .top25-group { border-radius:.9rem; padding:.9rem 1.1rem; }
+    .mgroup { border-radius:1rem; padding:1rem 1.1rem; }
+    .mcode { font-size:.68rem; font-family:'Courier New',monospace; line-height:1.9;
+             background:rgba(255,255,255,.06); border-radius:.6rem;
+             padding:.6rem .8rem; white-space:pre; margin-top:.5rem; }
+  </style>
+</head>
+<body class="bg-slate-950 min-h-screen text-white">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-slate-300 hover:text-white font-semibold
+              bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Failure Types Hub
+    </a>
+    <svg class="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-300 font-semibold">Interview Cheat Sheet</span>
+    <a href="failure-patterns.html"
+       class="ml-auto shrink-0 flex items-center gap-1.5 text-cyan-300 hover:text-white font-semibold
+              bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors text-xs">
+      Patterns &#8250;
+    </a>
+  </div>
+</header>
+
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-20">
+
+  <!-- HERO ANSWER -->
+  <div class="rounded-2xl border border-yellow-500 bg-yellow-950 px-6 py-5 mb-8">
+    <p class="text-xs font-bold text-yellow-400 uppercase tracking-widest mb-2">Senior Interview Answer — Say This First</p>
+    <p class="text-yellow-100 font-semibold text-sm leading-relaxed">
+      "I think in layers: <span class="text-yellow-300">load, infra, dependency, database, consistency, coordination.</span>
+      Then I apply mitigation buckets: <span class="text-yellow-300">absorb, reduce, isolate, recover, preserve correctness.</span>"
+    </p>
+    <p class="text-yellow-600 text-xs mt-3">This one sentence signals Principal-level thinking. Say it before diving into specific failures.</p>
+  </div>
+
+  <!-- 8 BUCKETS -->
+  <p class="section-hdr text-slate-400">The 8 Failure Buckets — Think in These Always</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
+
+    <!-- 1 Traffic -->
+    <div class="bucket bg-red-950 border border-red-800">
+      <p class="text-xs font-bold text-red-400 uppercase tracking-wider mb-2">1 · Traffic / Load</p>
+      <div class="flex flex-wrap mb-2">
+        <span class="tag bg-red-900 text-red-300">traffic spike</span>
+        <span class="tag bg-red-900 text-red-300">retry storm</span>
+        <span class="tag bg-red-900 text-red-300">thundering herd</span>
+        <span class="tag bg-red-900 text-red-300">hot partition</span>
+        <span class="tag bg-red-900 text-red-300">queue backlog</span>
+        <span class="tag bg-red-900 text-red-300">thread exhaustion</span>
+        <span class="tag bg-red-900 text-red-300">cascading failure</span>
+      </div>
+      <div class="mit bg-red-900 text-red-200">autoscale · CDN · rate limit
+load shedding · queue buffer
+backpressure · backoff+jitter
+circuit breaker · bulkhead
+consistent hashing · hot key rep</div>
+      <p class="trigger text-red-400">Load &gt; processing capacity</p>
+    </div>
+
+    <!-- 2 Infrastructure -->
+    <div class="bucket bg-slate-800 border border-slate-600">
+      <p class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">2 · Infrastructure</p>
+      <div class="flex flex-wrap mb-2">
+        <span class="tag bg-slate-700 text-slate-300">node crash</span>
+        <span class="tag bg-slate-700 text-slate-300">CPU saturation</span>
+        <span class="tag bg-slate-700 text-slate-300">OOM</span>
+        <span class="tag bg-slate-700 text-slate-300">disk full</span>
+        <span class="tag bg-slate-700 text-slate-300">disk failure</span>
+        <span class="tag bg-slate-700 text-slate-300">AZ outage</span>
+        <span class="tag bg-slate-700 text-slate-300">crashloop</span>
+      </div>
+      <div class="mit bg-slate-700 text-slate-200">health checks · auto-heal
+replication · failover
+autoscaling · caching
+multi-AZ · multi-region
+backup/restore · redundancy</div>
+      <p class="trigger text-slate-400">Infra became slow or dead</p>
+    </div>
+
+    <!-- 3 Consistency -->
+    <div class="bucket bg-violet-950 border border-violet-800">
+      <p class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">3 · Data Consistency</p>
+      <div class="flex flex-wrap mb-2">
+        <span class="tag bg-violet-900 text-violet-300">lost write</span>
+        <span class="tag bg-violet-900 text-violet-300">duplicate exec</span>
+        <span class="tag bg-violet-900 text-violet-300">stale read</span>
+        <span class="tag bg-violet-900 text-violet-300">cache inconsistency</span>
+        <span class="tag bg-violet-900 text-violet-300">partial txn</span>
+        <span class="tag bg-violet-900 text-violet-300">race condition</span>
+      </div>
+      <div class="mit bg-violet-900 text-violet-200">WAL replay · idempotency
+deduplication · leader reads
+quorum reads · session consistency
+cache invalidation · Saga
+optimistic CAS · ordering seqs</div>
+      <p class="trigger text-violet-400">System works but data is wrong</p>
+    </div>
+
+    <!-- 4 Coordination -->
+    <div class="bucket bg-indigo-950 border border-indigo-800">
+      <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">4 · Distributed Coord</p>
+      <div class="flex flex-wrap mb-2">
+        <span class="tag bg-indigo-900 text-indigo-300">network partition</span>
+        <span class="tag bg-indigo-900 text-indigo-300">zombie leader</span>
+        <span class="tag bg-indigo-900 text-indigo-300">split brain</span>
+        <span class="tag bg-indigo-900 text-indigo-300">election storm</span>
+        <span class="tag bg-indigo-900 text-indigo-300">clock skew</span>
+        <span class="tag bg-indigo-900 text-indigo-300">quorum loss</span>
+      </div>
+      <div class="mit bg-indigo-900 text-indigo-200">Raft/Paxos · quorum
+leader election leases
+epoch/term fencing
+STONITH · heartbeat validation
+monotonic clocks · fail closed</div>
+      <p class="trigger text-indigo-400">Who owns truth?</p>
+    </div>
+
+    <!-- 5 Database -->
+    <div class="bucket bg-rose-950 border border-rose-800">
+      <p class="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2">5 · Database</p>
+      <div class="flex flex-wrap mb-2">
+        <span class="tag bg-rose-900 text-rose-300">slow query</span>
+        <span class="tag bg-rose-900 text-rose-300">lock contention</span>
+        <span class="tag bg-rose-900 text-rose-300">deadlock</span>
+        <span class="tag bg-rose-900 text-rose-300">replication lag</span>
+        <span class="tag bg-rose-900 text-rose-300">conn exhaustion</span>
+        <span class="tag bg-rose-900 text-rose-300">hotspot shard</span>
+      </div>
+      <div class="mit bg-rose-900 text-rose-200">indexes · query optimize
+read replicas · partitioning
+sharding · connection pool
+failover · caching · CQRS
+replica repair</div>
+      <p class="trigger text-rose-400">Database becomes bottleneck</p>
+    </div>
+
+    <!-- 6 Queue -->
+    <div class="bucket bg-sky-950 border border-sky-800">
+      <p class="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2">6 · Messaging / Queue</p>
+      <div class="flex flex-wrap mb-2">
+        <span class="tag bg-sky-900 text-sky-300">message loss</span>
+        <span class="tag bg-sky-900 text-sky-300">duplicate delivery</span>
+        <span class="tag bg-sky-900 text-sky-300">poison message</span>
+        <span class="tag bg-sky-900 text-sky-300">consumer lag</span>
+        <span class="tag bg-sky-900 text-sky-300">ordering break</span>
+        <span class="tag bg-sky-900 text-sky-300">broker failure</span>
+      </div>
+      <div class="mit bg-sky-900 text-sky-200">durable queues · ack/retry
+dead letter queue
+idempotent consumers
+consumer scaling
+partition ordering · backpressure
+replay control</div>
+      <p class="trigger text-sky-400">Async pipeline failure</p>
+    </div>
+
+    <!-- 7 Cache -->
+    <div class="bucket bg-emerald-950 border border-emerald-800">
+      <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">7 · Cache</p>
+      <div class="flex flex-wrap mb-2">
+        <span class="tag bg-emerald-900 text-emerald-300">cache miss storm</span>
+        <span class="tag bg-emerald-900 text-emerald-300">cache stampede</span>
+        <span class="tag bg-emerald-900 text-emerald-300">stale cache</span>
+        <span class="tag bg-emerald-900 text-emerald-300">node failure</span>
+        <span class="tag bg-emerald-900 text-emerald-300">hot key</span>
+      </div>
+      <div class="mit bg-emerald-900 text-emerald-200">TTL staggering · soft TTL
+cache locking · single-flight
+write-through · write-behind
+cache invalidation
+hot key replication
+multi-level caching</div>
+      <p class="trigger text-emerald-400">Cache amplifies load, not reduces it</p>
+    </div>
+
+    <!-- 8 API/Dependency -->
+    <div class="bucket bg-amber-950 border border-amber-800">
+      <p class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">8 · API / Dependency</p>
+      <div class="flex flex-wrap mb-2">
+        <span class="tag bg-amber-900 text-amber-300">downstream timeout</span>
+        <span class="tag bg-amber-900 text-amber-300">slow dependency</span>
+        <span class="tag bg-amber-900 text-amber-300">dep outage</span>
+        <span class="tag bg-amber-900 text-amber-300">retry amplification</span>
+        <span class="tag bg-amber-900 text-amber-300">schema mismatch</span>
+      </div>
+      <div class="mit bg-amber-900 text-amber-200">timeouts · fail fast
+circuit breaker · fallback
+bulkhead · retry budget
+versioned APIs
+graceful degradation</div>
+      <p class="trigger text-amber-400">Dependency unhealthy</p>
+    </div>
+
+  </div><!-- /8 buckets -->
+
+  <!-- TOP 25 -->
+  <p class="section-hdr text-slate-400">Top 25 Failures — Memorize These (Covers 90% of Interviews)</p>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
+
+    <div class="top25-group bg-red-950 border border-red-900">
+      <p class="text-xs font-bold text-red-400 mb-2 uppercase tracking-wider">Load</p>
+      <ol class="list-decimal list-inside space-y-1 text-xs text-red-200 pl-1">
+        <li>Traffic spike</li><li>Retry storm</li><li>Queue backlog</li>
+        <li>Hot partition</li><li>Cascading failure</li>
+      </ol>
+    </div>
+    <div class="top25-group bg-slate-800 border border-slate-700">
+      <p class="text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider">Infra</p>
+      <ol class="list-decimal list-inside space-y-1 text-xs text-slate-300 pl-1">
+        <li>Node crash</li><li>CPU saturation</li><li>OOM</li>
+        <li>Disk full</li><li>AZ outage</li>
+      </ol>
+    </div>
+    <div class="top25-group bg-violet-950 border border-violet-900">
+      <p class="text-xs font-bold text-violet-400 mb-2 uppercase tracking-wider">Consistency</p>
+      <ol class="list-decimal list-inside space-y-1 text-xs text-violet-200 pl-1">
+        <li>Lost write</li><li>Duplicate processing</li><li>Stale read</li>
+        <li>Partial transaction</li><li>Split brain</li>
+      </ol>
+    </div>
+    <div class="top25-group bg-indigo-950 border border-indigo-900">
+      <p class="text-xs font-bold text-indigo-400 mb-2 uppercase tracking-wider">Coord + DB</p>
+      <ol class="list-decimal list-inside space-y-1 text-xs text-indigo-200 pl-1">
+        <li>Network partition</li><li>Zombie leader</li><li>Election storm</li>
+        <li>Slow query</li><li>Lock contention</li>
+      </ol>
+    </div>
+    <div class="top25-group bg-sky-950 border border-sky-900">
+      <p class="text-xs font-bold text-sky-400 mb-2 uppercase tracking-wider">Queue + API</p>
+      <ol class="list-decimal list-inside space-y-1 text-xs text-sky-200 pl-1">
+        <li>Replication lag</li><li>Message loss</li><li>Duplicate delivery</li>
+        <li>Timeout</li><li>Dependency outage</li>
+      </ol>
+    </div>
+
+  </div><!-- /top 25 -->
+
+  <!-- UNIVERSAL MITIGATION BUCKETS -->
+  <p class="section-hdr text-slate-400">7 Universal Mitigation Buckets — Every Fix Belongs to One of These</p>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-10">
+
+    <div class="mgroup bg-slate-800 border border-slate-700">
+      <p class="text-xs font-bold text-yellow-400 mb-1">Absorb Load</p>
+      <div class="mcode text-yellow-200">autoscale
+queue
+cache
+CDN</div>
+    </div>
+    <div class="mgroup bg-slate-800 border border-slate-700">
+      <p class="text-xs font-bold text-red-400 mb-1">Reduce Load</p>
+      <div class="mcode text-red-200">rate limit
+throttle
+load shedding
+request coalescing</div>
+    </div>
+    <div class="mgroup bg-slate-800 border border-slate-700">
+      <p class="text-xs font-bold text-orange-400 mb-1">Isolate Failure</p>
+      <div class="mcode text-orange-200">bulkhead
+circuit breaker
+fail fast
+timeout</div>
+    </div>
+    <div class="mgroup bg-slate-800 border border-slate-700">
+      <p class="text-xs font-bold text-blue-400 mb-1">Recover</p>
+      <div class="mcode text-blue-200">retry + backoff
+replay
+failover
+restart</div>
+    </div>
+    <div class="mgroup bg-slate-800 border border-slate-700">
+      <p class="text-xs font-bold text-violet-400 mb-1">Preserve Correctness</p>
+      <div class="mcode text-violet-200">idempotency
+locking / CAS
+quorum
+consensus · Saga</div>
+    </div>
+    <div class="mgroup bg-slate-800 border border-slate-700">
+      <p class="text-xs font-bold text-emerald-400 mb-1">Improve Resilience</p>
+      <div class="mcode text-emerald-200">replication
+redundancy
+multi-AZ/region
+anti-affinity</div>
+    </div>
+    <div class="mgroup bg-slate-800 border border-slate-700 sm:col-span-1">
+      <p class="text-xs font-bold text-teal-400 mb-1">Keep Data Fresh</p>
+      <div class="mcode text-teal-200">leader read
+quorum read
+cache invalidation
+session consistency</div>
+    </div>
+    <div class="mgroup border border-yellow-700 bg-yellow-950">
+      <p class="text-xs font-bold text-yellow-300 mb-1">Answer Template</p>
+      <div class="mcode text-yellow-200 text-xs">layers:
+  load · infra · dep
+  db · consistency · coord
+
+mitigations:
+  absorb · reduce · isolate
+  recover · correctness</div>
+    </div>
+
+  </div>
+
+  <!-- FAILURE CHAIN MENTAL MODEL -->
+  <p class="section-hdr text-slate-400">The Universal Failure Chain — Know This Cold</p>
+  <div class="rounded-xl border border-slate-700 bg-slate-900 px-5 py-4 mb-8 overflow-x-auto">
+    <pre class="text-xs text-slate-300 font-mono leading-loose">Traffic spike / node failure / slow dependency
+   ↓
+Thread pool / connection pool exhaustion
+   ↓
+Timeouts → client retries → retry storm
+   ↓
+Backend overload → more failures → cascading
+   ↓
+Data inconsistency (partial writes, duplicates, stale reads)
+   ↓
+Replication lag → split brain → coordination failure
+   ↓
+Full outage
+
+Break the chain at ANY step with: circuit breaker · bulkhead · idempotency · quorum</pre>
+  </div>
+
+  <!-- QUICK RECALL CARD -->
+  <div class="rounded-2xl border border-slate-700 bg-slate-900 px-5 py-5">
+    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Interview Recall — One Card</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <pre class="text-xs text-green-300 font-mono leading-loose">LOAD:   autoscale · CDN · rate limit · backoff
+INFRA:  replicate · multi-AZ · failover · health check
+DB:     index · pool · replica · shard · CQRS
+CACHE:  TTL · single-flight · write-through · invalidate</pre>
+      <pre class="text-xs text-blue-300 font-mono leading-loose">QUEUE:  durable · DLQ · idempotent · backpressure
+COORD:  Raft · quorum · lease · epoch-fence
+CONSTY: CAS · idempotency · Saga · leader-read
+API:    timeout · breaker · bulkhead · versioned API</pre>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>

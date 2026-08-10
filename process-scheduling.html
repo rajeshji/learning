@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Process Scheduling Algorithms</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Process Scheduling Algorithms</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Process Scheduling Algorithms</h1>
+      <p class="text-xs text-gray-400 mt-0.5">FCFS &bull; SJF &bull; Round Robin &bull; Priority &bull; CFS &bull; vruntime &bull; Red-Black Tree</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">A CPU core can execute only one thread at a time. With thousands of runnable threads competing for a few cores, the OS Scheduler must constantly answer: <strong>"Which process runs next?"</strong> That decision directly impacts latency, throughput, fairness, and efficiency.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-blue-700">Low Latency</p>
+          <p class="text-xs text-gray-500 mt-0.5">Fast response for users</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-green-700">High Throughput</p>
+          <p class="text-xs text-gray-500 mt-0.5">More work per second</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-amber-700">Fairness</p>
+          <p class="text-xs text-gray-500 mt-0.5">Every process gets CPU</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-violet-700">Efficiency</p>
+          <p class="text-xs text-gray-500 mt-0.5">Minimize context switches</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Process States + Key Terms -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Process State Lifecycle</p>
+        <div class="ncode" style="font-size:.72rem">New
+  ↓ admit
+Ready Queue  [P1, P2, P3 ... Pn]
+  ↓ scheduler picks
+Running (CPU Core)
+  ↓ I/O or event wait
+Blocked (I/O Wait)
+  ↓ I/O done / interrupt
+Ready
+  ↓ scheduler picks again
+Running
+  ↓ exit
+Terminated</div>
+        <p class="ntip mt-2">Only <strong>READY</strong> processes sit in the ready queue. The scheduler picks one to run. <strong>BLOCKED</strong> processes are waiting for I/O or events — not competing for CPU.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Key Scheduling Terms</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Burst Time</strong></td><td>CPU time a process actually needs</td></tr>
+            <tr><td><strong>Waiting Time</strong></td><td>Total time spent waiting in ready queue</td></tr>
+            <tr><td><strong>Turnaround Time</strong></td><td>Wall-clock time from submit to completion</td></tr>
+            <tr><td><strong>Response Time</strong></td><td>Time until process first gets CPU</td></tr>
+            <tr><td><strong>Time Quantum</strong></td><td>Max time a process runs before preemption</td></tr>
+            <tr><td><strong>Preemption</strong></td><td>OS interrupts a running process and switches</td></tr>
+            <tr><td><strong>Starvation</strong></td><td>Low-priority process never gets CPU</td></tr>
+            <tr><td><strong>Aging</strong></td><td>Gradually raise priority of waiting processes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Classic Algorithms -->
+    <div class="nc">
+      <p class="nh">Classic Scheduling Algorithms — Evolution</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-3">
+          <p class="text-xs font-black text-gray-700 mb-1">1. FCFS — First Come First Served</p>
+          <div class="ncode" style="font-size:.7rem; padding:.5rem .75rem">P1 (10ms) → P2 (2ms) → P3 (4ms)
+P1 runs first regardless of burst time</div>
+          <div class="grid grid-cols-2 gap-1 mt-2">
+            <div class="bg-green-50 rounded p-1.5 text-xs text-green-700">Simple, predictable</div>
+            <div class="bg-red-50 rounded p-1.5 text-xs text-red-600">Convoy effect — long jobs block short ones</div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Used in: simple batch systems only</p>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-1">2. SJF — Shortest Job First</p>
+          <div class="ncode" style="font-size:.7rem; padding:.5rem .75rem">P2 (2ms) → P3 (4ms) → P1 (10ms)
+Shortest burst time runs first</div>
+          <div class="grid grid-cols-2 gap-1 mt-2">
+            <div class="bg-green-50 rounded p-1.5 text-xs text-green-700">Lowest avg wait time</div>
+            <div class="bg-red-50 rounded p-1.5 text-xs text-red-600">Needs burst prediction; long jobs starve</div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Used in: batch HPC; impractical for general OS</p>
+        </div>
+
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3">
+          <p class="text-xs font-black text-green-700 mb-1">3. Round Robin (RR)</p>
+          <div class="ncode" style="font-size:.7rem; padding:.5rem .75rem">P1 → P2 → P3 → P1 → P2 → P3 ...
+Each gets a fixed time quantum (e.g. 10ms)</div>
+          <div class="grid grid-cols-2 gap-1 mt-2">
+            <div class="bg-green-50 rounded p-1.5 text-xs text-green-700">Fair, good responsiveness</div>
+            <div class="bg-red-50 rounded p-1.5 text-xs text-red-600">Small quantum = too many switches; large = FCFS</div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Used in: time-sharing systems; conceptual basis for CFS</p>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-3">
+          <p class="text-xs font-black text-amber-700 mb-1">4. Priority Scheduling</p>
+          <div class="ncode" style="font-size:.7rem; padding:.5rem .75rem">Priority 10 → Priority 8 → Priority 5
+Highest priority runs first; can preempt</div>
+          <div class="grid grid-cols-2 gap-1 mt-2">
+            <div class="bg-green-50 rounded p-1.5 text-xs text-green-700">Critical tasks get CPU; supports QoS</div>
+            <div class="bg-red-50 rounded p-1.5 text-xs text-red-600">Starvation of low-priority tasks</div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Fix starvation with <strong>Aging</strong> — gradually raise waiting process priority</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CFS -->
+    <div class="nc">
+      <p class="nh">Completely Fair Scheduler (CFS) — Linux Default</p>
+      <p class="nq">CFS doesn't use fixed time slices. Instead, it tracks how much CPU time each process has consumed and always runs the process that has received the <strong>least CPU time so far</strong>. This gives every task its fair share while maintaining low latency.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+        <div>
+          <p class="sub-h">How CFS Works — vruntime</p>
+          <div class="ncode" style="font-size:.72rem">Every process has a Virtual Runtime (vruntime)
+  = how much CPU time it has consumed
+
+Scheduler always picks: smallest vruntime
+
+Process A  vruntime = 10ms  ← runs next
+Process B  vruntime = 20ms
+Process C  vruntime = 35ms
+
+While running: vruntime increases
+When blocked: vruntime pauses
+When woken:   given a small vruntime boost
+              (so I/O-bound tasks stay responsive)</div>
+          <p class="sub-h">Nice Value → Weight → CPU Share</p>
+          <table class="nt">
+            <thead><tr><th>Nice</th><th>Weight</th><th>Relative Priority</th></tr></thead>
+            <tbody>
+              <tr><td>-20</td><td class="text-green-600">88761</td><td>Highest priority</td></tr>
+              <tr><td>-10</td><td>9548</td><td>High</td></tr>
+              <tr><td>0</td><td>1024</td><td>Normal (default)</td></tr>
+              <tr><td>+10</td><td>110</td><td>Low</td></tr>
+              <tr><td>+19</td><td class="text-red-500">15</td><td>Lowest priority</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="sub-h">Internal Data Structure — Red-Black Tree</p>
+          <div class="ncode" style="font-size:.72rem">Runnable tasks stored in a Red-Black Tree
+  ordered by vruntime
+
+       20 (T3)
+      /        \
+   10 (T1)    25 (T6)
+   /    \
+ 3(T4)  7(T5)
+
+Leftmost node (T4, vruntime=3) runs next.
+
+Why Red-Black Tree?
+  O(log N) insert + delete
+  Always O(1) to find min (leftmost)
+  Scales to thousands of tasks</div>
+          <p class="sub-h">CFS Properties</p>
+          <ul class="dot-ul">
+            <li>Fair over time — no process starves</li>
+            <li>Adapts automatically to CPU-bound and I/O-bound tasks</li>
+            <li>I/O-bound tasks wake with small vruntime boost → stay responsive</li>
+            <li>CPU-bound tasks run longer slices → better throughput</li>
+            <li>Scales to thousands of runnable processes efficiently</li>
+          </ul>
+          <p class="ntip mt-2">CFS is used by Linux, Android, Chrome OS, and all major cloud providers. Kubernetes CPU shares and quotas are implemented on top of CFS.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Algorithm Comparison Table -->
+    <div class="nc">
+      <p class="nh">Scheduling Algorithm Comparison</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Algorithm</th><th>Preemptive?</th><th>Fairness</th><th>Latency</th><th>Throughput</th><th>Weakness</th><th>Best For</th></tr></thead>
+        <tbody>
+          <tr><td>FCFS</td><td>No</td><td class="text-red-500">Low</td><td class="text-red-500">Poor</td><td>Medium</td><td>Convoy effect</td><td>Simple batch</td></tr>
+          <tr><td>SJF</td><td>No</td><td class="text-red-500">Low</td><td class="text-green-600">Excellent (short)</td><td class="text-green-600">High</td><td>Starvation; needs burst prediction</td><td>Batch HPC</td></tr>
+          <tr><td>SRTF</td><td>Yes</td><td class="text-red-500">Low</td><td class="text-green-600">Best</td><td>Medium</td><td>High switches; starvation</td><td>Interactive</td></tr>
+          <tr><td>Round Robin</td><td>Yes</td><td class="text-green-600">High</td><td>Good</td><td>Medium</td><td>Quantum tuning critical</td><td>Time-sharing</td></tr>
+          <tr><td>Priority</td><td>Both</td><td>Medium</td><td class="text-green-600">Good (high pri)</td><td>Medium</td><td>Starvation</td><td>Real-time, kernel</td></tr>
+          <tr><td class="font-bold text-violet-700">CFS (Linux)</td><td>Yes</td><td class="text-green-600 font-bold">Excellent</td><td class="text-green-600 font-bold">Excellent</td><td class="text-green-600 font-bold">High</td><td>Overhead with 1000s of tasks</td><td>General purpose</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World + Tuning + Production Failures -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Real-World Scheduling Choices</p>
+        <table class="nt mt-1">
+          <thead><tr><th>System</th><th>Strategy</th></tr></thead>
+          <tbody>
+            <tr><td>Nginx</td><td>Event-driven + epoll. Fewer runnable threads = fewer scheduling decisions.</td></tr>
+            <tr><td>PostgreSQL</td><td>Async I/O + shared buffers. Backends block less = less scheduler churn.</td></tr>
+            <tr><td>Kafka</td><td>Batch I/O + closed thread pool. Reduces scheduler switches.</td></tr>
+            <tr><td>Redis</td><td>Single-threaded event loop. Minimal scheduler involvement.</td></tr>
+            <tr><td>Android</td><td>CFS with weight boost for foreground app. Background gets less CPU.</td></tr>
+            <tr><td>Kubernetes</td><td>CPU requests = CFS shares. CPU limits = CFS quota + period.</td></tr>
+            <tr><td>Trading</td><td>SCHED_FIFO + CPU affinity + DPDK. Bypass scheduler entirely.</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h mt-2">Observe &amp; Tune</p>
+        <table class="nt">
+          <thead><tr><th>Tool</th><th>What it shows</th></tr></thead>
+          <tbody>
+            <tr><td><code>top</code> / <code>htop</code></td><td>CPU, load, run queue length</td></tr>
+            <tr><td><code>vmstat</code> / <code>pidstat -w</code></td><td>Context switch stats per process</td></tr>
+            <tr><td><code>perf sched record</code></td><td>Full scheduler latency trace</td></tr>
+            <tr><td><code>cat /proc/schedstat</code></td><td>Per-CPU scheduler statistics</td></tr>
+            <tr><td><code>chrt</code> / <code>nice</code> / <code>renice</code></td><td>Set priority and scheduling policy</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Production Failure Scenarios</p>
+        <div class="space-y-2 mb-3">
+          <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-red-700">High CPU, low throughput</p>
+            <p class="text-xs text-gray-600 mt-0.5">Too many runnable threads — scheduler thrashing. Fix: reduce thread count, adopt event-driven architecture.</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-orange-700">Poor responsiveness</p>
+            <p class="text-xs text-gray-600 mt-0.5">CPU-bound batch jobs dominate scheduling. Fix: lower their nice value or split into separate cgroups.</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-amber-700">Low-priority service starved</p>
+            <p class="text-xs text-gray-600 mt-0.5">High-priority processes monopolize CPU. Fix: use aging, or rebalance priorities with <code>nice</code> / CFS weights.</p>
+          </div>
+          <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-yellow-700">High tail latency from migrations</p>
+            <p class="text-xs text-gray-600 mt-0.5">Threads migrate across CPU cores, evicting caches. Fix: CPU affinity (<code>taskset</code> / <code>pthread_setaffinity_np</code>).</p>
+          </div>
+        </div>
+        <p class="nh">Staff Engineer Decision Framework</p>
+        <table class="nt">
+          <thead><tr><th>Scenario</th><th>Approach</th></tr></thead>
+          <tbody>
+            <tr><td>General Linux server</td><td>CFS (default) — don't change it</td></tr>
+            <tr><td>Interactive / low latency</td><td>Lower <code>sched_latency_ns</code></td></tr>
+            <tr><td>CPU-bound batch jobs</td><td>Higher nice value + larger granularity</td></tr>
+            <tr><td>Hard real-time</td><td><code>SCHED_FIFO</code> / <code>SCHED_RR</code></td></tr>
+            <tr><td>1000s of connections</td><td>epoll + event-driven arch</td></tr>
+            <tr><td>Kubernetes CPU control</td><td>CPU shares + quota + period</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Engineer Progression -->
+    <div class="nc">
+      <p class="nh">Engineer Progression</p>
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mt-1">
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-3">
+          <p class="text-xs font-bold text-gray-500 mb-1">Junior</p>
+          <p class="text-xs text-gray-600">"Which scheduling algorithm is fastest?"</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-blue-700 mb-1">Senior</p>
+          <p class="text-xs text-gray-600">"Why is CPU utilization high? Are threads oversubscribed?"</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-700 mb-1">Staff</p>
+          <p class="text-xs text-gray-600">Is scheduling latency affecting P99? Can async I/O reduce scheduler load? CPU affinity? Separate CPU vs I/O pools?</p>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-3">
+          <p class="text-xs font-bold text-purple-700 mb-1">Principal</p>
+          <p class="text-xs text-gray-600">Design architectures that minimize scheduler involvement. Kubernetes CPU quotas, DPDK polling, io_uring for near-zero scheduling overhead.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">FCFS  First Come First Served. Non-preemptive. Convoy effect. Batch only.
+SJF   Shortest Job First. Min avg wait. Needs burst prediction. Starvation.
+RR    Round Robin. Fixed quantum. Fair. Good responsiveness. Quantum tuning critical.
+Priority  Highest priority runs first. Starvation fix: Aging (raise priority over time).
+
+CFS — Linux Completely Fair Scheduler (default for all general tasks)
+  vruntime = how much CPU each task has consumed
+  Scheduler always picks the task with smallest vruntime
+  Data structure: Red-Black Tree ordered by vruntime → O(log N)
+  Nice value → weight → CPU share (nice -20 = highest, +19 = lowest)
+  I/O-bound tasks: wake with vruntime boost → stay responsive
+  CPU-bound tasks: run longer → better throughput
+
+Real-time scheduling
+  SCHED_FIFO   Run until done or blocked. No preemption. Ultra-low latency.
+  SCHED_RR     Real-time round-robin with quantum. Predictable.
+
+Kubernetes
+  CPU request  = CFS weight (shares)
+  CPU limit    = CFS quota + period (hard cap)
+
+Golden Rules
+  Fewer runnable threads = fewer context switches = better throughput
+  For I/O-bound: use epoll / async I/O — don't create threads per connection
+  For CPU-bound: thread pool = CPU cores — no oversubscription
+  Staff Engineers tune, not replace — CFS is almost always the right answer</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Classic algorithms</strong> — FCFS, SJF, RR, Priority each solve one problem but create another</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>CFS</strong> — schedules smallest vruntime; Red-Black Tree; fair + scalable + adaptive</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Staff Engineers tune</strong> — nice values, CPU affinity, thread pool sizing, cgroup quotas</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Best optimization</strong> — async I/O and event loops that reduce scheduler involvement entirely</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Staff Engineers rarely change scheduling algorithms — they tune behavior, optimize thread counts, use CPU affinity, adjust priorities, and design async architectures that minimize scheduling overhead. Connecting scheduling to latency, throughput, and scalability is what interviews and production incidents require.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/ProcessScheduling/process-scheduling.png"
+           alt="Process Scheduling Algorithms visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

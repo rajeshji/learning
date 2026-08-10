@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Allocation Strategies — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d95; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* warn card */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Allocation Strategies</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Allocation Strategies</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Buddy System, Slab Allocator, jemalloc — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="text-sm text-gray-600 mb-2">When an application calls <code>malloc()</code>, <code>new Object()</code>, or <code>mmap()</code>, memory is never allocated directly from RAM. The request passes through <strong>multiple allocation layers</strong>, each optimized for a different purpose.</p>
+      <div class="ncode">Application
+↓
+User Allocator (jemalloc / glibc / tcmalloc)
+↓
+Virtual Memory Manager
+↓
+Buddy Allocator
+↓
+Slab Allocator (Kernel Objects)
+↓
+Physical RAM</div>
+      <div class="nkw mt-3">
+        <span>Fast Allocation</span>
+        <span>Low Fragmentation</span>
+        <span>Cache Locality</span>
+        <span>NUMA Awareness</span>
+        <span>Scalability</span>
+      </div>
+    </div>
+
+    <!-- Why Multiple Strategies -->
+    <div class="nc">
+      <p class="nh">Why Multiple Allocation Strategies Exist</p>
+      <p class="text-sm text-gray-600 mb-2">No single allocator works well for every workload.</p>
+      <table class="nt">
+        <thead><tr><th>Workload</th><th>Requirement</th></tr></thead>
+        <tbody>
+          <tr><td>JVM</td><td>Millions of tiny objects</td></tr>
+          <tr><td>PostgreSQL</td><td>Large shared memory</td></tr>
+          <tr><td>Linux Kernel</td><td>Millions of fixed-size structures</td></tr>
+          <tr><td>Network Stack</td><td>Low-latency packet buffers</td></tr>
+          <tr><td>Redis</td><td>Small, high-frequency allocations</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Layer 1: User-Space -->
+    <div class="nc">
+      <p class="nh">Layer 1 — User-Space Allocator</p>
+      <p class="text-sm text-gray-600 mb-2">Applications use allocators like <strong>glibc malloc</strong>, <strong>jemalloc</strong>, <strong>tcmalloc</strong>, or <strong>mimalloc</strong> — never communicating directly with the kernel for small allocations.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Responsibilities</p>
+          <ul class="dot-ul">
+            <li>Reuse freed memory</li>
+            <li>Reduce system calls</li>
+            <li>Minimize fragmentation</li>
+            <li>Support multithreading</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">Behavior</p>
+          <ul class="dot-ul">
+            <li>Small allocs → internal pools</li>
+            <li>Large allocs → <code>mmap()</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 2: VMM -->
+    <div class="nc">
+      <p class="nh">Layer 2 — Virtual Memory Manager (VMM)</p>
+      <p class="text-sm text-gray-600 mb-2">The VMM does <strong>not</strong> allocate physical RAM immediately. It reserves virtual address space and uses demand paging — physical memory is allocated only when the page is first accessed (page fault).</p>
+      <div class="ncode">Virtual Address
+↓
+Page Table Entry Created
+↓
+Physical Page NOT yet assigned
+↓
+First Access → Page Fault → Buddy Allocator</div>
+    </div>
+
+    <!-- Layer 3: Buddy Allocator -->
+    <div class="nc">
+      <p class="nh">Layer 3 — Buddy Allocator</p>
+      <p class="text-sm text-gray-600 mb-2">Manages <strong>physical pages</strong> in powers of two. Splits larger blocks on allocation and merges adjacent free blocks ("buddies") on free.</p>
+      <div class="ncode">Order 0  →   4 KB
+Order 1  →   8 KB
+Order 2  →  16 KB
+Order 3  →  32 KB
+  ...
+Order 9  →   2 MB  ← Huge Page</div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Allocation example (request 16 KB, only 32 KB available)</p>
+      <div class="ncode">32 KB → Split → 16 KB + 16 KB
+Allocate first 16 KB, keep second free.
+
+On free: 16 KB + 16 KB → Merge → 32 KB</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-green-700 mb-1">Strengths</p>
+          <ul class="dot-ul">
+            <li>Fast allocation &amp; merge</li>
+            <li>Simple implementation</li>
+            <li>Excellent for page management</li>
+          </ul>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-orange-700 mb-1">Weaknesses</p>
+          <ul class="dot-ul">
+            <li>Internal fragmentation</li>
+            <li>Huge Page failures under frag.</li>
+            <li>DMA allocation issues</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 4: Slab Allocator -->
+    <div class="nc">
+      <p class="nh">Layer 4 — Slab Allocator</p>
+      <p class="text-sm text-gray-600 mb-2">Optimized for <strong>fixed-size kernel objects</strong>. Allocating an entire 4 KB page for a 512-byte inode wastes memory — the Slab Allocator avoids this.</p>
+      <div class="ncode">Kernel requests inode (512 B)
+↓
+Slab Cache (inode pool)
+↓
+Free Object Found → Return immediately
+(no page allocation needed)
+
+On free:
+Object returns to same slab, stays initialized.</div>
+      <div class="nkw mt-3">
+        <span>Extremely fast</span>
+        <span>Object reuse</span>
+        <span>CPU cache locality</span>
+        <span>Minimal fragmentation</span>
+        <span>Predictable latency</span>
+      </div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Kernel objects using slab caches</p>
+      <div class="nkw">
+        <span>task_struct</span>
+        <span>inode</span>
+        <span>dentry</span>
+        <span>socket buffers</span>
+      </div>
+    </div>
+
+    <!-- SLAB vs SLUB vs SLOB -->
+    <div class="nc">
+      <p class="nh">SLAB vs SLUB vs SLOB</p>
+      <table class="nt">
+        <thead><tr><th>Allocator</th><th>Target</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><strong>SLAB</strong></td><td>Original Linux allocator</td><td>Legacy</td></tr>
+          <tr><td><strong>SLUB</strong></td><td>General-purpose Linux</td><td class="text-green-600 font-medium">Modern default</td></tr>
+          <tr><td><strong>SLOB</strong></td><td>Embedded / minimal systems</td><td>Niche</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Almost all production Linux systems use <strong>SLUB</strong>.</p>
+    </div>
+
+    <!-- vmalloc -->
+    <div class="nc">
+      <p class="nh">vmalloc() — Large Kernel Buffers</p>
+      <p class="text-sm text-gray-600 mb-2">When Linux needs a large virtual region but contiguous physical memory is unavailable, it uses <code>vmalloc()</code> — virtually contiguous but physically non-contiguous.</p>
+      <div class="ncode">vmalloc():
+Virtual region → contiguous
+Physical pages → non-contiguous (stitched via page tables)</div>
+      <p class="text-sm text-gray-500 mt-2">Used by: kernel modules, driver buffers, large kernel memory.</p>
+    </div>
+
+    <!-- Modern User-Space Allocators -->
+    <div class="nc">
+      <p class="nh">Modern Allocators — jemalloc / tcmalloc</p>
+      <p class="text-sm text-gray-600 mb-2">Modern allocators use <strong>arenas + size classes + thread-local caches</strong> instead of simple free lists (first-fit, best-fit, worst-fit), eliminating lock contention and fragmentation.</p>
+      <div class="ncode">Arena
+↓
+Size Classes (8B, 16B, 32B … 4KB, large, huge)
+↓
+Per-thread Free Lists
+↓
+O(1) allocation, no global lock</div>
+      <table class="nt mt-3">
+        <thead><tr><th>Allocator</th><th>Strengths</th><th>Used By</th></tr></thead>
+        <tbody>
+          <tr><td><strong>jemalloc</strong></td><td>Low fragmentation, NUMA-aware</td><td>Redis, PostgreSQL, ClickHouse</td></tr>
+          <tr><td><strong>tcmalloc</strong></td><td>Very fast, low contention</td><td>Google production systems</td></tr>
+          <tr><td><strong>mimalloc</strong></td><td>Compact, secure</td><td>Microsoft, .NET</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Managed Runtimes -->
+    <div class="nc">
+      <p class="nh">Managed Runtime Allocation (JVM / Go / .NET)</p>
+      <p class="text-sm text-gray-600 mb-2">Region-based allocation with GC. Object allocation is often just a pointer increment — extremely fast. GC reclaims and compacts memory later.</p>
+      <div class="ncode">Young Generation (bump pointer allocation → very fast)
+↓
+Surviving objects promoted to Old Generation
+↓
+GC (Compaction / Concurrent Collection)</div>
+    </div>
+
+    <!-- End-to-End Flow -->
+    <div class="nc">
+      <p class="nh">End-to-End Allocation Flow</p>
+      <div class="ncode">Application
+↓  malloc()
+jemalloc
+↓  mmap() (if no pooled memory)
+Virtual Memory Manager
+↓  page fault on first access
+Buddy Allocator
+↓
+Physical Page
+↓
+MMU Mapping Updated
+↓
+Application uses memory</div>
+      <p class="text-sm font-semibold text-gray-700 mt-3 mb-1">Kernel path</p>
+      <div class="ncode">Kernel
+↓
+Slab Cache (hit → fast return)
+  or
+Buddy Allocator (miss → page allocation)
+↓
+RAM</div>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Allocation Approach</th></tr></thead>
+        <tbody>
+          <tr><td><strong>PostgreSQL</strong></td><td>Shared buffer cache via <code>mmap()</code>; jemalloc for heap</td></tr>
+          <tr><td><strong>Redis</strong></td><td>jemalloc; heavy small-object allocs, low fragmentation</td></tr>
+          <tr><td><strong>Linux Kernel</strong></td><td>Slab caches for task_struct, inode, dentry, socket bufs</td></tr>
+          <tr><td><strong>JVM</strong></td><td>Bump-pointer allocation in managed heap; GC reclaims</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Why is memory allocation slow?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Which allocator is being used?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is fragmentation increasing?</li>
+            <li>Are slab caches oversized?</li>
+            <li>Are buddy allocations failing?</li>
+            <li>Should Huge Pages be preallocated?</li>
+            <li>Is jemalloc better than glibc here?</li>
+            <li>Is NUMA affecting allocation locality?</li>
+            <li>Is allocator contention limiting throughput?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Huge Page Allocation Failure</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Buddy allocator fragmented &nbsp;·&nbsp; <strong>Fix:</strong> Preallocate Huge Pages or run compaction</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High Kernel Memory Usage</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Slab caches growing continuously &nbsp;·&nbsp; <strong>Fix:</strong> Inspect <code>slabtop</code> to identify leaking caches</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High Allocation Latency</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Allocator contention in multithreaded app &nbsp;·&nbsp; <strong>Fix:</strong> Switch to jemalloc or tcmalloc</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">NUMA Imbalance</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Allocations hitting remote NUMA nodes &nbsp;·&nbsp; <strong>Fix:</strong> NUMA-aware allocators + CPU affinity</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Strategy</th></tr></thead>
+        <tbody>
+          <tr><td>Kernel metadata</td><td>Slab Allocator</td></tr>
+          <tr><td>Physical page allocation</td><td>Buddy Allocator</td></tr>
+          <tr><td>High-concurrency server</td><td>jemalloc / tcmalloc</td></tr>
+          <tr><td>Large virtual kernel buffers</td><td>vmalloc()</td></tr>
+          <tr><td>JVM workloads</td><td>Managed heap + GC</td></tr>
+          <tr><td>Databases</td><td>Huge Pages + custom allocators</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="nc">
+      <p class="nh">Allocation Strategy Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Strategy</th><th>Best For</th><th>Strength</th><th>Weakness</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Buddy Allocator</strong></td><td>Physical pages</td><td>Fast split &amp; merge</td><td>Fragmentation</td></tr>
+          <tr><td><strong>Slab Allocator</strong></td><td>Kernel objects</td><td>Reuse &amp; cache locality</td><td>Cache overhead</td></tr>
+          <tr><td><strong>vmalloc</strong></td><td>Large kernel memory</td><td>Handles fragmented RAM</td><td>Slower mapping</td></tr>
+          <tr><td><strong>jemalloc</strong></td><td>Servers &amp; databases</td><td>Low contention</td><td>Higher metadata</td></tr>
+          <tr><td><strong>tcmalloc</strong></td><td>Multi-threaded apps</td><td>Very fast</td><td>Extra memory use</td></tr>
+          <tr><td><strong>GC Allocator</strong></td><td>Managed runtimes</td><td>Extremely fast alloc</td><td>GC pauses</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Check <code>/proc/buddyinfo</code> for page availability by order</li>
+        <li class="text-sm text-gray-700">✅ Monitor slab usage (<code>slabtop</code>)</li>
+        <li class="text-sm text-gray-700">✅ Measure fragmentation index (<code>/proc/pagetypeinfo</code>)</li>
+        <li class="text-sm text-gray-700">✅ Inspect allocator stats (<code>malloc_info</code>, jemalloc profiling)</li>
+        <li class="text-sm text-gray-700">✅ Check NUMA allocation (<code>numastat</code>)</li>
+        <li class="text-sm text-gray-700">✅ Look for Huge Page failures</li>
+        <li class="text-sm text-gray-700">✅ Verify page compaction activity (<code>vmstat</code>)</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Buddy Allocator
+• Physical pages in power-of-two blocks.
+• Splits on alloc, merges on free.
+• Fragmentation breaks Huge Pages.
+
+Slab Allocator
+• Fixed-size kernel objects (inode, task_struct…).
+• Objects reused pre-initialized → extremely fast.
+• SLUB is the production default.
+
+Modern User-Space (jemalloc / tcmalloc)
+• Arenas + size classes + thread-local caches.
+• O(1), low contention, NUMA-aware.
+• Used by Redis, PostgreSQL, Google.
+
+Managed Runtimes (JVM / Go)
+• Bump-pointer alloc → very fast.
+• GC handles reclaim & compaction.
+• Trade: GC pauses for allocation speed.
+
+Staff focus
+• Allocator choice, fragmentation, Huge Pages,
+  NUMA locality, slab usage, allocator contention.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/102a6e7c-1d18-441c-b1f7-083f3701143c.png"
+        alt="Allocation Strategies visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

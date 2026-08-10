@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Data Consistency Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#6d28d9; border-bottom-color:#6d28d9; }
+    .tab-btn:hover:not(.active) { color:#3b0764; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#f5f3ff; border:1px solid #ddd6fe; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#6d28d9; margin-bottom:.6rem; }
+    .ncode{ background:#13001f; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #ddd6fe; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#3b0764; color:#ddd6fe; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#f5f3ff; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#6d28d9; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#3b0764; color:#ddd6fe; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-violet-700 hover:text-violet-900 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-800 font-semibold">Data Consistency Failures</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z
+             M9 12h6M9 8h6M9 16h4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Data Consistency Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 8 categories · 31 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ══════════ TAB 1 — FAILURE TABLE ══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Data Consistency Failures Are the Most Dangerous</p>
+      <div class="ncode">Data consistency failures affect: correctness + trust + financial accuracy + user state
+
+Unlike infra failures, consistency failures are dangerous because:
+  system may appear completely healthy while data is silently wrong
+
+7 root causes of consistency failures:
+  missing data | duplicate data | stale data | out-of-order data
+  partial state | concurrent conflicts | replica divergence</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Missing and Lost Data Failures</td></tr>
+          <tr>
+            <td>Lost Write<span class="badge-crit">Must Know</span></td>
+            <td>Write acknowledged to client but not actually persisted (async flush, pre-commit ack)</td>
+            <td>Audit mismatch, reconciliation gaps, missing records</td>
+            <td>Replay from WAL or event log</td>
+            <td>Durable writes — ack only after commit to disk</td>
+            <td class="casc">Missing state propagates — downstream services act on absent data</td>
+            <td class="troff">Strong durability increases write latency</td>
+          </tr>
+          <tr>
+            <td>Message / Event Loss<span class="badge-crit">Must Know</span></td>
+            <td>Broker crash, network failure, consumer ack before processing</td>
+            <td>Sequence gap detection, consumer lag anomaly</td>
+            <td>Replay events from durable log (Kafka, WAL)</td>
+            <td>Persistent queues, acks-after-processing, replication</td>
+            <td class="casc">Missing workflow steps — order never fulfilled, payment not triggered</td>
+            <td class="troff">Persistent brokers cost more; replication adds latency</td>
+          </tr>
+          <tr>
+            <td>Dropped Transaction</td>
+            <td>Transaction silently aborted — timeout, deadlock, infra failure mid-commit</td>
+            <td>Reconciliation mismatch, expected record not found</td>
+            <td>Retry or reprocess the transaction</td>
+            <td>Atomic commits, proper timeout handling, dead-letter queues</td>
+            <td class="casc">Financial or state inconsistency — one side updated, other not</td>
+            <td class="troff">Retries without idempotency may create duplicates</td>
+          </tr>
+          <tr>
+            <td>Checkpoint Loss</td>
+            <td>Process crashes before checkpoint is flushed to durable storage</td>
+            <td>Recovery inconsistency, replay starts from wrong offset</td>
+            <td>Restore from previous valid snapshot</td>
+            <td>Synchronous checkpoint flush, frequent checkpointing</td>
+            <td class="casc">Recovery rolls back too far — re-processes old events → duplicates</td>
+            <td class="troff">More frequent checkpoints increase IO and latency</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Duplicate Data and Double Processing Failures</td></tr>
+          <tr>
+            <td>Duplicate Processing<span class="badge-crit">Must Know</span></td>
+            <td>At-least-once delivery retries the same message</td>
+            <td>Duplicate record IDs, repeated side effects in logs</td>
+            <td>Deduplication store, idempotency key lookup</td>
+            <td>Idempotent consumers, exactly-once semantics where critical</td>
+            <td class="casc">Double payment, double order, double notification</td>
+            <td class="troff">Deduplication store adds storage and lookup overhead</td>
+          </tr>
+          <tr>
+            <td>Duplicate Events</td>
+            <td>Producer retries after uncertain acknowledgement</td>
+            <td>Duplicate event IDs detected at consumer</td>
+            <td>Ignore/drop duplicates by event ID</td>
+            <td>Exactly-once producer semantics (Kafka idempotent producer)</td>
+            <td class="casc">Multiple downstream side effects — charges, records, notifications</td>
+            <td class="troff">Exactly-once semantics add implementation complexity</td>
+          </tr>
+          <tr>
+            <td>Double Spend / Double Booking<span class="badge-crit">Must Know</span></td>
+            <td>Concurrent requests race to reserve same resource</td>
+            <td>DB constraint violation, reconciliation anomaly</td>
+            <td>Rollback one request, compensating action</td>
+            <td>Serializable isolation, pessimistic locking, inventory reservation</td>
+            <td class="casc">Financial loss, oversold inventory, customer trust damage</td>
+            <td class="troff">Strong locking reduces concurrent throughput significantly</td>
+          </tr>
+          <tr>
+            <td>Repeated Workflow Execution</td>
+            <td>Orchestrator retries a workflow that already ran</td>
+            <td>Duplicate workflow states, repeated output records</td>
+            <td>Workflow deduplication by workflow ID</td>
+            <td>Unique workflow IDs, check-before-execute pattern</td>
+            <td class="casc">Duplicate notifications, payments, or external API calls</td>
+            <td class="troff">Stateful orchestration adds operational overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Stale and Outdated Data Failures</td></tr>
+          <tr>
+            <td>Stale Read<span class="badge-crit">Must Know</span></td>
+            <td>Read routed to replica lagging behind leader</td>
+            <td>Replica lag metrics, user-visible data mismatch</td>
+            <td>Route critical reads to primary/leader</td>
+            <td>Quorum reads, session consistency, bounded staleness</td>
+            <td class="casc">User sees old data → acts on it → business state corruption</td>
+            <td class="troff">Reading from primary reduces read scalability</td>
+          </tr>
+          <tr>
+            <td>Read-After-Write Inconsistency</td>
+            <td>User writes then reads — read routed to stale replica</td>
+            <td>User-visible mismatch immediately after update</td>
+            <td>Sticky session routing — read from primary after write</td>
+            <td>Read-your-writes consistency, session tokens</td>
+            <td class="casc">User makes wrong business decision based on stale own write</td>
+            <td class="troff">Sticky sessions reduce load balancing effectiveness</td>
+          </tr>
+          <tr>
+            <td>Cache Inconsistency<span class="badge-crit">Must Know</span></td>
+            <td>Cache not invalidated after DB update</td>
+            <td>Cache value differs from DB value, user complaints</td>
+            <td>Invalidate cache on write, force cache refresh</td>
+            <td>Write-through cache, TTL-based expiry, cache-aside with short TTL</td>
+            <td class="casc">Stale data served at scale — wrong prices, balances, inventory</td>
+            <td class="troff">Aggressive invalidation increases cache miss rate and DB load</td>
+          </tr>
+          <tr>
+            <td>Outdated Materialized View</td>
+            <td>Async aggregation pipeline lags behind source events</td>
+            <td>View-to-source lag metrics, wrong analytics results</td>
+            <td>Refresh/rebuild the materialized view</td>
+            <td>Faster stream processing, CDC-based view updates</td>
+            <td class="casc">Incorrect analytics, recommendations, dashboards used for decisions</td>
+            <td class="troff">Faster refresh increases compute cost significantly</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Ordering and Sequencing Failures</td></tr>
+          <tr>
+            <td>Out-of-Order Event Processing<span class="badge-crit">Must Know</span></td>
+            <td>Distributed consumers process events in wrong sequence</td>
+            <td>Sequence mismatch in output, invalid state transitions</td>
+            <td>Reorder and replay events using sequence numbers</td>
+            <td>Per-key ordered queues (Kafka partitioning by entity key)</td>
+            <td class="casc">Invalid workflow state — cancel processed before create</td>
+            <td class="troff">Strict ordering reduces consumer parallelism</td>
+          </tr>
+          <tr>
+            <td>Reordered Writes</td>
+            <td>Async replication or network delay causes writes to arrive out of order</td>
+            <td>Timestamp or version mismatch between replicas</td>
+            <td>Conflict resolution — LWW, version vectors</td>
+            <td>Single-writer model per entity, monotonic write ordering</td>
+            <td class="casc">Inconsistent replicas — different nodes show different history</td>
+            <td class="troff">Single writer per entity limits write throughput</td>
+          </tr>
+          <tr>
+            <td>Clock Skew Ordering Error</td>
+            <td>Nodes have different wall-clock times — NTP drift</td>
+            <td>Timestamp-based ordering anomalies, wrong TTL behaviour</td>
+            <td>Use logical clocks (Lamport) or vector clocks for ordering</td>
+            <td>Reliable NTP sync, avoid wall-clock-based ordering</td>
+            <td class="casc">Wrong TTL expiry, wrong event ordering, wrong data freshness decisions</td>
+            <td class="troff">Logical clocks add complexity; vector clocks scale poorly</td>
+          </tr>
+          <tr>
+            <td>Late Event Arrival</td>
+            <td>Network delay or broker backlog delivers event long after event time</td>
+            <td>Event-time vs processing-time lag metrics</td>
+            <td>Watermark-based window buffering, late event reprocessing</td>
+            <td>Proper event-time handling in stream processor (Flink, Spark)</td>
+            <td class="casc">Incorrect aggregates, metrics, and analytics outputs</td>
+            <td class="troff">Wider watermark windows increase processing latency</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Partial State and Transaction Failures</td></tr>
+          <tr>
+            <td>Partial Transaction Commit<span class="badge-crit">Must Know</span></td>
+            <td>Multi-service operation — one step succeeds, another fails</td>
+            <td>Cross-service reconciliation mismatch</td>
+            <td>Saga compensating transactions to undo completed steps</td>
+            <td>Avoid 2PC; design idempotent, retryable saga steps</td>
+            <td class="casc">Payment deducted but order not created — financial harm to user</td>
+            <td class="troff">2PC hurts availability; Saga adds design and testing complexity</td>
+          </tr>
+          <tr>
+            <td>Saga Compensation Failure</td>
+            <td>Compensating transaction also fails — cannot undo the partial work</td>
+            <td>Workflow stuck in compensating state, no resolution</td>
+            <td>Retry compensation with backoff; manual intervention fallback</td>
+            <td>Idempotent compensation actions, retry with persistent tracking</td>
+            <td class="casc">Permanent inconsistent state — requires manual reconciliation</td>
+            <td class="troff">Saga orchestration complexity grows with step count</td>
+          </tr>
+          <tr>
+            <td>Half-Processed Workflow</td>
+            <td>Worker crashes mid-process, state not saved</td>
+            <td>Workflow stuck with no progress, orphaned partial records</td>
+            <td>Resume or retry workflow from last durable checkpoint</td>
+            <td>Durable workflow state (Temporal, step functions), checkpointing</td>
+            <td class="casc">Downstream services waiting on result never get it</td>
+            <td class="troff">Durable workflow state adds infrastructure and operational overhead</td>
+          </tr>
+          <tr>
+            <td>Cross-Service State Mismatch</td>
+            <td>Async update propagates slowly — services temporarily out of sync</td>
+            <td>Reconciliation job finds mismatched entities across services</td>
+            <td>Re-sync via event replay or reconciliation job</td>
+            <td>Event-driven consistency, outbox pattern, CDC</td>
+            <td class="casc">Business logic acts on stale state → incorrect downstream decisions</td>
+            <td class="troff">Eventual consistency means window of inconsistency always exists</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Replica and Replication Failures</td></tr>
+          <tr>
+            <td>Replica Divergence<span class="badge-crit">Must Know</span></td>
+            <td>Replication gap or network error leaves replica with different data</td>
+            <td>Checksum mismatch, version comparison between replicas</td>
+            <td>Read repair, anti-entropy sync from leader</td>
+            <td>Quorum replication, synchronous replication on critical paths</td>
+            <td class="casc">Different users reading different replicas see different data</td>
+            <td class="troff">More replication traffic increases bandwidth cost</td>
+          </tr>
+          <tr>
+            <td>Replication Lag<span class="badge-crit">Must Know</span></td>
+            <td>Follower falls behind leader — slow network, large write burst</td>
+            <td>Replica lag metrics (seconds behind leader)</td>
+            <td>Route critical reads to leader, bounded staleness</td>
+            <td>Tune replication pipeline, use synchronous replication where needed</td>
+            <td class="casc">Stale reads cascade — users and downstream see old data at scale</td>
+            <td class="troff">Synchronous replication increases write latency significantly</td>
+          </tr>
+          <tr>
+            <td>Split Brain Replication</td>
+            <td>Network partition + multiple leaders both accept writes</td>
+            <td>Multiple leaders detected, write divergence alerts</td>
+            <td>Reconcile conflicting writes after partition heals</td>
+            <td>Consensus-based systems (Raft/Paxos), fencing tokens</td>
+            <td class="casc">Massive inconsistency — both sides have different truth</td>
+            <td class="troff">Strong consistency during partition reduces availability</td>
+          </tr>
+          <tr>
+            <td>Failed Replica Repair</td>
+            <td>Repair process interrupted — replica partially rebuilt</td>
+            <td>Persistent divergence after repair attempt</td>
+            <td>Full replica rebuild from primary</td>
+            <td>Better repair scheduling, incremental repair strategies</td>
+            <td class="casc">Long-term inconsistency if undetected — reads from bad replica</td>
+            <td class="troff">Full rebuild increases network and disk IO significantly</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Concurrency and Conflict Failures</td></tr>
+          <tr>
+            <td>Race Condition (Data)<span class="badge-crit">Must Know</span></td>
+            <td>Two concurrent operations read-modify-write same record</td>
+            <td>Inconsistent or incorrect final state, anomalous data</td>
+            <td>Locking, compare-and-swap, version field check</td>
+            <td>Atomic operations, serializable isolation, immutable records</td>
+            <td class="casc">Corrupted shared state propagates to all readers</td>
+            <td class="troff">Locks reduce concurrent throughput</td>
+          </tr>
+          <tr>
+            <td>Lost Update<span class="badge-crit">Must Know</span></td>
+            <td>Concurrent writers — last write silently overwrites earlier write</td>
+            <td>Version mismatch, missing intermediate values</td>
+            <td>Optimistic locking — check version before commit</td>
+            <td>Serializable transactions, CAS operations</td>
+            <td class="casc">Silent data corruption — no error, just wrong data</td>
+            <td class="troff">Strong isolation levels hurt concurrent write throughput</td>
+          </tr>
+          <tr>
+            <td>Write Conflict</td>
+            <td>Multiple writers updating same entity in distributed system</td>
+            <td>Conflict detected at merge or commit time</td>
+            <td>Merge with LWW / CRDT / application-level logic</td>
+            <td>Single-writer ownership per entity</td>
+            <td class="casc">Replica inconsistency — merged state may be wrong</td>
+            <td class="troff">Merge logic adds significant design complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Schema and Serialization Consistency Failures</td></tr>
+          <tr>
+            <td>Schema Mismatch<span class="badge-crit">Must Know</span></td>
+            <td>Producer and consumer use incompatible schema versions</td>
+            <td>Serialization/deserialization failures in consumer</td>
+            <td>Fallback parsing, schema version routing</td>
+            <td>Schema registry (Confluent), backward-compatible evolution</td>
+            <td class="casc">Entire processing pipeline fails — all consumers error out</td>
+            <td class="troff">Multi-schema support adds complexity to producer and consumer</td>
+          </tr>
+          <tr>
+            <td>Backward Compatibility Failure</td>
+            <td>Old client receives new message it cannot decode</td>
+            <td>API decode errors, unexpected null fields, parse failures</td>
+            <td>Version routing, support multiple schema versions</td>
+            <td>Expand-contract migration, never remove fields without deprecation</td>
+            <td class="casc">Cross-service breakage — all old clients fail simultaneously</td>
+            <td class="troff">Slower expand-contract migrations delay feature delivery</td>
+          </tr>
+          <tr>
+            <td>Serialization Corruption</td>
+            <td>Encoding/decoding bug — partial write, bit flip, format mismatch</td>
+            <td>Parse failures, garbled records, checksum mismatch</td>
+            <td>Replay/reprocess from raw durable source</td>
+            <td>Strict schema validation, checksums, CRC on records</td>
+            <td class="casc">Event processing pipeline halts entirely</td>
+            <td class="troff">Validation and checksums add per-record overhead</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div><!-- /it-wrap -->
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Data Consistency Failures for Interviews</p>
+      <div class="ncode"> 1. Duplicate processing  → idempotency keys + exactly-once semantics
+ 2. Lost write            → durable writes (ack after commit)
+ 3. Stale read            → quorum reads / read from primary
+ 4. Partial transaction   → Saga pattern + compensating actions
+ 5. Replica inconsistency → quorum replication + read repair
+ 6. Out-of-order events   → per-key ordered partitions (Kafka)
+ 7. Race condition        → optimistic locking + CAS + serializable
+ 8. Cache inconsistency   → write-through + TTL + invalidation
+ 9. Split brain           → Raft/Paxos consensus + fencing tokens
+10. Cross-service mismatch → outbox pattern + CDC + reconciliation</div>
+    </div>
+
+    <a href="database-failures-table.html"
+       class="flex items-center justify-between bg-white border border-rose-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-rose-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-rose-600 mb-1">Related — Deep Dive</p>
+        <p class="font-bold text-gray-800 text-base">Database Failure Scenarios</p>
+        <p class="text-sm text-gray-500 mt-0.5">9 categories, 37 scenarios — availability / replication / deadlock / shard / recovery</p>
+      </div>
+      <svg class="w-6 h-6 text-rose-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-table -->
+
+  <!-- ══════════ TAB 2 — STAFF INSIGHTS ══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Data Consistency Thinking — 7 Questions to Ask Always</p>
+      <div class="ncode">1. Can data be LOST?
+   → durable writes, acks after commit, persistent queues
+
+2. Can data be DUPLICATED?
+   → idempotency keys, exactly-once semantics, dedup store
+
+3. Can reads become STALE?
+   → quorum reads, read from primary, bounded staleness
+
+4. Can ORDERING break?
+   → per-key partitioning, sequence numbers, vector clocks
+
+5. Can workflows PARTIALLY COMPLETE?
+   → Saga + compensating actions, outbox pattern
+
+6. Can REPLICAS DIVERGE?
+   → quorum replication, read repair, consensus
+
+7. Can CONCURRENT WRITES CONFLICT?
+   → optimistic locking, CAS, serializable isolation</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Data Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Replication lag</td><td>Stale reads at scale → users act on wrong data → business logic corruption</td></tr>
+          <tr><td>Duplicate event</td><td>Double payment / order → financial loss → trust damage → reconciliation effort</td></tr>
+          <tr><td>Partial transaction</td><td>Payment done, order not → user charged with no delivery</td></tr>
+          <tr><td>Cache inconsistency</td><td>Wrong prices / balances shown at scale → bad decisions → reversals needed</td></tr>
+          <tr><td>Split brain</td><td>Two leaders write conflicting state → merge conflict or data loss on heal</td></tr>
+          <tr><td>Out-of-order events</td><td>Invalid workflow state → downstream processes corrupt business entities</td></tr>
+          <tr><td>Schema mismatch</td><td>Entire processing pipeline fails → backlog builds → consumer lag explosion</td></tr>
+          <tr><td>Race condition</td><td>Corrupted entity state propagates to all services reading it</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Silent vs Loud Failures — Why Silent Is Most Dangerous</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-violet-50 border border-violet-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-700 mb-2">Loud Failure (Obvious)</p>
+          <ul class="text-xs text-violet-800 space-y-1 list-disc pl-4">
+            <li>Service crashes — error is visible</li>
+            <li>Alerts fire immediately</li>
+            <li>Rollback is clear and quick</li>
+            <li>Impact scope is obvious</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">Silent Inconsistency (Most Dangerous)</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>System appears fully healthy</li>
+            <li>No errors in logs or alerts</li>
+            <li>Corruption spreads slowly</li>
+            <li>Users lose trust gradually</li>
+            <li>Reconciliation is costly and slow</li>
+            <li>May not be found until audit</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Data Consistency Failures Reduce to 6 States</p>
+      <div class="ncode">1. Missing     → data was never written or was lost
+2. Duplicate   → same data written more than once
+3. Stale       → old version served instead of current
+4. Partial     → workflow or transaction only half-completed
+5. Conflicting → two versions exist with no clear winner
+6. Out-of-order → events processed in wrong sequence
+
+Hardest failures = silent inconsistencies
+  system healthy → data wrong → trust damaged → reconciliation required</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#13001f;border:1px solid #3b0764;">
+      <p class="text-xs font-bold text-violet-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-violet-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-200">Lost or Duplicated?</p>
+          <p class="text-xs text-violet-400 mt-0.5">Durable writes + idempotency</p>
+        </div>
+        <div class="bg-violet-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-200">Stale or Partial?</p>
+          <p class="text-xs text-violet-400 mt-0.5">Quorum reads + Saga</p>
+        </div>
+        <div class="bg-violet-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-200">Conflicting?</p>
+          <p class="text-xs text-violet-400 mt-0.5">Consensus + optimistic lock</p>
+        </div>
+        <div class="bg-violet-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-violet-200">Out of Order?</p>
+          <p class="text-xs text-violet-400 mt-0.5">Per-key partitions + seq numbers</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

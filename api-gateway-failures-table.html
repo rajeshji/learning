@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>API Gateway Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#0e7490; border-bottom-color:#0e7490; }
+    .tab-btn:hover:not(.active) { color:#164e63; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#ecfeff; border:1px solid #a5f3fc; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#0e7490; margin-bottom:.6rem; }
+    .ncode{ background:#083344; color:#a5f3fc; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #a5f3fc; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#164e63; color:#a5f3fc; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #cffafe;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#ecfeff; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#0e7490; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#164e63; color:#a5f3fc; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #cffafe; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-cyan-700 hover:text-cyan-900 font-semibold
+              bg-cyan-50 hover:bg-cyan-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-cyan-800 font-semibold">API Gateway Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-cyan-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-cyan-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M3 10h18M3 14h18M10 3v18M14 3v18M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">API Gateway Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 38 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why API Gateway Failures Are Uniquely Dangerous</p>
+      <div class="ncode">Gateway handles: routing + auth + rate limiting + aggregation + protocol + observability
+Gateway failure: entire platform appears down — even if backends are healthy
+
+8 root failure classes:
+  routing | auth | overload | dependency | config
+  aggregation | rate limiting | multi-region</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — API Gateway Availability Failures</td></tr>
+          <tr>
+            <td>Gateway Crash<span class="badge-crit">Must Know</span></td>
+            <td>Runtime failure, OOM kill, unhandled exception crashes gateway process</td>
+            <td>Health check failures, all API requests failing immediately</td>
+            <td>Failover to standby gateway instance</td>
+            <td>Active-active HA gateway deployment, no single instance takes all traffic</td>
+            <td class="casc">Entire API surface unavailable — all clients see connection refused</td>
+            <td class="troff">Active-active HA doubles gateway infrastructure cost</td>
+          </tr>
+          <tr>
+            <td>Single Gateway SPOF<span class="badge-crit">Must Know</span></td>
+            <td>Only one gateway deployed — it fails and entire API is gone</td>
+            <td>Complete traffic outage, zero successful API calls</td>
+            <td>Emergency failover, direct client to secondary if available</td>
+            <td>Multiple gateway replicas behind a load balancer, no SPOF</td>
+            <td class="casc">Global outage — entire API surface unreachable for duration of recovery</td>
+            <td class="troff">Multi-replica gateway adds operational complexity and cost</td>
+          </tr>
+          <tr>
+            <td>Ingress Controller Failure</td>
+            <td>Kubernetes ingress controller crashes — gateway routing lost</td>
+            <td>Traffic routing failure, all services behind ingress unreachable</td>
+            <td>Restart ingress controller, failover to backup ingress</td>
+            <td>HA ingress setup (multiple replicas), ingress health monitoring</td>
+            <td class="casc">Cluster-wide API outage — all services behind ingress fail simultaneously</td>
+            <td class="troff">HA ingress adds pod resource overhead and control-plane complexity</td>
+          </tr>
+          <tr>
+            <td>Gateway Startup Failure</td>
+            <td>Bad config pushed, cert error, or dependency unavailable on startup</td>
+            <td>CrashLoopBackOff, restart loop, no new requests being served</td>
+            <td>Rollback deployment, restore last known-good config</td>
+            <td>Config validation in CI/CD, blue-green gateway deployment</td>
+            <td class="casc">API unavailable until rollback completes — duration depends on deploy speed</td>
+            <td class="troff">Config validation and blue-green deployment slow release velocity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Traffic Overload and Resource Failures</td></tr>
+          <tr>
+            <td>Gateway CPU Saturation<span class="badge-crit">Must Know</span></td>
+            <td>High request volume combined with TLS termination and auth validation</td>
+            <td>Gateway CPU &gt;90%, latency increasing, request queue growing</td>
+            <td>Scale gateway horizontally, shed low-priority traffic</td>
+            <td>Capacity planning, horizontal autoscaling, CDN for cacheable responses</td>
+            <td class="casc">Latency spike → clients retry → gateway further overloaded → collapse</td>
+            <td class="troff">More gateway replicas cost more; autoscaling has scale-out lag</td>
+          </tr>
+          <tr>
+            <td>Thread Pool Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>Slow backend services hold threads — all gateway threads blocking on upstream</td>
+            <td>Request queue buildup, thread pool saturation metrics</td>
+            <td>Timeout blocked requests aggressively, reject new requests</td>
+            <td>Non-blocking async IO (Netty/reactive), aggressive backend timeouts</td>
+            <td class="casc">All API requests timeout — slow backend failure cascades to entire gateway</td>
+            <td class="troff">Async programming models are more complex to develop and debug</td>
+          </tr>
+          <tr>
+            <td>Connection Exhaustion</td>
+            <td>Massive concurrent clients — gateway hits connection limit</td>
+            <td>Connection limit reached, new requests rejected with connection error</td>
+            <td>Increase connection limit, enable HTTP/2 multiplexing</td>
+            <td>Connection reuse (keepalive), HTTP/2 multiplexing, connection pooling</td>
+            <td class="casc">New client requests rejected — appears as API unavailability</td>
+            <td class="troff">More connections consume more memory; keepalive delays cleanup</td>
+          </tr>
+          <tr>
+            <td>TLS Handshake Overload</td>
+            <td>Mass reconnects or new clients — TLS setup is CPU-intensive at high scale</td>
+            <td>TLS handshake latency spike, gateway CPU at 100%</td>
+            <td>TLS session resumption, TLS offloading to dedicated hardware</td>
+            <td>TLS 1.3 (faster), ECDSA certs, session ticket reuse</td>
+            <td class="casc">All HTTPS connections slow or dropped — clients see SSL errors</td>
+            <td class="troff">TLS offloading removes end-to-end encryption — security trade-off</td>
+          </tr>
+          <tr>
+            <td>Memory Exhaustion</td>
+            <td>Large request/response buffering, memory leak, or oversized payloads</td>
+            <td>Heap growth, OOM alerts, gateway process killed by OS</td>
+            <td>Restart/rebalance, impose strict request size limits</td>
+            <td>Request size limits, streaming responses (avoid full buffering)</td>
+            <td class="casc">Gateway crash → cold start surge → retry storm from all clients</td>
+            <td class="troff">Strict size limits may reject legitimate large payloads</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Routing and Request Forwarding Failures</td></tr>
+          <tr>
+            <td>Incorrect Route Mapping<span class="badge-crit">Must Know</span></td>
+            <td>Bad routing config pushed — request reaches wrong backend service</td>
+            <td>Unexpected errors from wrong service, requests hitting wrong endpoints</td>
+            <td>Rollback routing rules immediately</td>
+            <td>Route validation in CI, canary routing before full rollout</td>
+            <td class="casc">Wrong service behavior at scale — could trigger data mutations on wrong service</td>
+            <td class="troff">Canary routing slows config deployment velocity</td>
+          </tr>
+          <tr>
+            <td>Traffic Blackholing<span class="badge-crit">Must Know</span></td>
+            <td>Requests silently dropped — misconfigured ACL, wrong VPC, broken rule</td>
+            <td>Timeout spike from client side, gateway shows no errors internally</td>
+            <td>Reroute via alternate path, rollback config</td>
+            <td>Redundant routing paths, active synthetic probes from client perspective</td>
+            <td class="casc">Silent failure — retry storm from clients amplifies gateway load</td>
+            <td class="troff">More redundant paths add routing complexity and cost</td>
+          </tr>
+          <tr>
+            <td>Stale Service Discovery</td>
+            <td>Backend service scaled or redeployed — gateway still routes to old endpoint</td>
+            <td>Requests to dead instances, connection refused errors from gateway</td>
+            <td>Refresh service registry, retry to a healthy endpoint</td>
+            <td>Fast service discovery propagation, health-check-driven routing</td>
+            <td class="casc">Increased failure rate — requests routed to terminated instances</td>
+            <td class="troff">More frequent discovery refresh increases discovery service load</td>
+          </tr>
+          <tr>
+            <td>Protocol Translation Failure</td>
+            <td>Mismatch between what gateway expects and what backend speaks (HTTP/gRPC/WS)</td>
+            <td>Encoding/decoding errors, unexpected protocol errors in logs</td>
+            <td>Fallback to compatible protocol, apply protocol adapter</td>
+            <td>Compatibility testing for all gateway-backend protocol pairs</td>
+            <td class="casc">Service communication failure — entire endpoint broken for affected clients</td>
+            <td class="troff">Multi-protocol support adds significant gateway complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Authentication and Authorization Failures</td></tr>
+          <tr>
+            <td>Auth Service Unavailable<span class="badge-crit">Must Know</span></td>
+            <td>OAuth server / JWT validator / identity provider goes down</td>
+            <td>Login and token validation failures spike, all auth-protected APIs fail</td>
+            <td>Cached token validation (short TTL), fail-open for low-risk endpoints</td>
+            <td>HA auth service, cached token signatures with clock skew tolerance</td>
+            <td class="casc">Entire API inaccessible — every authenticated request rejected</td>
+            <td class="troff">Cached token validation risks using revoked tokens until cache expires</td>
+          </tr>
+          <tr>
+            <td>JWT Validation Failure<span class="badge-crit">Must Know</span></td>
+            <td>Signing key rotated without updating gateway, or expired key used</td>
+            <td>Auth error spike, all JWT validations failing</td>
+            <td>Refresh signing keys in gateway config, deploy key update</td>
+            <td>Automated key rotation with key overlap period (both keys valid briefly)</td>
+            <td class="casc">Global auth outage — all JWT-protected APIs reject every request</td>
+            <td class="troff">Key overlap period means old compromised keys remain valid temporarily</td>
+          </tr>
+          <tr>
+            <td>Authorization Rule Failure</td>
+            <td>Incorrect RBAC/policy deployed — wrong access control applied</td>
+            <td>Unexpected access patterns, either too much access or too many 403s</td>
+            <td>Rollback policy config immediately</td>
+            <td>Policy testing in staging, canary rollout for policy changes</td>
+            <td class="casc">Security exposure (too permissive) or service lockout (too restrictive)</td>
+            <td class="troff">Canary policy rollout slows experimentation and feature release velocity</td>
+          </tr>
+          <tr>
+            <td>Token Introspection Latency</td>
+            <td>External auth server is slow — every request waits for token validation</td>
+            <td>Increased P99 latency on all authenticated endpoints</td>
+            <td>Switch to local JWT validation, cache introspection results</td>
+            <td>Prefer self-contained JWTs over remote introspection for scalability</td>
+            <td class="casc">Gateway-wide slowdown — every single request pays the auth latency penalty</td>
+            <td class="troff">Cached introspection may return stale permissions until cache expires</td>
+          </tr>
+          <tr>
+            <td>Rate-Limit Bypass</td>
+            <td>Auth/routing misconfiguration allows requests to skip rate limiting</td>
+            <td>Traffic anomaly — specific paths show unconstrained traffic</td>
+            <td>Block abusive traffic via WAF, enforce limits at multiple layers</td>
+            <td>Defence-in-depth rate limiting (gateway + service + DB levels)</td>
+            <td class="casc">Backend overload — unlimited traffic from bypassing clients hammers backends</td>
+            <td class="troff">Multiple rate limit layers add latency overhead per request</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Aggregation and Backend Dependency Failures</td></tr>
+          <tr>
+            <td>Backend Service Timeout<span class="badge-crit">Must Know</span></td>
+            <td>Downstream service slow or unavailable — gateway waits, holding thread</td>
+            <td>Gateway timeout metrics, P99 latency spike on specific routes</td>
+            <td>Timeout aggressively, return fallback or partial response</td>
+            <td>Circuit breakers per backend, aggressive timeout configuration</td>
+            <td class="casc">Thread pool exhaustion — all gateway threads blocked on slow backend</td>
+            <td class="troff">Aggressive timeout may fail valid slow-but-correct operations</td>
+          </tr>
+          <tr>
+            <td>Aggregation Failure<span class="badge-crit">Must Know</span></td>
+            <td>One backend fails during BFF aggregation — partial data from other backends</td>
+            <td>Partial API response failures, aggregation error metrics</td>
+            <td>Return partial/degraded response, mark failed section as absent</td>
+            <td>Resilient aggregation with per-backend fallbacks, circuit breakers</td>
+            <td class="casc">Entire API endpoint fails if aggregation is not resilient to partial failure</td>
+            <td class="troff">Partial responses may confuse clients expecting complete data</td>
+          </tr>
+          <tr>
+            <td>N+1 Backend Explosion</td>
+            <td>Gateway makes one downstream call per item in list — fan-out multiplies</td>
+            <td>Request fan-out spike, backend QPS much higher than gateway QPS</td>
+            <td>Batch downstream calls, parallelise with bounded concurrency</td>
+            <td>Better aggregation design, DataLoader pattern, precomputed responses</td>
+            <td class="casc">Backend overload — N downstream calls for every 1 gateway request</td>
+            <td class="troff">Batching and caching add complexity to the aggregation layer</td>
+          </tr>
+          <tr>
+            <td>Retry Storm to Backends</td>
+            <td>Gateway retries aggressively on backend failure — amplifying already-failing backend</td>
+            <td>Retry traffic spike in backend metrics</td>
+            <td>Exponential backoff, circuit breaker to stop retrying failing backend</td>
+            <td>Retry budgets per backend, circuit breaker with half-open probe</td>
+            <td class="casc">Backend collapse — retry amplification buries the already-slow service</td>
+            <td class="troff">Circuit breaker open means some valid requests are rejected during recovery</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Rate Limiting and Throttling Failures</td></tr>
+          <tr>
+            <td>Rate Limiter Failure Open<span class="badge-crit">Must Know</span></td>
+            <td>Distributed rate limiter (Redis) unavailable — all limits bypassed silently</td>
+            <td>Sudden traffic surge, rate limiter health check failing</td>
+            <td>Fail-closed local limiter, emergency throttle at gateway</td>
+            <td>HA rate limiter (Redis Sentinel/Cluster), local fallback limiter</td>
+            <td class="casc">Backend overload — unlimited traffic floods through to all downstream services</td>
+            <td class="troff">Local fallback limiter may throttle unfairly without global state</td>
+          </tr>
+          <tr>
+            <td>Rate Limiter Failure Closed</td>
+            <td>Rate limiter bug causes it to block all traffic — returns 429 universally</td>
+            <td>Massive 429 spike affecting all clients uniformly</td>
+            <td>Disable rate limiter temporarily, route around it</td>
+            <td>Circuit breaker on rate limiter itself, safe fallback to allow-all mode</td>
+            <td class="casc">API service unavailable for all clients — entire API surface returns 429</td>
+            <td class="troff">Disabling limiter exposes backends to unconstrained traffic</td>
+          </tr>
+          <tr>
+            <td>Distributed Counter Inconsistency</td>
+            <td>Multi-node rate limiter has desync — some nodes allow more, some fewer</td>
+            <td>Uneven throttling across gateway nodes, inconsistent client experience</td>
+            <td>Re-sync rate limiter counters, use consistent hash routing</td>
+            <td>Stronger consistency for rate limit counters, centralised counter service</td>
+            <td class="casc">Unfair traffic handling — some clients bypassed, others incorrectly throttled</td>
+            <td class="troff">Strongly consistent counters add coordination latency to every request</td>
+          </tr>
+          <tr>
+            <td>Burst Traffic Bypass</td>
+            <td>Traffic burst exceeds rate limiter window — spike slips through before limit fires</td>
+            <td>Backend saturation despite rate limiter showing within limits</td>
+            <td>Token bucket / leaky bucket algorithms to smooth bursts</td>
+            <td>Sliding window rate limiting, burst protection at multiple layers</td>
+            <td class="casc">Cascading overload — burst reaches backends unfiltered, causes spikes</td>
+            <td class="troff">Strict burst limiting may reject legitimate traffic during valid peaks</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Network and Connectivity Failures</td></tr>
+          <tr>
+            <td>DNS Failure to Gateway<span class="badge-crit">Must Know</span></td>
+            <td>DNS outage or misconfiguration — clients cannot resolve gateway hostname</td>
+            <td>DNS lookup failures before any request reaches gateway</td>
+            <td>Secondary DNS resolver, reduce TTL for fast propagation</td>
+            <td>Multi-provider DNS, DNS monitoring, low TTL on critical records</td>
+            <td class="casc">Entire API unreachable — all clients fail at DNS resolution stage</td>
+            <td class="troff">Multi-provider DNS adds cost; low TTL increases DNS query volume</td>
+          </tr>
+          <tr>
+            <td>Gateway Network Partition</td>
+            <td>Network cut between gateway and backend tier — cannot forward requests</td>
+            <td>Backend unreachable errors, all routes returning 502/503</td>
+            <td>Route to alternate gateway with network connectivity</td>
+            <td>Multi-network redundancy between gateway and backend tiers</td>
+            <td class="casc">Partial or total API outage depending on partition scope</td>
+            <td class="troff">Redundant network paths add infrastructure cost</td>
+          </tr>
+          <tr>
+            <td>WebSocket Disconnect Storm</td>
+            <td>Gateway restarts or network blip — all long-lived WebSocket connections drop</td>
+            <td>Massive simultaneous reconnect attempts, connection exhaustion</td>
+            <td>Gradual reconnect with jitter, sticky sessions for WebSocket clients</td>
+            <td>Graceful gateway drain before restart, WebSocket connection affinity</td>
+            <td class="casc">Reconnect storm — all dropped clients retry at once → connection exhaustion</td>
+            <td class="troff">Graceful drain slows deployments; sticky sessions reduce balancing flexibility</td>
+          </tr>
+          <tr>
+            <td>Packet Loss to Backend</td>
+            <td>Network congestion or instability between gateway and backend nodes</td>
+            <td>Retransmission spike, intermittent request failures on specific routes</td>
+            <td>Retry with backoff, reroute to healthy backend instances</td>
+            <td>Redundant backend network paths, better network capacity planning</td>
+            <td class="casc">Timeout amplification — packet loss triggers retries → more traffic on degraded path</td>
+            <td class="troff">More retries add latency and can amplify load on already-degraded path</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Configuration and Deployment Failures</td></tr>
+          <tr>
+            <td>Bad Gateway Config<span class="badge-crit">Must Know</span></td>
+            <td>Wrong routing rules, policies, or timeouts pushed to production</td>
+            <td>Traffic anomalies, error rate spike immediately after config change</td>
+            <td>Rollback config immediately</td>
+            <td>Config validation in pipeline, blue-green gateway config deployment</td>
+            <td class="casc">Global outage — all traffic misrouted or blocked by bad config</td>
+            <td class="troff">Blue-green config deployment slows change velocity</td>
+          </tr>
+          <tr>
+            <td>Certificate Misconfiguration</td>
+            <td>TLS cert expired, wrong domain, or key mismatch</td>
+            <td>TLS handshake errors, browser and client SSL errors</td>
+            <td>Emergency cert rotation, rollback to previous cert</td>
+            <td>Automated cert rotation (ACM/Let's Encrypt), cert expiry monitoring</td>
+            <td class="casc">All HTTPS traffic fails — clients see certificate error, cannot reach API</td>
+            <td class="troff">Automated rotation adds operational complexity; rotation itself can briefly break traffic</td>
+          </tr>
+          <tr>
+            <td>Canary Routing Failure</td>
+            <td>Wrong traffic split — canary gets too much or wrong traffic</td>
+            <td>Traffic imbalance metrics, error rate spike on canary route</td>
+            <td>Disable canary, restore 100% to stable version</td>
+            <td>Gradual traffic shift with validation gates before each increment</td>
+            <td class="casc">Partial outage if bad canary handles significant traffic before detected</td>
+            <td class="troff">Slow canary ramp reduces speed of new feature delivery</td>
+          </tr>
+          <tr>
+            <td>Schema / Contract Mismatch</td>
+            <td>Gateway and backend disagree on API schema — new version breaks old gateway</td>
+            <td>Serialization errors, unexpected null fields, protocol decode failures</td>
+            <td>Apply version fallback, deploy schema-compatible gateway version</td>
+            <td>Backward-compatible schema changes, contract testing in CI</td>
+            <td class="casc">All requests to affected endpoint fail — serialization errors for all clients</td>
+            <td class="troff">Backward compatibility constraints slow schema evolution</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Multi-Region and Global Gateway Failures</td></tr>
+          <tr>
+            <td>Global Gateway Failover Failure<span class="badge-crit">Must Know</span></td>
+            <td>Primary region outage — traffic not redirected to secondary region</td>
+            <td>Traffic stuck in failed region, global API error rate spike</td>
+            <td>Manual failover via DNS or global load balancer</td>
+            <td>Active-active multi-region, automated global failover with health checks</td>
+            <td class="casc">Global API outage — all clients stuck hitting failed region</td>
+            <td class="troff">Active-active multi-region doubles gateway cost and adds data sync complexity</td>
+          </tr>
+          <tr>
+            <td>Geo-Routing Failure</td>
+            <td>Wrong region selected — user routed to far-away gateway region</td>
+            <td>Latency spike, users in specific geographies report slow APIs</td>
+            <td>Override geo-routing rules manually</td>
+            <td>Latency-based geo-DNS, regular geo-routing tests from all regions</td>
+            <td class="casc">Regional overload if one gateway absorbs all global traffic incorrectly</td>
+            <td class="troff">Latency-based routing is more complex and harder to reason about than static geo</td>
+          </tr>
+          <tr>
+            <td>Traffic Spillover Overload</td>
+            <td>Failed region's traffic spills to secondary — secondary lacks capacity</td>
+            <td>Secondary region saturation, error rate spike in secondary</td>
+            <td>Rate limit spillover traffic, shed non-critical requests</td>
+            <td>Active-active with 50%+ headroom per region for full failover absorption</td>
+            <td class="casc">Multi-region cascade — secondary overloads and fails too</td>
+            <td class="troff">50% headroom means over-provisioning each region during normal operation</td>
+          </tr>
+          <tr>
+            <td>Global Config Drift</td>
+            <td>Regions deployed different gateway config versions — inconsistent API behaviour</td>
+            <td>Different API responses from different regions, region-specific errors</td>
+            <td>Force config sync from authoritative source</td>
+            <td>Centralised config management, GitOps config propagation with validation</td>
+            <td class="casc">Inconsistent user experience — behaviour differs by region silently</td>
+            <td class="troff">Centralised config propagation adds synchronisation latency per change</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know API Gateway Failures for Interviews</p>
+      <div class="ncode"> 1. Thread pool exhaustion    → async IO + aggressive backend timeouts + circuit breaker
+ 2. Backend timeout amplify  → timeout fast + fallback + circuit breaker per backend
+ 3. Auth service unavailable → HA auth + cached JWT validation + fail-open for safe paths
+ 4. Traffic blackholing      → synthetic probes + redundant paths + client-side monitoring
+ 5. Incorrect route mapping  → route validation in CI + canary routing + rollback plan
+ 6. Rate limiter fail open   → HA limiter + local fallback + emergency throttle
+ 7. Gateway CPU saturation   → horizontal scale + CDN + async IO
+ 8. Retry storm to backends  → retry budgets + exponential backoff + circuit breaker
+ 9. WebSocket reconnect storm → graceful drain + sticky sessions + reconnect jitter
+10. Bad gateway config       → config validation + blue-green deploy + rollback</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="lb-failures-table.html" class="text-fuchsia-600 font-semibold hover:underline">Load Balancer Failures</a> &nbsp;|&nbsp;
+      <a href="mq-failures-table.html" class="text-sky-600 font-semibold hover:underline">Message Queue Failures</a> &nbsp;|&nbsp;
+      <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level API Gateway Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Gateway become bottleneck?    → horizontal scale + async IO + CDN offload
+2. Slow backend exhaust threads?  → aggressive timeout + circuit breaker + async
+3. Routing mistakes outage?       → route validation + canary + rollback plan
+4. Auth block entire system?      → HA auth + cached JWT + fail-open for safe paths
+5. Retries amplify failure?       → retry budgets + exponential backoff + circuit breaker
+6. Aggregation overload backends? → batch calls + bounded concurrency + partial response
+7. Rate limiter fail open/closed? → HA limiter + local fallback + safe mode
+8. Restart creates reconnect storm? → graceful drain + jitter + sticky WS sessions
+9. Config drift inconsistent?     → centralised config + GitOps + propagation validation</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common API Gateway Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Gateway Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Slow backend service</td><td>Gateway threads block → thread pool exhaustion → all APIs slow</td></tr>
+          <tr><td>Gateway CPU overload</td><td>Latency spike → clients retry → further overload → collapse</td></tr>
+          <tr><td>Auth service failure</td><td>Every authenticated request rejected → entire API inaccessible</td></tr>
+          <tr><td>Rate limiter failure open</td><td>Unlimited traffic → backends overloaded → backends fail</td></tr>
+          <tr><td>Traffic blackholing</td><td>Silent drops → massive retry storm → gateway further overloaded</td></tr>
+          <tr><td>N+1 aggregation</td><td>1 gateway request → N backend calls → backend overloads</td></tr>
+          <tr><td>Gateway restart</td><td>WebSocket disconnect → all clients reconnect simultaneously → connection exhaustion</td></tr>
+          <tr><td>Bad config</td><td>All traffic misrouted → global API outage until rollback</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Slow Backend Amplification — Most Dangerous Gateway Pattern</p>
+      <div class="ncode">Dead backend: circuit breaker opens → fail fast → gateway threads freed
+Slow backend: threads block waiting → pool fills → ALL requests slow
+             → clients retry → more threads blocked → complete gateway failure
+
+Mitigation:
+  1. Aggressive per-backend timeout (much shorter than client timeout)
+  2. Circuit breaker (open after N failures in window)
+  3. Bulkhead (separate thread pools per backend)
+  4. Async IO (never block threads on IO)
+
+Rule: design gateway assuming every backend will be slow, not just dead</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Gateway Failures Reduce to 5 States</p>
+      <div class="ncode">1. Traffic not routed    → crash / SPOF / DNS / blackholing
+2. Traffic misrouted     → bad config / stale discovery / protocol fail
+3. Gateway overloaded    → CPU / threads / TLS / connections
+4. Backend dependency    → timeout / aggregation fail / retry storm / auth down
+5. Rate limiting broken  → fail open / fail closed / counter desync
+
+Most dangerous: slow backend → gateway thread exhaustion
+  because it affects ALL APIs, not just the slow backend's routes</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#083344;border:1px solid #164e63;">
+      <p class="text-xs font-bold text-cyan-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-cyan-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-cyan-200">Threads Safe?</p>
+          <p class="text-xs text-cyan-400 mt-0.5">Async IO + fast timeout</p>
+        </div>
+        <div class="bg-cyan-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-cyan-200">Auth Resilient?</p>
+          <p class="text-xs text-cyan-400 mt-0.5">HA + cached JWT + fail-open</p>
+        </div>
+        <div class="bg-cyan-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-cyan-200">Rate Limit HA?</p>
+          <p class="text-xs text-cyan-400 mt-0.5">Sentinel + local fallback</p>
+        </div>
+        <div class="bg-cyan-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-cyan-200">Config Safe?</p>
+          <p class="text-xs text-cyan-400 mt-0.5">Validate + canary + rollback</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

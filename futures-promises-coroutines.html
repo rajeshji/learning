@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Futures, Promises &amp; Coroutines — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Futures, Promises &amp; Coroutines</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Futures, Promises &amp; Coroutines</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Async Coordination, Lightweight Concurrency &amp; Concurrency Model Selection</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- ═══════════════════ TEXT TAB ═══════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Why -->
+    <div class="nc">
+      <div class="section-badge">WHY THEY EXIST</div>
+      <div class="nh">🌍 The Problem with Blocking Threads</div>
+      <p class="text-gray-700 mb-3">Traditional code blocks until work completes: <code>result = doWork()</code> — the thread waits, wasting CPU time. This becomes a bottleneck when most of the wait is for:</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">🌐</div><div class="font-semibold text-violet-700 text-sm mt-1">Network Calls</div></div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">🗄️</div><div class="font-semibold text-violet-700 text-sm mt-1">Database Queries</div></div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">💿</div><div class="font-semibold text-violet-700 text-sm mt-1">Disk I/O</div></div>
+        <div style="background:#ede9fe;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:1.3rem;">☁️</div><div class="font-semibold text-violet-700 text-sm mt-1">Remote Services</div></div>
+      </div>
+      <p class="text-gray-700">Modern async programming allows the thread to <strong>continue doing useful work</strong> while the operation completes in the background — then receive the result when it's ready.</p>
+      <div class="ncode">// Blocking (bad for I/O-heavy workloads):
+result = callDatabase();       // thread BLOCKED here — waiting
+result2 = callExternalAPI();   // thread BLOCKED again
+// Total time = DB time + API time (sequential)
+
+// Async (efficient):
+Future&lt;Result&gt; f1 = callDatabase();     // returns immediately
+Future&lt;Result&gt; f2 = callExternalAPI();  // returns immediately
+result = f1.get();  result2 = f2.get(); // wait only at end
+// Total time = max(DB time, API time) (parallel)</div>
+    </div>
+
+    <!-- Future -->
+    <div class="nc">
+      <div class="section-badge">FUTURE</div>
+      <div class="nh">🔹 Future — The Consumer Side</div>
+      <p class="text-gray-700 mb-3">A <strong>Future</strong> is a <em>read-only placeholder</em> for a value that will become available later. It represents the <strong>consumer</strong> side of an asynchronous computation.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+        <div>
+          <p class="font-semibold text-violet-700 mb-1">Characteristics</p>
+          <ul class="dot-ul">
+            <li>Read-only handle — cannot set the value</li>
+            <li>Represents pending or completed result</li>
+            <li>Can contain success value or exception</li>
+            <li>Can be chained with callbacks / composed</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-1">Common APIs</p>
+          <table class="nt">
+            <thead><tr><th>Language</th><th>Future API</th></tr></thead>
+            <tbody>
+              <tr><td>Java</td><td><code>CompletableFuture</code></td></tr>
+              <tr><td>C++</td><td><code>std::future</code></td></tr>
+              <tr><td>Python</td><td><code>asyncio.Future</code></td></tr>
+              <tr><td>JavaScript</td><td><code>Promise</code></td></tr>
+              <tr><td>Kotlin</td><td><code>Deferred</code></td></tr>
+              <tr><td>Rust</td><td><code>Future</code> trait</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ncode">// Java CompletableFuture — chained async pipeline
+CompletableFuture
+    .supplyAsync(() -> fetchUser(userId))          // async task on thread pool
+    .thenApply(user -> enrichWithProfile(user))    // transform result
+    .thenCompose(user -> fetchOrders(user.id()))   // chain another async call
+    .thenAccept(orders -> notify(orders))          // consume result
+    .exceptionally(ex -> { log(ex); return null; }); // error handling
+
+// Non-blocking — calling thread returns immediately
+// Callbacks run on thread pool when each stage completes</div>
+    </div>
+
+    <!-- Promise -->
+    <div class="nc">
+      <div class="section-badge">PROMISE</div>
+      <div class="nh">🔹 Promise — The Producer Side</div>
+      <p class="text-gray-700 mb-3">A <strong>Promise</strong> is the <em>producer</em> responsible for completing a Future. It writes either a result or an exception, making the Future ready for consumption.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px;">
+          <div class="font-bold text-green-700 mb-2">🎫 Future = Ticket</div>
+          <p class="text-gray-600 text-sm">You hold a ticket (read-only). You wait for delivery. You cannot fill the order yourself.</p>
+        </div>
+        <div style="background:#ede9fe;border:1px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div class="font-bold text-violet-700 mb-2">🚚 Promise = Courier</div>
+          <p class="text-gray-600 text-sm">The courier delivers the package (writes the result). Once delivered, the ticket (Future) is fulfilled.</p>
+        </div>
+      </div>
+      <table class="nt mb-3">
+        <thead><tr><th>Feature</th><th>Future</th><th>Promise</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Purpose</strong></td><td>Receive result</td><td>Produce result</td></tr>
+          <tr><td><strong>Used By</strong></td><td>Consumer</td><td>Producer</td></tr>
+          <tr><td><strong>Mutable</strong></td><td>No (read-only)</td><td>Yes (write-once)</td></tr>
+          <tr><td><strong>Can complete</strong></td><td>No</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode">// Java: CompletableFuture acts as both Future and Promise
+CompletableFuture&lt;String&gt; promise = new CompletableFuture&lt;&gt;();
+
+// Producer thread completes the promise:
+executor.submit(() -> {
+    try {
+        String result = doExpensiveWork();
+        promise.complete(result);         // fulfill the promise
+    } catch (Exception e) {
+        promise.completeExceptionally(e); // fail the promise
+    }
+});
+
+// Consumer: non-blocking callback
+promise.thenAccept(result -> System.out.println("Got: " + result));</div>
+    </div>
+
+    <!-- Coroutines -->
+    <div class="nc">
+      <div class="section-badge">COROUTINES</div>
+      <div class="nh">🔹 Coroutines — Suspendable Lightweight Functions</div>
+      <p class="text-gray-700 mb-3">A <strong>Coroutine</strong> is a function that can <strong>suspend execution</strong> and later <strong>resume from exactly the same point</strong>. Unlike threads, coroutines do not block the underlying OS thread — they yield control cooperatively.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+        <div>
+          <p class="font-semibold text-violet-700 mb-1">Coroutine Characteristics</p>
+          <ul class="dot-ul">
+            <li>Lightweight — heap frame, not OS stack</li>
+            <li>User-space scheduled (event loop / runtime)</li>
+            <li>Cooperative execution — yields voluntarily</li>
+            <li>Preserves local variables across suspensions</li>
+            <li>No OS context switch — very fast</li>
+          </ul>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-1">Threads vs Coroutines</p>
+          <table class="nt">
+            <thead><tr><th>Threads</th><th>Coroutines</th></tr></thead>
+            <tbody>
+              <tr><td>OS scheduled</td><td>Runtime scheduled</td></tr>
+              <tr><td>Preemptive</td><td>Cooperative</td></tr>
+              <tr><td>~1MB stack</td><td>~1KB heap frame</td></tr>
+              <tr><td>Expensive switch</td><td>Very cheap suspend/resume</td></tr>
+              <tr><td>Thousands max</td><td>Millions concurrent</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="ncode">// Python async/await coroutines:
+async def fetch_user(user_id: int) -> User:
+    user = await db.query(f"SELECT * FROM users WHERE id={user_id}")
+    # Thread NOT blocked during await — event loop runs other coroutines
+    return user
+
+async def handle_request(user_id: int):
+    # Concurrent awaits — both run in parallel:
+    user, orders = await asyncio.gather(
+        fetch_user(user_id),
+        fetch_orders(user_id)
+    )
+    return {"user": user, "orders": orders}
+
+# 10,000 concurrent HTTP handlers on a single thread
+# vs 10,000 blocked threads — completely different resource profile</div>
+
+      <div class="ncode">// Kotlin coroutines:
+suspend fun fetchUser(id: Int): User = withContext(Dispatchers.IO) {
+    db.query("SELECT * FROM users WHERE id = $id")
+}
+
+// launch = fire and forget, async = returns Deferred (Future)
+val user = async { fetchUser(userId) }
+val orders = async { fetchOrders(userId) }
+println("${user.await()}, ${orders.await()}")  // concurrent, not sequential</div>
+    </div>
+
+    <!-- How They Relate -->
+    <div class="nc">
+      <div class="section-badge">HOW THEY FIT TOGETHER</div>
+      <div class="nh">Relationship Between All Three</div>
+      <div class="ncode">Application
+    ↓
+Coroutine starts async task
+    ↓
+Future returned immediately (placeholder)
+    ↓
+Coroutine suspends (not blocking thread!)
+    ↓
+Promise completes result (on another thread or I/O callback)
+    ↓
+Coroutine resumes at suspension point
+    ↓
+Application continues with result</div>
+      <div class="ntip"><strong>Key insight:</strong> Coroutines give you the <em>readability</em> of synchronous code with the <em>efficiency</em> of async callbacks. The Future/Promise model gives you the <em>composability</em>. Together they are the foundation of modern high-concurrency systems.</div>
+    </div>
+
+    <!-- Performance Comparison -->
+    <div class="nc">
+      <div class="section-badge">PERFORMANCE</div>
+      <div class="nh">Performance Comparison</div>
+      <table class="nt mb-3">
+        <thead><tr><th>Feature</th><th>Threads</th><th>Futures</th><th>Coroutines</th></tr></thead>
+        <tbody>
+          <tr><td><strong>True Parallelism</strong></td><td>✅ Yes</td><td>Depends on executor</td><td>❌ Concurrent, not parallel</td></tr>
+          <tr><td><strong>Non-Blocking I/O</strong></td><td>❌ Blocks</td><td>Usually</td><td>✅ Always</td></tr>
+          <tr><td><strong>Memory per Task</strong></td><td>~1MB stack</td><td>Medium</td><td>~1KB frame</td></tr>
+          <tr><td><strong>Context Switch Cost</strong></td><td>High (kernel)</td><td>Medium</td><td>Very Low (user-space)</td></tr>
+          <tr><td><strong>Scalability</strong></td><td>Thousands</td><td>Hundreds of thousands</td><td>Millions</td></tr>
+          <tr><td><strong>Best Workload</strong></td><td>CPU-bound</td><td>Async coordination</td><td>I/O-bound</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real World -->
+    <div class="nc">
+      <div class="section-badge">REAL-WORLD USAGE</div>
+      <div class="nh">How Production Systems Use All Three</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>Threads</th><th>Futures</th><th>Coroutines</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Uber</strong></td><td>Ride matching</td><td>RPC fan-out</td><td>API gateway</td></tr>
+          <tr><td><strong>YouTube</strong></td><td>Video encoding</td><td>Upload workflow</td><td>Upload server</td></tr>
+          <tr><td><strong>WhatsApp</strong></td><td>Encryption</td><td>Message delivery</td><td>Socket handling</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>Log compaction</td><td>Delivery ACK</td><td>Network I/O</td></tr>
+          <tr><td><strong>Netflix</strong></td><td>Transcoding</td><td>Service fanout</td><td>API gateway</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip"><strong>Pattern:</strong> Most production systems use <em>all three together</em> — threads for CPU-intensive computation, futures for orchestrating async workflows, coroutines for scalable network I/O.</div>
+    </div>
+
+    <!-- When to Use -->
+    <div class="nc">
+      <div class="section-badge">DECISION GUIDE</div>
+      <div class="nh">When to Use Which</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+        <div style="background:#faf5ff;border:2px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div class="font-bold text-violet-700 mb-2">🧵 Use Threads When</div>
+          <ul class="dot-ul text-sm">
+            <li>Heavy CPU computation</li>
+            <li>Image / video processing</li>
+            <li>Machine learning inference</li>
+            <li>Encryption / hashing</li>
+            <li>Scientific computation</li>
+          </ul>
+        </div>
+        <div style="background:#faf5ff;border:2px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div class="font-bold text-violet-700 mb-2">📋 Use Futures When</div>
+          <ul class="dot-ul text-sm">
+            <li>Multiple microservice calls</li>
+            <li>Parallel database queries</li>
+            <li>Background job coordination</li>
+            <li>RPC fan-out patterns</li>
+            <li>Timeout and retry workflows</li>
+          </ul>
+        </div>
+        <div style="background:#faf5ff;border:2px solid #a78bfa;border-radius:10px;padding:16px;">
+          <div class="font-bold text-violet-700 mb-2">⚡ Use Coroutines When</div>
+          <ul class="dot-ul text-sm">
+            <li>Web servers (10k+ connections)</li>
+            <li>Chat / messaging systems</li>
+            <li>Streaming platforms</li>
+            <li>API gateways</li>
+            <li>Real-time event processing</li>
+          </ul>
+        </div>
+      </div>
+
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Best Choice</th></tr></thead>
+        <tbody>
+          <tr><td>CPU-intensive computation</td><td>Threads (thread pool)</td></tr>
+          <tr><td>Multiple parallel service calls</td><td>Futures (CompletableFuture.allOf)</td></tr>
+          <tr><td>Large-scale async server</td><td>Coroutines (async/await)</td></tr>
+          <tr><td>Async DB client</td><td>Futures + Coroutines</td></tr>
+          <tr><td>API gateway</td><td>Coroutines</td></tr>
+          <tr><td>Background worker pipeline</td><td>Thread Pool + Futures</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Level</th><th>Decision Pattern</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Junior</strong></td><td>"I'll use a thread for this async task."</td></tr>
+          <tr><td><strong>Senior</strong></td><td>"I'll use CompletableFuture to avoid blocking. Threads are expensive."</td></tr>
+          <tr><td><strong>Staff</strong></td><td>"Is this CPU-bound or I/O-bound? If I/O-bound at scale, coroutines will handle millions of connections on a handful of threads. If coordination-heavy between services, futures give composable pipelines. If computation-heavy, I need real threads. I combine all three based on workload characteristics — threads for compute, futures for orchestration, coroutines for network I/O."</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Production Readiness Checklist</div>
+      <ul class="dot-ul mt-2">
+        <li>Identify whether workload is <strong>CPU-bound</strong> or <strong>I/O-bound</strong></li>
+        <li>Use threads only for CPU-intensive tasks — not for I/O waiting</li>
+        <li>Use futures/promises for async coordination between tasks or services</li>
+        <li>Use coroutines for scalable, non-blocking I/O at high concurrency</li>
+        <li>Never block inside a coroutine — always use async I/O</li>
+        <li>Size thread pools appropriately (CPU-bound: N+1 threads; I/O-bound: much larger)</li>
+        <li>Monitor thread pool saturation, coroutine backlog, and future completion latency</li>
+        <li>Handle exceptions and cancellation consistently across async workflows</li>
+      </ul>
+
+      <div class="nq mt-4">"Threads provide true parallelism for CPU-bound work. Futures and Promises represent asynchronous results, allowing producers and consumers to coordinate without blocking. Coroutines build on this by allowing functions to suspend and resume efficiently, making them ideal for high-concurrency, I/O-bound systems. In production, I choose the concurrency model based on whether the workload is compute-bound, coordination-heavy, or I/O-bound."</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">What to Remember</div>
+      <ul class="dot-ul">
+        <li><strong>Threads</strong> are the right choice for <strong>parallel CPU-intensive computation</strong> — true hardware parallelism, but expensive in memory and context-switch cost.</li>
+        <li><strong>Futures and Promises</strong> coordinate <strong>asynchronous results</strong> between producers and consumers without forcing immediate blocking — composable and chainable.</li>
+        <li><strong>Coroutines</strong> enable <strong>lightweight, non-blocking concurrency</strong>, allowing millions of I/O-bound tasks to execute efficiently on a small number of threads via cooperative suspension.</li>
+        <li>Most modern distributed systems use <strong>all three together</strong>: threads for computation, futures for orchestration, and coroutines for scalable network I/O.</li>
+        <li>Staff Engineers choose the concurrency model based on <strong>workload characteristics, scalability requirements, latency goals, and operational complexity</strong> — not by defaulting to a single model everywhere.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════════════ ORIGINAL NOTES TAB ═══════════════════ -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — IMPLEMENTATION REFERENCE</div>
+      <div class="nh">Futures, Promises &amp; Coroutines — Code &amp; OS Reference</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Java CompletableFuture — Full Pipeline Patterns</p>
+      <div class="ncode">// Pattern 1: Fan-out then join (parallel service calls)
+CompletableFuture&lt;User&gt; userFuture   = CompletableFuture.supplyAsync(() -> userService.get(id));
+CompletableFuture&lt;Order[]&gt; orderFuture = CompletableFuture.supplyAsync(() -> orderService.get(id));
+
+CompletableFuture.allOf(userFuture, orderFuture).thenRun(() -> {
+    User user     = userFuture.join();   // already done — no blocking
+    Order[] orders = orderFuture.join();
+    renderPage(user, orders);
+});
+// Total latency = max(user latency, order latency) — NOT their sum!
+
+// Pattern 2: Sequential chaining with transformation
+CompletableFuture.supplyAsync(() -> fetchToken())
+    .thenApply(token -> enrichHeaders(token))   // sync transform
+    .thenCompose(req -> callAPI(req))            // async stage
+    .thenAccept(resp -> processResponse(resp))
+    .exceptionally(ex -> { alertTeam(ex); return null; });
+
+// Pattern 3: Timeout
+CompletableFuture&lt;Data&gt; future = callSlowService()
+    .orTimeout(2, TimeUnit.SECONDS)
+    .exceptionally(ex -> FALLBACK_DATA);  // return default on timeout
+
+// Pattern 4: Race — use whichever completes first
+CompletableFuture&lt;String&gt; fast = callReplica1();
+CompletableFuture&lt;String&gt; slow = callReplica2();
+CompletableFuture.anyOf(fast, slow)
+    .thenAccept(result -> use((String) result));</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Python asyncio — Event Loop Internals</p>
+      <div class="ncode">import asyncio
+
+# Coroutine — function that can suspend
+async def fetch(url: str) -> str:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return await resp.text()  # suspend here — thread free
+
+# Concurrent I/O — NOT sequential
+async def main():
+    # All 3 fetches run concurrently on ONE thread
+    results = await asyncio.gather(
+        fetch("https://api1.example.com"),
+        fetch("https://api2.example.com"),
+        fetch("https://api3.example.com"),
+    )
+    return results
+
+# How the event loop works:
+# 1. Coroutine calls await on I/O
+# 2. Event loop registers I/O callback with OS (epoll/kqueue)
+# 3. Event loop runs other coroutines
+# 4. OS notifies event loop when I/O completes
+# 5. Event loop resumes the suspended coroutine
+# ZERO OS threads blocked — all user-space</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Go Goroutines — Lightweight M:N Scheduling</p>
+      <div class="ncode">// Go goroutines — 2KB initial stack, can grow as needed
+// M:N threading: M goroutines onto N OS threads (N = GOMAXPROCS)
+
+func fetchUser(id int) User {
+    // network call — goroutine parks during I/O, thread free for other goroutines
+    return db.QueryRow("SELECT * FROM users WHERE id = ?", id).Scan()
+}
+
+func main() {
+    // goroutines are cheap — millions possible
+    var wg sync.WaitGroup
+    results := make(chan User, 100)
+
+    for _, id := range userIDs {
+        wg.Add(1)
+        go func(id int) {      // launch goroutine — ~2µs cost
+            defer wg.Done()
+            results &lt;- fetchUser(id)
+        }(id)
+    }
+
+    go func() { wg.Wait(); close(results) }()
+    for user := range results { process(user) }
+}
+
+// Go scheduler:
+// - Each P (processor) has a local run queue of goroutines
+// - When goroutine blocks on I/O → Go runtime parks it → another goroutine runs
+// - Work-stealing: idle Ps steal goroutines from busy Ps</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">OS Perspective — Where Each Mechanism Lives</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Layer</th><th>Threads</th><th>Futures</th><th>Coroutines</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Scheduling</strong></td><td>OS kernel</td><td>Thread pool (user)</td><td>Event loop (user)</td></tr>
+          <tr><td><strong>Blocking</strong></td><td>Yes → preempted</td><td>Optional</td><td>No → suspended</td></tr>
+          <tr><td><strong>Context Switch</strong></td><td>~1–10 µs kernel</td><td>Thread pool switch</td><td>~100ns user-space</td></tr>
+          <tr><td><strong>Memory</strong></td><td>~1MB fixed stack</td><td>Shared thread state</td><td>~1KB heap frame</td></tr>
+          <tr><td><strong>Scalability</strong></td><td>Thousands</td><td>100k+ tasks</td><td>Millions</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">Rust Async — Zero-Cost Futures</p>
+      <div class="ncode">// Rust futures are zero-cost: no heap allocation unless awaited
+// Compiled to state machines — no runtime needed (or use tokio)
+
+use tokio::join;
+
+async fn fetch_user(id: u64) -&gt; User {
+    db.query("SELECT * FROM users WHERE id = $1", &amp;[&amp;id]).await.unwrap()
+}
+
+#[tokio::main]
+async fn main() {
+    // Concurrent — both run on tokio's thread pool
+    let (user, orders) = join!(
+        fetch_user(42),
+        fetch_orders(42)
+    );
+    println!("{:?} {:?}", user, orders);
+}
+
+// Rust async is poll-based: Future::poll() returns:
+// Poll::Ready(val) → complete
+// Poll::Pending    → not ready, register waker
+// Waker called when ready → executor re-polls future
+// Zero runtime overhead — state machine in generated code</div>
+
+      <div class="nq mt-3">"Futures and Promises represent the synchronization contract: the Promise says 'I will produce a value'; the Future says 'I will eventually receive it.' Coroutines are the execution model that makes consuming futures feel synchronous without blocking threads. Together, they replace callback hell with readable, composable async code that scales to millions of concurrent operations."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- ═══════════════════ VISUAL GUIDE TAB ═══════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <img src="images/foundation/l1/OS/7d9c3643-a554-45e0-b136-dc82eb2ea41c.png" class="w-full rounded-lg shadow-md" alt="Futures, Promises and Coroutines Visual Guide"/>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

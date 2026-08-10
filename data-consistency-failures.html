@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Data Consistency Failures in System Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active) { color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .tc { background:#fff; border:1px solid #ddd6fe; border-radius:1rem; padding:1rem 1.25rem; }
+    .tc-num { display:inline-flex; align-items:center; justify-content:center;
+              width:1.5rem; height:1.5rem; border-radius:999px; background:#7c3aed;
+              color:#fff; font-size:.65rem; font-weight:800; margin-bottom:.5rem; }
+    .tc-title { font-weight:700; font-size:.85rem; color:#1e293b; }
+    .tc-badge { font-size:.62rem; font-weight:700; border-radius:999px;
+                padding:.15em .6em; margin-left:.4rem;
+                background:#ede9fe; color:#5b21b6; }
+    .tc-badge-red { background:#fee2e2; color:#991b1b; }
+    .tc-row { display:flex; gap:.5rem; margin-top:.45rem; align-items:flex-start; }
+    .tc-lbl { font-size:.6rem; font-weight:800; text-transform:uppercase;
+              letter-spacing:.07em; min-width:3.2rem; padding-top:.1rem; }
+    .lbl-what { color:#dc2626; }
+    .lbl-why  { color:#d97706; }
+    .lbl-eg   { color:#0369a1; }
+    .tc-val   { font-size:.77rem; color:#374151; line-height:1.55; }
+    .tc-think { background:#1e1b4b; color:#a5b4fc; font-family:'Courier New',monospace;
+                font-size:.74rem; border-radius:.5rem; padding:.55rem .8rem;
+                white-space:pre; margin-top:.6rem; line-height:1.7; }
+
+    .mc { background:#fff; border:1px solid #ddd6fe; border-radius:1rem; padding:1rem 1.25rem; }
+    .mc-title { font-weight:700; font-size:.83rem; color:#1e293b; margin-bottom:.5rem; }
+    .mc-say { background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+              font-size:.74rem; border-radius:.55rem; padding:.65rem .9rem;
+              white-space:pre-wrap; line-height:1.8; }
+
+    .nc   { background:#faf5ff; border:1px solid #ddd6fe; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.77rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.63rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .7rem; text-align:left; }
+    .nt td{ padding:.38rem .7rem; border-top:1px solid #ede9fe;
+            color:#374151; vertical-align:top; line-height:1.5; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Data Consistency Failures</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z M9 12h6M9 8h6M9 16h4"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Data Consistency Failures</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Interview-focused · 13 failure types · idempotency / transactions / saga / ordering · staff patterns</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-6xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('types',this)">Failure Types</button>
+    <button class="tab-btn"        onclick="switchTab('mit',this)">Mitigations</button>
+    <button class="tab-btn"        onclick="switchTab('cheat',this)">Cheat Sheet</button>
+  </div>
+
+  <!-- ═══════════ TAB 1 — FAILURE TYPES ═══════════ -->
+  <div id="tab-types" class="tab-pane active pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Core Insight — All Data Failures Come From</p>
+      <div class="ncode">ordering + duplication + missing data + stale data + conflicts</div>
+      <p class="text-sm text-gray-700 mt-3">13 types below — but you only need to
+        <strong>recall the 6-bucket model</strong> in interviews. The types are the "why" behind it.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">1</span>
+          <span class="tc-title">Lost Update (Write Overwrite)</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Two writes race — one silently overwrites the other</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Two users update the same record — last write wins incorrectly</span></div>
+        <pre class="tc-think">Concurrent writes → data overwritten
+(no error thrown)</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">2</span>
+          <span class="tc-title">Duplicate Write / Double Processing</span>
+          <span class="tc-badge tc-badge-red">Critical</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Same operation applied more than once</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Payment charged twice because of a retry</span></div>
+        <pre class="tc-think">Retry → same action executed again</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">3</span>
+          <span class="tc-title">Missing Write / Data Loss</span>
+          <span class="tc-badge tc-badge-red">Critical</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Write was acknowledged but never actually persisted</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Message sent — client sees success — not stored</span></div>
+        <pre class="tc-think">Request succeeded but data not saved</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">4</span>
+          <span class="tc-title">Stale Read</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Client reads outdated data from a replica or cache</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">User sees old profile info immediately after updating it</span></div>
+        <pre class="tc-think">Read from replica/cache → outdated data</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">5</span>
+          <span class="tc-title">Out-of-Order Updates</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Events arrive and get applied in the wrong sequence</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">"Cancel order" processed before "Create order"</span></div>
+        <pre class="tc-think">Event order mismatch → wrong final state</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">6</span>
+          <span class="tc-title">Partial Write (Incomplete State)</span>
+          <span class="tc-badge tc-badge-red">Critical</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Multi-step operation only partially completes</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Payment deducted but order never created</span></div>
+        <pre class="tc-think">Half success → inconsistent system state</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">7</span>
+          <span class="tc-title">Replica Inconsistency</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Different replicas hold different versions of the same data</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Primary DB has the new value, read replica still has old value</span></div>
+        <pre class="tc-think">Replication lag or failure</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">8</span>
+          <span class="tc-title">Read-Write Inconsistency</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">A read immediately after a write doesn't see the write</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">User posts content — refreshes — post not visible</span></div>
+        <pre class="tc-think">Write done → read doesn't see it yet</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">9</span>
+          <span class="tc-title">Cross-Service Inconsistency</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Multiple services hold contradictory state</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Order service says "paid" — payment service says "failed"</span></div>
+        <pre class="tc-think">Distributed services out of sync</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">10</span>
+          <span class="tc-title">Conflict (Concurrent Updates)</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Two clients produce competing versions — no clear winner</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Two users edit the same document simultaneously</span></div>
+        <pre class="tc-think">No clear winner → conflict state</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">11</span>
+          <span class="tc-title">Cache Inconsistency</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Cache holds a value that differs from the database</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">DB updated — cache still serves the old value</span></div>
+        <pre class="tc-think">Cache not invalidated → stale served</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">12</span>
+          <span class="tc-title">Eventual Consistency Delay</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Data is correct eventually — but not immediately</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Social feed updates after a few seconds — not instantly</span></div>
+        <pre class="tc-think">System not yet converged</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">13</span>
+          <span class="tc-title">Reconciliation Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Systems never reconcile their inconsistencies</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Ledger mismatch stays unresolved indefinitely</span></div>
+        <pre class="tc-think">Mismatch persists over time</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-5">
+      <p class="nh">6-Bucket Memory Model — Use This in Interviews</p>
+      <div class="ncode">Data can be wrong in exactly 6 ways:
+  1. Missing     → write never persisted
+  2. Duplicate   → applied more than once
+  3. Outdated    → stale read from replica/cache
+  4. Out-of-order → events applied in wrong sequence
+  5. Conflicting → competing versions, no winner
+  6. Partial     → multi-step update half-done</div>
+    </div>
+
+  </div><!-- /tab-types -->
+
+  <!-- ═══════════ TAB 2 — MITIGATIONS ═══════════ -->
+  <div id="tab-mit" class="tab-pane pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Staff Pattern — Use Every Time</p>
+      <div class="flex flex-wrap gap-2 text-xs font-semibold items-center">
+        <span class="bg-blue-600 text-white px-3 py-1.5 rounded-lg">Detect</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-violet-600 text-white px-3 py-1.5 rounded-lg">Mitigate</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-green-600 text-white px-3 py-1.5 rounded-lg">Prevent</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="mc">
+        <p class="mc-title">1. Lost Update (Write Overwrite)</p>
+        <pre class="mc-say">Detect via version mismatch / write conflicts
+→ optimistic locking (version field / CAS)
+  or row-level locks for critical writes
+→ Prevent with proper isolation level
+  (repeatable read or serializable)</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">2. Duplicate Write / Double Processing</p>
+        <pre class="mc-say">Detect via duplicate IDs / repeated requests
+→ idempotency keys on every write operation
+  or unique constraints in the DB
+→ Prevent with exactly-once semantics
+  or a deduplication layer</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">3. Missing Write / Data Loss</p>
+        <pre class="mc-say">Detect via audit logs / missing records check
+→ retries with durable queues (WAL / message queue)
+  acknowledge only after commit confirmed
+→ Prevent with durable storage guarantees
+  (fsync, acks=all in Kafka)</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">4. Stale Read</p>
+        <pre class="mc-say">Detect via replica lag metrics
+→ route critical reads to primary
+  or enforce read-after-write consistency
+→ Prevent with quorum reads
+  or event-based cache invalidation</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">5. Out-of-Order Updates</p>
+        <pre class="mc-say">Detect via sequence mismatch / timestamp gaps
+→ sequence numbers or ordering guarantees
+  via partitioned log (Kafka per-key ordering)
+→ Prevent by processing events in strict order
+  within a partition</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">6. Partial Write (Incomplete State)</p>
+        <pre class="mc-say">Detect via inconsistent cross-service state
+→ distributed transactions (2PC) for strong needs
+  or Saga pattern with compensating actions
+→ Prevent by designing atomic workflows
+  or orchestrated multi-step transactions</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">7. Replica Inconsistency</p>
+        <pre class="mc-say">Detect via replica divergence / checksum comparison
+→ read repair or manual re-sync of replicas
+→ Prevent with quorum writes and strong
+  replication (sync replication where needed)</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">8. Read-Write Inconsistency</p>
+        <pre class="mc-say">Detect via user-reported inconsistency / tests
+→ read-your-writes consistency
+  or sticky session routing to same replica
+→ Prevent by routing reads to primary
+  immediately after write</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">9. Cross-Service Inconsistency</p>
+        <pre class="mc-say">Detect via reconciliation jobs / audit pipelines
+→ Saga pattern with compensating transactions
+  to undo partial state
+→ Prevent with event-driven architecture
+  and idempotent consumers</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">10. Conflict (Concurrent Updates)</p>
+        <pre class="mc-say">Detect via conflicting versions / merge failures
+→ conflict resolution strategy:
+  last-write-wins, merge logic, or CRDT
+→ Prevent with optimistic locking
+  or version checks before commit</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">11. Cache Inconsistency</p>
+        <pre class="mc-say">Detect via mismatch between cache and DB
+→ cache invalidation on write
+  or write-through cache pattern
+→ Prevent with short TTL
+  or event-based cache updates</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">12. Eventual Consistency Delay</p>
+        <pre class="mc-say">Detect via replication lag metrics
+→ inform user of eventual state
+  or use stronger consistency for critical paths
+→ Prevent by reducing replication lag
+  or switching to sync replication</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">13. Reconciliation Failure</p>
+        <pre class="mc-say">Detect via periodic reconciliation jobs
+→ reprocess events or correct state from log
+→ Prevent by maintaining audit logs
+  and idempotent event processing</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-5">
+      <p class="nh">5 Core Data Mitigation Patterns — Everything Reduces to These</p>
+      <div class="ncode">1. Idempotency       → avoid duplicates (keys, unique constraints)
+2. Transactions/Saga → avoid partial state (2PC, compensating actions)
+3. Ordering          → avoid out-of-order (Kafka partitions, sequence #s)
+4. Consistency model → avoid stale reads (quorum, primary reads, TTL)
+5. Reconciliation    → fix mismatches (audit logs, periodic jobs)</div>
+    </div>
+
+    <div class="rounded-2xl p-5 mt-4" style="background:#1e1b4b;border:1px solid #4c1d95;">
+      <p class="text-xs font-bold text-violet-300 uppercase tracking-widest mb-2">Staff-Level One-Liner</p>
+      <p class="text-sm text-white leading-relaxed font-medium">
+        "I would ensure idempotent operations, enforce ordering, use transactions or Saga for
+        multi-step workflows, apply the appropriate consistency model, and run reconciliation
+        jobs to guarantee eventual correctness."
+      </p>
+    </div>
+
+  </div><!-- /tab-mit -->
+
+  <!-- ═══════════ TAB 3 — CHEAT SHEET ═══════════ -->
+  <div id="tab-cheat" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">All 13 — Type + Mitigation at a Glance</p>
+      <div class="overflow-x-auto mt-1">
+        <table class="nt">
+          <thead>
+            <tr><th>#</th><th>Failure</th><th>Think</th><th>Detect</th><th>Mitigate</th><th>Prevent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="font-semibold">Lost Update</td><td>Overwritten silently</td><td>Version mismatch</td><td>Optimistic locking / CAS</td><td>Serializable isolation</td></tr>
+            <tr><td>2</td><td class="font-semibold">Duplicate Write</td><td>Charged twice</td><td>Duplicate IDs</td><td>Idempotency keys</td><td>Unique constraints</td></tr>
+            <tr><td>3</td><td class="font-semibold">Missing Write</td><td>Data not saved</td><td>Audit logs</td><td>Durable queues + WAL</td><td>acks=all, fsync</td></tr>
+            <tr><td>4</td><td class="font-semibold">Stale Read</td><td>Old data served</td><td>Replica lag</td><td>Read from primary</td><td>Quorum reads, short TTL</td></tr>
+            <tr><td>5</td><td class="font-semibold">Out-of-Order</td><td>Wrong final state</td><td>Seq mismatch</td><td>Per-key ordering</td><td>Kafka partition ordering</td></tr>
+            <tr><td>6</td><td class="font-semibold">Partial Write</td><td>Half success</td><td>Cross-svc state</td><td>Saga + compensating tx</td><td>Atomic workflows</td></tr>
+            <tr><td>7</td><td class="font-semibold">Replica Inconsistency</td><td>Replicas disagree</td><td>Checksum diff</td><td>Read repair, re-sync</td><td>Quorum writes</td></tr>
+            <tr><td>8</td><td class="font-semibold">Read-Write Gap</td><td>Can't see own write</td><td>User reports</td><td>Read-your-writes</td><td>Route to primary post-write</td></tr>
+            <tr><td>9</td><td class="font-semibold">Cross-Service Gap</td><td>Services disagree</td><td>Reconciliation jobs</td><td>Saga, compensating tx</td><td>Event-driven + idempotent</td></tr>
+            <tr><td>10</td><td class="font-semibold">Conflict</td><td>No clear winner</td><td>Version conflict</td><td>LWW / CRDT / merge</td><td>Optimistic locking</td></tr>
+            <tr><td>11</td><td class="font-semibold">Cache Inconsistency</td><td>Cache stale</td><td>DB vs cache diff</td><td>Invalidate on write</td><td>Short TTL, write-through</td></tr>
+            <tr><td>12</td><td class="font-semibold">Eventual Delay</td><td>Not yet converged</td><td>Lag metrics</td><td>Stronger consistency</td><td>Reduce replication lag</td></tr>
+            <tr><td>13</td><td class="font-semibold">Reconciliation Fail</td><td>Mismatch persists</td><td>Periodic jobs</td><td>Reprocess from log</td><td>Audit log + idempotent jobs</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Ultra-Compact Memory Aid — Say This When You Freeze</p>
+      <div class="ncode">For data consistency I ensure:
+  - idempotency     → no duplicates
+  - transactions or Saga → no partial writes
+  - ordering        → no out-of-order events
+  - consistency model → no stale reads
+  - reconciliation  → fix any remaining mismatches</div>
+    </div>
+
+    <a href="server-failures.html"
+       class="flex items-center justify-between bg-white border border-orange-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-orange-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-orange-600 mb-1">Related</p>
+        <p class="font-bold text-gray-800 text-base">Server / Application Failures</p>
+        <p class="text-sm text-gray-500 mt-0.5">Crash, OOM, deadlock, dependency propagation — same format</p>
+      </div>
+      <svg class="w-6 h-6 text-orange-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+    <a href="data-consistency-failures-table.html"
+       class="flex items-center justify-between bg-white border border-violet-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-violet-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-violet-600 mb-1">Deep Dive Table</p>
+        <p class="font-bold text-gray-800 text-base">Data Consistency — Full Scenario Table</p>
+        <p class="text-sm text-gray-500 mt-0.5">8 categories, 31 scenarios — detect / mitigate / prevent / cascading / trade-off</p>
+      </div>
+      <svg class="w-6 h-6 text-violet-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-cheat -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

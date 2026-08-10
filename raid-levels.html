@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAID Levels &amp; Trade-offs — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">RAID Levels &amp; Trade-offs</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">RAID Levels (0/1/5/6/10) &amp; Trade-offs</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Striping, mirroring, parity, rebuild risk — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq"><strong>A single disk is a single point of failure.</strong> RAID combines multiple disks using striping, mirroring, and parity to improve performance, availability, and reliability simultaneously.</p>
+      <div class="nkw mt-3">
+        <span>Striping</span>
+        <span>Mirroring</span>
+        <span>Parity</span>
+        <span>RAID 0</span>
+        <span>RAID 1</span>
+        <span>RAID 5</span>
+        <span>RAID 6</span>
+        <span>RAID 10</span>
+        <span>Rebuild</span>
+      </div>
+    </div>
+
+    <!-- Three Building Blocks -->
+    <div class="nc">
+      <p class="nh">Three RAID Building Blocks</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Striping</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">File → split
+Disk1 → Block A
+Disk2 → Block B
+Disk3 → Block C</div>
+          <p class="text-xs text-gray-600 mt-1">Parallel I/O. Higher throughput. No redundancy.</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">Mirroring</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">Disk1 → Data
+Disk2 → Copy
+(identical)</div>
+          <p class="text-xs text-gray-600 mt-1">Immediate redundancy. Fast recovery. 50% capacity.</p>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Parity</p>
+          <div class="ncode" style="font-size:.72rem;padding:.5rem .7rem">A XOR B = P
+If B fails:
+B = A XOR P</div>
+          <p class="text-xs text-gray-600 mt-1">Reconstruct lost data. Better efficiency than mirror. CPU overhead.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAID Levels -->
+    <div class="nc">
+      <p class="nh">RAID 0 — Pure Striping</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">File → Disk1:A / Disk2:B / Disk3:C / Disk4:D
+(reads/writes all disks in parallel)
+Capacity: 100% of total disks</div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+          <ul class="dot-ul" style="margin-bottom:.5rem">
+            <li>Fastest reads &amp; writes</li>
+            <li>100% usable capacity</li>
+          </ul>
+          <p class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Weaknesses</p>
+          <ul class="dot-ul">
+            <li>Zero fault tolerance</li>
+            <li>One failure = total loss</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Use for:</strong> Scratch space, rendering cache, temp data. Never for production databases.</p>
+    </div>
+
+    <div class="nc">
+      <p class="nh">RAID 1 — Mirroring</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Disk1 ←→ Disk2 (identical mirror)
+Capacity: 50%
+Reads: from either disk (fast)
+Writes: to both (same speed as one disk)</div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+          <ul class="dot-ul" style="margin-bottom:.5rem">
+            <li>Excellent reliability</li>
+            <li>Fast, simple rebuild</li>
+            <li>Good read performance</li>
+          </ul>
+          <p class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Weaknesses</p>
+          <ul class="dot-ul">
+            <li>Only 50% capacity</li>
+            <li>Write speed = single disk</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Use for:</strong> OS disks, DB transaction logs, critical metadata, small production DBs.</p>
+    </div>
+
+    <div class="nc">
+      <p class="nh">RAID 5 — Striping + Distributed Parity</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Disk1 → Data A
+Disk2 → Data B
+Disk3 → Parity P (rotates)
+Capacity: (N-1)/N
+Min disks: 3
+Survives: 1 disk failure</div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+          <ul class="dot-ul" style="margin-bottom:.5rem">
+            <li>Good read performance</li>
+            <li>Efficient storage utilization</li>
+            <li>Tolerates 1 disk failure</li>
+          </ul>
+          <p class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Weaknesses</p>
+          <ul class="dot-ul">
+            <li>Parity slows writes</li>
+            <li>Slow, risky rebuild</li>
+            <li>Rebuild risk ↑ with large disks</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Use for:</strong> File servers, NAS, read-heavy workloads, backup repos.</p>
+    </div>
+
+    <div class="nc">
+      <p class="nh">RAID 6 — Striping + Double Parity</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Disk1 → Data A
+Disk2 → Data B
+Disk3 → Parity P
+Disk4 → Parity Q (second parity)
+Capacity: (N-2)/N
+Survives: 2 disk failures</div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+          <ul class="dot-ul" style="margin-bottom:.5rem">
+            <li>Survives 2 simultaneous failures</li>
+            <li>Better protection for large arrays</li>
+          </ul>
+          <p class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Weaknesses</p>
+          <ul class="dot-ul">
+            <li>Slower writes (double parity)</li>
+            <li>Larger capacity overhead</li>
+            <li>Very slow rebuild</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Use for:</strong> Large HDD arrays, enterprise storage, backup appliances, archives.</p>
+    </div>
+
+    <div class="nc">
+      <p class="nh">RAID 10 — Mirroring + Striping</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Mirror Pair 1: Disk1 ↔ Disk2
+Mirror Pair 2: Disk3 ↔ Disk4
+         ↓ stripe across pairs
+Capacity: 50%
+Survives: 1 disk per mirror pair</div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+          <ul class="dot-ul" style="margin-bottom:.5rem">
+            <li>Excellent read &amp; write performance</li>
+            <li>Fast rebuild (only mirror pair)</li>
+            <li>High fault tolerance</li>
+          </ul>
+          <p class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Weaknesses</p>
+          <ul class="dot-ul">
+            <li>50% storage efficiency</li>
+            <li>Higher hardware cost</li>
+          </ul>
+        </div>
+      </div>
+      <p class="ntip"><strong>Use for:</strong> OLTP databases, virtualization, financial systems, high-performance apps.</p>
+    </div>
+
+    <!-- Full Comparison Table -->
+    <div class="nc">
+      <p class="nh">Full RAID Comparison</p>
+      <table class="nt">
+        <thead><tr><th>RAID</th><th>Technique</th><th>Read</th><th>Write</th><th>Fault Tolerance</th><th>Capacity</th><th>Rebuild</th></tr></thead>
+        <tbody>
+          <tr><td><strong>RAID 0</strong></td><td>Striping</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td><td class="text-red-500">None</td><td>100%</td><td>N/A</td></tr>
+          <tr><td><strong>RAID 1</strong></td><td>Mirroring</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐</td><td>1 disk/pair</td><td>50%</td><td>Fast</td></tr>
+          <tr><td><strong>RAID 5</strong></td><td>Stripe+Parity</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐</td><td>1 disk</td><td>(N−1)/N</td><td>Slow ⚠</td></tr>
+          <tr><td><strong>RAID 6</strong></td><td>Stripe+2 Parity</td><td>⭐⭐⭐⭐</td><td>⭐⭐</td><td>2 disks</td><td>(N−2)/N</td><td>Very slow ⚠</td></tr>
+          <tr><td><strong>RAID 10</strong></td><td>Mirror+Stripe</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td><td>1 disk/pair</td><td>50%</td><td>Medium</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Rebuild Risk -->
+    <div class="nc">
+      <p class="nh">Rebuild Risk — Why It Matters</p>
+      <p class="text-sm text-gray-600 mb-2">Modern HDDs are 16–20 TB. Rebuilding one disk reads every other surviving disk.</p>
+      <div class="ncode">RAID 5 rebuild (16 TB HDD):
+• Duration: 20–40 hours
+• During rebuild: array runs slower
+• Another disk failure = TOTAL DATA LOSS
+
+RAID 10 rebuild:
+• Only the failed mirror pair rebuilds
+• Other pairs are unaffected
+• Much faster and safer</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">RAID 5 with large HDDs</p>
+          <p class="text-xs text-gray-600">High URE (unrecoverable read error) risk during rebuild. A single sector read error destroys the array. Use RAID 6 instead.</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 uppercase tracking-wide mb-1">RAID 6 / RAID 10</p>
+          <p class="text-xs text-gray-600">RAID 6 survives a second failure during rebuild. RAID 10 rebuilds only its mirror pair — fast and low-risk.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Decision Guide</p>
+      <table class="nt">
+        <thead><tr><th>Workload</th><th>Recommended RAID</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td><strong>PostgreSQL / MySQL</strong></td><td>RAID 10</td><td>Low write latency, fast rebuild</td></tr>
+          <tr><td><strong>VMware / KVM hosts</strong></td><td>RAID 10</td><td>High random IOPS, fast recovery</td></tr>
+          <tr><td><strong>DB transaction logs</strong></td><td>RAID 1</td><td>Simple, fast, reliable</td></tr>
+          <tr><td><strong>NAS file server</strong></td><td>RAID 5 or 6</td><td>Read-heavy, capacity efficiency</td></tr>
+          <tr><td><strong>Large HDD backup array</strong></td><td>RAID 6</td><td>Dual parity protects during rebuild</td></tr>
+          <tr><td><strong>Scratch / cache</strong></td><td>RAID 0</td><td>Maximum throughput, no durability needed</td></tr>
+          <tr><td><strong>Cloud managed storage</strong></td><td>Software replication</td><td>EBS/GCS already provides redundancy</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Which RAID level is fastest?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Should we use RAID 5 or RAID 10?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is the workload read-heavy or write-heavy?</li>
+            <li>How large are the disks? (rebuild risk)</li>
+            <li>What is acceptable rebuild time?</li>
+            <li>What are the RTO and RPO requirements?</li>
+            <li>Is hardware RAID still appropriate, or software-defined?</li>
+            <li>Does cloud storage already provide redundancy?</li>
+            <li>Should we use ZFS RAIDZ or Ceph instead?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-orange-800">RAID 0 Total Loss</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Single disk failure &nbsp;·&nbsp; <strong>Fix:</strong> Never use RAID 0 for production data</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">RAID 5 Rebuild Failure</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Second disk fails during 30-hour rebuild &nbsp;·&nbsp; <strong>Fix:</strong> Use RAID 6 for large-capacity HDD arrays</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Slow Database on RAID 5</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Parity write overhead on write-heavy OLTP &nbsp;·&nbsp; <strong>Fix:</strong> Move to RAID 10</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Wasted Capacity on RAID 10</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Using RAID 10 for archival storage (50% waste) &nbsp;·&nbsp; <strong>Fix:</strong> Use RAID 6 or object storage for cold data</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modern Alternatives -->
+    <div class="nc">
+      <p class="nh">Modern Alternatives to Hardware RAID</p>
+      <table class="nt">
+        <thead><tr><th>Technology</th><th>How It Replaces RAID</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ZFS RAIDZ</strong></td><td>Software parity with checksums and self-healing</td></tr>
+          <tr><td><strong>Ceph</strong></td><td>Distributed replication / erasure coding at scale</td></tr>
+          <tr><td><strong>AWS EBS</strong></td><td>Managed replication across multiple AZs</td></tr>
+          <tr><td><strong>HDFS</strong></td><td>Block-level 3× replication across nodes</td></tr>
+          <tr><td><strong>Erasure Coding</strong></td><td>Better capacity efficiency than RAID 6 at scale</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">In cloud and distributed systems, software-defined replication scales better than hardware RAID. Hardware RAID is most relevant for on-prem servers.</p>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Design Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Identify workload: random vs sequential, read vs write ratio</li>
+        <li class="text-sm text-gray-700">✅ Measure latency requirements (RAID 5/6 adds write latency)</li>
+        <li class="text-sm text-gray-700">✅ Estimate rebuild duration based on disk size</li>
+        <li class="text-sm text-gray-700">✅ Calculate usable capacity for each RAID level</li>
+        <li class="text-sm text-gray-700">✅ Consider URE risk: use RAID 6 for HDDs &gt; 4 TB</li>
+        <li class="text-sm text-gray-700">✅ Evaluate hardware vs software RAID</li>
+        <li class="text-sm text-gray-700">✅ Check if cloud storage already provides redundancy</li>
+        <li class="text-sm text-gray-700">✅ Benchmark under production load before deploying</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">RAID 0  → Striping only. Fastest, zero tolerance. Scratch only.
+RAID 1  → Mirroring. Simple, reliable. 50% capacity.
+RAID 5  → Stripe+parity. Efficient, risky rebuild on large disks.
+RAID 6  → Double parity. Safer rebuild, more overhead.
+RAID 10 → Mirror+stripe. Best performance+resilience. 50% cap.
+
+Rebuild risk:
+  Large HDD + RAID 5 = danger during 20–40h rebuild
+  RAID 6 = survives second failure during rebuild
+  RAID 10 = only mirror pair rebuilds (fast)
+
+Staff decision factors:
+  Workload (OLTP vs NAS vs archive)
+  Disk size (URE risk for RAID 5)
+  RTO / rebuild time
+  Capacity efficiency
+  Hardware vs software-defined storage
+  Cloud already provides redundancy?</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/dd46c419-2e61-44d6-87a9-a3f864454fef.png"
+        alt="RAID Levels and Trade-offs visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

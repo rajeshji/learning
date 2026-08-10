@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inter-Process Communication (IPC)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Inter-Process Communication (IPC)</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Inter-Process Communication (IPC)</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Pipes &bull; Shared Memory &bull; Sockets &bull; Semaphores &bull; Real-World Systems</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">Every process has its own isolated memory — they cannot touch each other's data. IPC is the OS-provided bridge that lets independent processes exchange data, synchronize work, and coordinate execution safely.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-blue-700 mb-1">Data Transfer</p>
+          <p class="text-xs text-gray-600">Exchange information between processes</p>
+          <p class="text-xs font-mono text-blue-600 mt-1">Pipes &bull; Sockets</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-green-700 mb-1">Shared Data</p>
+          <p class="text-xs text-gray-600">Share memory directly — no copying</p>
+          <p class="text-xs font-mono text-green-600 mt-1">Shared Memory</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+          <p class="text-xs font-black text-amber-700 mb-1">Synchronization</p>
+          <p class="text-xs text-gray-600">Coordinate access to shared resources</p>
+          <p class="text-xs font-mono text-amber-600 mt-1">Semaphores &bull; Mutexes</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipes + Shared Memory -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">1. Pipes — Simple Kernel-Buffered Streams</p>
+        <p class="text-xs text-gray-600 mb-2">A pipe is a unidirectional byte channel. Data written at one end is buffered in the kernel and read at the other. No synchronization needed — the kernel handles blocking.</p>
+        <div class="ncode" style="font-size:.72rem">Process A (Writer)
+  ↓ write()
+  ↓ Kernel Pipe Buffer
+  ↓ read()
+Process B (Reader)
+
+Example: ps aux | grep java | wc -l
+Each | creates a kernel pipe.</div>
+        <p class="sub-h">Characteristics</p>
+        <ul class="dot-ul">
+          <li>Unidirectional — one writer, one reader</li>
+          <li>Data stored in kernel buffer (~64 KB default)</li>
+          <li>Typically parent &harr; child</li>
+          <li>Writer blocks when buffer is full</li>
+        </ul>
+        <p class="sub-h">System Calls</p>
+        <p class="text-xs font-mono text-violet-700"><code>pipe()</code> &bull; <code>read()</code> &bull; <code>write()</code> &bull; <code>close()</code></p>
+        <div class="grid grid-cols-2 gap-1 mt-2">
+          <div class="bg-green-50 rounded p-1.5 text-xs text-green-700">Simple to use</div>
+          <div class="bg-green-50 rounded p-1.5 text-xs text-green-700">No sync needed</div>
+          <div class="bg-red-50 rounded p-1.5 text-xs text-red-600">One-way only</div>
+          <div class="bg-red-50 rounded p-1.5 text-xs text-red-600">Small buffer</div>
+        </div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">2. Shared Memory — Fastest IPC</p>
+        <p class="text-xs text-gray-600 mb-2">Multiple processes map the same physical memory region into their address spaces. Reads and writes go directly to RAM — no kernel involvement per access after setup.</p>
+        <div class="ncode" style="font-size:.72rem">Physical RAM
+  ┌──────────────────────────┐
+  │  Shared Memory Region    │
+  │  Buffer / Cache / Locks  │
+  └──────────────────────────┘
+      ↑          ↑         ↑
+ Process A   Process B   Process C
+ (all map the same physical pages)</div>
+        <p class="sub-h">Characteristics</p>
+        <ul class="dot-ul">
+          <li>Fastest IPC — no data copying at all</li>
+          <li>No syscall per read/write after <code>mmap()</code></li>
+          <li class="text-red-600">Requires explicit synchronization</li>
+          <li class="text-red-600">Race conditions if unprotected</li>
+        </ul>
+        <p class="sub-h">System Calls</p>
+        <p class="text-xs font-mono text-violet-700"><code>shmget()</code> &bull; <code>shmat()</code> &bull; <code>shmdt()</code> &bull; <code>mmap(MAP_SHARED)</code></p>
+        <p class="ntip mt-2">PostgreSQL buffer pool: all backend processes read/write the same cached DB pages — zero copy. Memory would explode without shared memory.</p>
+      </div>
+    </div>
+
+    <!-- Sockets + Semaphores -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">3. Sockets — Flexible Bidirectional Comms</p>
+        <p class="text-xs text-gray-600 mb-2">Sockets are bidirectional — locally via Unix Domain Sockets, or across machines via TCP/IP. Data travels through kernel buffers with all the associated overhead.</p>
+        <div class="ncode" style="font-size:.72rem">App A (Socket)
+  ↓ send()
+  ↓ Kernel Network Stack
+  ↓ recv()
+App B (Socket)
+
+Unix Socket: same machine, lower cost
+TCP Socket:  local or cross-machine</div>
+        <p class="sub-h">Unix Domain vs TCP Socket</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Feature</th><th>Unix Socket</th><th>TCP Socket</th></tr></thead>
+          <tbody>
+            <tr><td>Scope</td><td>Same machine only</td><td>Local or remote</td></tr>
+            <tr><td>Overhead</td><td class="text-green-600">Lower</td><td class="text-red-500">Higher</td></tr>
+            <tr><td>Security</td><td class="text-green-600">File permissions</td><td>IP-based ACL</td></tr>
+            <tr><td>Example</td><td>Nginx &rarr; PHP-FPM</td><td>App &rarr; DB server</td></tr>
+          </tbody>
+        </table>
+        <p class="sub-h">System Calls</p>
+        <p class="text-xs font-mono text-violet-700"><code>socket()</code> &bull; <code>bind()</code> &bull; <code>listen()</code> &bull; <code>accept()</code> &bull; <code>send()</code> &bull; <code>recv()</code></p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">4. Semaphores — Synchronization Only</p>
+        <p class="text-xs text-gray-600 mb-2">Semaphores don't transfer data — they coordinate access and prevent race conditions. A counter: <strong>wait()</strong> decrements it (acquire), <strong>signal()</strong> increments it (release).</p>
+        <div class="ncode" style="font-size:.7rem">Process A              Process B
+  ↓ sem_wait()          (blocked)
+  ↓ critical section
+  ↓ update shared mem
+  ↓ sem_post()
+                         ↓ unblocked
+                         ↓ sem_wait()
+                         ↓ critical section</div>
+        <p class="sub-h">Without synchronization</p>
+        <div class="ncode" style="font-size:.7rem; background:#450a0a; color:#fca5a5; padding:.5rem .7rem">Backend A + Backend B write page simultaneously
+  → Corruption. Data loss.</div>
+        <p class="sub-h">With semaphore</p>
+        <div class="ncode" style="font-size:.7rem; background:#052e16; color:#86efac; padding:.5rem .7rem">A: lock → write → unlock
+B: waits  → lock → write → unlock
+  → Safe serialized updates.</div>
+        <p class="sub-h">Types &amp; System Calls</p>
+        <ul class="dot-ul mb-1">
+          <li><strong>Binary</strong> — mutex (0 or 1)</li>
+          <li><strong>Counting</strong> — N-slot pool</li>
+        </ul>
+        <p class="text-xs font-mono text-violet-700"><code>sem_init()</code> &bull; <code>sem_wait()</code> &bull; <code>sem_post()</code> &bull; <code>semget()</code> &bull; <code>semop()</code></p>
+      </div>
+    </div>
+
+    <!-- IPC Comparison -->
+    <div class="nc">
+      <p class="nh">IPC Mechanism Comparison</p>
+      <table class="nt mt-1">
+        <thead><tr><th>Mechanism</th><th>Direction</th><th>Data Copy</th><th>Speed</th><th>Sync Needed?</th><th>Best For</th></tr></thead>
+        <tbody>
+          <tr><td>Pipe</td><td>One-way</td><td>Kernel buffer</td><td class="text-yellow-600">Medium</td><td>No</td><td>Simple streaming, parent &harr; child</td></tr>
+          <tr><td>Shared Memory</td><td>Both</td><td class="text-green-600">None (direct)</td><td class="text-green-600">Very Fast</td><td class="text-red-500">Yes</td><td>Large datasets, high throughput</td></tr>
+          <tr><td>Unix Socket</td><td>Both</td><td>Kernel buffer</td><td class="text-yellow-600">Medium</td><td>No</td><td>Local IPC, same-host microservices</td></tr>
+          <tr><td>TCP Socket</td><td>Both</td><td>Kernel buffer</td><td class="text-red-500">Slowest</td><td>No</td><td>Cross-machine network communication</td></tr>
+          <tr><td>Semaphore</td><td>N/A</td><td class="text-green-600">None</td><td class="text-green-600">Very Fast</td><td>N/A</td><td>Synchronization only, no data</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- How real systems combine IPC -->
+    <div class="nc">
+      <p class="nh">How Real Systems Combine IPC Mechanisms</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <p class="text-xs font-black text-blue-700 mb-2">PostgreSQL</p>
+          <div class="ncode" style="font-size:.7rem; padding:.6rem .85rem">Client
+  ↓ Unix Socket        (client connect)
+  ↓ Postmaster
+  ↓ fork()
+  ↓ Backend Process
+  ↓ Shared Memory      (buffer pool)
+  ↓ Semaphore          (lock table)
+  ↓ Disk</div>
+          <p class="text-xs text-gray-600 mt-2">Unix socket for clients, shared memory for buffer cache, semaphores for lock table, signals for lifecycle.</p>
+        </div>
+        <div class="bg-green-50 border border-green-100 rounded-xl p-3">
+          <p class="text-xs font-black text-green-700 mb-2">Nginx + PHP-FPM</p>
+          <div class="ncode" style="font-size:.7rem; padding:.6rem .85rem">Browser
+  ↓ TCP Socket         (public HTTP)
+  ↓ Nginx Worker
+  ↓ Unix Socket        (local forward)
+  ↓ PHP-FPM Worker
+  ↓ Shared Memory      (opcode cache)
+  ↓ Database</div>
+          <p class="text-xs text-gray-600 mt-2">TCP for public traffic, Unix socket for local forward (faster), shared memory for PHP opcode cache.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-xl p-3">
+          <p class="text-xs font-black text-violet-700 mb-2">Chrome Browser</p>
+          <div class="ncode" style="font-size:.7rem; padding:.6rem .85rem">Browser Process
+  ↓ IPC Messages       (control/events)
+  ↓ Renderer Process
+  ↓ Shared Memory      (frames, bitmaps)
+  ↓ GPU Process
+  ↓ Sockets            (network traffic)
+  ↓ Network Process</div>
+          <p class="text-xs text-gray-600 mt-2">Process-per-tab isolation. Shared memory for rendered frames (performance), IPC messages for control, sockets for network.</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-3">
+          <p class="text-xs font-black text-amber-700 mb-2">systemd (PID 1)</p>
+          <div class="ncode" style="font-size:.7rem; padding:.6rem .85rem">systemd
+  ↓ fork() + exec()    (start services)
+  ↓ SIGTERM / SIGHUP   (lifecycle)
+  ↓ Unix Sockets       (socket activation)
+  ↓ Pipes              (log streaming)
+  ↓ waitpid()          (reap children)</div>
+          <p class="text-xs text-gray-600 mt-2">Uses every IPC mechanism together to manage all system services safely.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision framework + Production Failures -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Staff Engineer Decision Framework</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Requirement</th><th>Best Choice</th></tr></thead>
+          <tbody>
+            <tr><td>Parent &harr; Child stream</td><td>Pipe</td></tr>
+            <tr><td>Large shared dataset</td><td>Shared Memory + Semaphore</td></tr>
+            <tr><td>Same host, low latency</td><td>Unix Domain Socket</td></tr>
+            <tr><td>Cross-machine comms</td><td>TCP Socket</td></tr>
+            <tr><td>Synchronize shared data</td><td>Semaphore / Mutex</td></tr>
+            <tr><td>Async event notification</td><td>Signal</td></tr>
+            <tr><td>Replace local TCP</td><td>Unix Socket (fewer crossings)</td></tr>
+          </tbody>
+        </table>
+        <p class="ntip mt-2">No single mechanism solves every problem. Real systems compose several — choose by <strong>performance, safety, and complexity</strong>.</p>
+        <p class="sub-h mt-2">Engineer Progression</p>
+        <div class="space-y-1">
+          <div class="bg-gray-50 border border-gray-200 rounded p-2 text-xs"><span class="font-bold text-gray-500">Junior:</span> "How can two processes communicate?"</div>
+          <div class="bg-blue-50 border border-blue-100 rounded p-2 text-xs"><span class="font-bold text-blue-700">Senior:</span> "Should I use shared memory or sockets?"</div>
+          <div class="bg-violet-50 border border-violet-100 rounded p-2 text-xs"><span class="font-bold text-violet-700">Staff:</span> Can I eliminate copies? Fewer kernel crossings? Unix socket vs TCP locally?</div>
+          <div class="bg-purple-50 border border-purple-200 rounded p-2 text-xs"><span class="font-bold text-purple-700">Principal:</span> Is process isolation worth the IPC overhead, or consolidate to threads?</div>
+        </div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Production Failure Scenarios</p>
+        <div class="space-y-2">
+          <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-red-700">Shared memory corruption</p>
+            <p class="text-xs text-gray-600 mt-0.5">Two processes write simultaneously without a lock. Data becomes inconsistent or corrupted. Fix: wrap every shared memory write in a semaphore or mutex.</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-orange-700">High CPU from socket overhead</p>
+            <p class="text-xs text-gray-600 mt-0.5">Millions of small TCP reads/writes drive context switches and kernel crossings. Fix: batch operations, or switch hot local data to shared memory.</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-amber-700">Worker deadlock on semaphore</p>
+            <p class="text-xs text-gray-600 mt-0.5">Process acquires lock then crashes — lock never released. All others block forever. Fix: lock ordering, timeouts, and deadlock watchdog threads.</p>
+          </div>
+          <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-yellow-700">Slow local communication via TCP</p>
+            <p class="text-xs text-gray-600 mt-0.5">Using TCP between same-host processes adds unnecessary TCP stack overhead. Fix: replace with Unix Domain Sockets for lower latency and fewer copies.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">Pipes           Unidirectional. Kernel buffer. Parent&lt;-&gt;Child.
+                  ps aux | grep java — each | is a pipe.
+
+Shared Memory   Fastest IPC. Same physical pages in multiple processes.
+                No copy after mmap/shmat. Must pair with semaphore.
+                PostgreSQL buffer pool. Redis AOF rewrite fork.
+
+Sockets         Bidirectional. Unix (same host, fast) or TCP (cross-machine).
+                Nginx to PHP-FPM uses Unix socket, not TCP.
+
+Semaphores      Synchronization only — no data transfer.
+                Binary = mutex. Counting = N-slot pool.
+                Deadlock risk if holder crashes without releasing.
+
+Real systems combine all mechanisms:
+  PostgreSQL: Unix socket + shared memory + semaphore + signals
+  Nginx:      TCP socket + Unix socket + shared memory + signals
+  Chrome:     Shared memory (frames) + IPC messages + sockets
+
+Golden Rules
+  Shared memory for performance. Sockets for flexibility. Pipes for simplicity.
+  Always synchronize shared memory (semaphore / mutex).
+  Prefer Unix sockets over TCP for same-host comms.
+  Handle SIGTERM and SIGCHLD — prevent dirty shutdowns and zombies.</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Pipes</strong> — simple, kernel-buffered, unidirectional; great for streaming between related processes</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Shared Memory</strong> — fastest IPC, zero-copy after setup; always pair with a semaphore</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Sockets</strong> — flexible and reliable; Unix for local, TCP across machines</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Semaphores</strong> — synchronization only; prevent race conditions in shared regions</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">The Staff Engineer's responsibility is not simply choosing an IPC mechanism — it's selecting the one that provides the best balance of performance, scalability, fault isolation, synchronization complexity, and maintainability. Real systems always compose several IPC mechanisms together.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/IPC/ipc.png"
+           alt="Inter-Process Communication visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

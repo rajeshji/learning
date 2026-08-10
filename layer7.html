@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Layer 7 — System Architecture &amp; Scalability Patterns</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .dot-list { list-style:disc; padding-left:1.25rem; }
+    .dot-list li { line-height:1.85; break-inside:avoid; }
+    .dot-list li::marker { color:var(--dot,#0f766e); }
+    @media(min-width:640px){ .two-col{ columns:2; column-gap:1.75rem; } }
+    .section-block { scroll-margin-top:5rem; }
+    .toc-link { display:block; padding:.22rem .58rem; border-radius:.4rem; font-size:.68rem;
+                color:#64748b; transition:all .15s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .toc-link:hover { background:#f0fdfa; color:#0f766e; }
+    .sub-h { font-size:.7rem; font-weight:700; letter-spacing:.06em;
+             text-transform:uppercase; margin-top:.9rem; margin-bottom:.4rem; }
+    .staff-note { background:#faf5ff; border-left:3px solid #9333ea;
+                  padding:.55rem .85rem; border-radius:.5rem; font-size:.78rem;
+                  color:#6b21a8; margin-top:.75rem; line-height:1.6; }
+    .badge-tag { font-size:.6rem; font-weight:600; background:#f1f5f9;
+                 color:#64748b; padding:.1em .5em; border-radius:999px; vertical-align:middle; }
+    th { background:#f8fafc; font-size:.72rem; font-weight:700; color:#475569;
+         text-transform:uppercase; letter-spacing:.05em; padding:.5rem .8rem; text-align:left; }
+    td { font-size:.82rem; color:#374151; padding:.45rem .8rem; vertical-align:top;
+         border-top:1px solid #f1f5f9; }
+    strong { color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="foundation.html"
+       class="flex items-center gap-1.5 text-teal-700 hover:text-teal-900 font-semibold
+              bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-teal-800 font-semibold">Layer 7 — System Architecture &amp; Scalability Patterns</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 py-8 flex gap-7 items-start">
+
+  <!-- SIDEBAR TOC -->
+  <nav class="hidden xl:block w-52 shrink-0 sticky top-20 self-start">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p class="text-[0.68rem] font-bold text-gray-400 uppercase tracking-widest mb-2">17 Topics</p>
+      <a href="#s01" class="toc-link">01 &middot; Architecture Foundations</a>
+      <a href="#s02" class="toc-link">02 &middot; Architectural Styles</a>
+      <a href="#s03" class="toc-link">03 &middot; Design Principles</a>
+      <a href="#s04" class="toc-link">04 &middot; Scalability Strategies</a>
+      <a href="#s05" class="toc-link">05 &middot; Load Balancing</a>
+      <a href="#s06" class="toc-link">06 &middot; Caching &amp; Acceleration</a>
+      <a href="#s07" class="toc-link">07 &middot; DB Scalability</a>
+      <a href="#s08" class="toc-link">08 &middot; Async Communication</a>
+      <a href="#s09" class="toc-link">09 &middot; Data Pipelines</a>
+      <a href="#s10" class="toc-link">10 &middot; Resilience Patterns</a>
+      <a href="#s11" class="toc-link">11 &middot; Global Distribution</a>
+      <a href="#s12" class="toc-link">12 &middot; Performance at Scale</a>
+      <a href="#s13" class="toc-link">13 &middot; Observability &amp; Capacity</a>
+      <a href="#s14" class="toc-link">14 &middot; Legacy Modernization</a>
+      <a href="#s15" class="toc-link">15 &middot; Security &amp; Reliability</a>
+      <a href="#s16" class="toc-link">16 &middot; Deployment Patterns</a>
+      <a href="#s17" class="toc-link">17 &middot; Governance &amp; Comms</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 min-w-0 space-y-5 pb-16">
+
+    <!-- S01 ARCHITECTURE FOUNDATIONS -->
+    <div id="s01" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-700 font-black text-xs shrink-0">01</span>
+        <h2 class="font-bold text-gray-800 text-lg">System Design &amp; Architecture Foundations</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0f766e">
+        <li>System Architecture views — logical, physical, deployment</li>
+        <li>Good architecture characteristics — scalability, reliability, observability, cost-efficiency</li>
+        <li>Scalability vs Elasticity</li>
+        <li>Measurable targets — latency, throughput, availability</li>
+        <li>Architecture trade-offs — CAP, PACELC, cost vs complexity</li>
+        <li>Domain-Driven Design — Bounded Contexts, Aggregates, Context Maps, ACL</li>
+        <li>Architecture Decision Records (ADRs)</li>
+        <li>C4 Model — Context, Containers, Components, Code</li>
+      </ul>
+    </div>
+
+    <!-- S02 ARCHITECTURAL STYLES TABLE -->
+    <div id="s02" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-emerald-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-black text-xs shrink-0">02</span>
+        <h2 class="font-bold text-gray-800 text-lg">Architectural Styles &amp; Patterns</h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
+        <table class="w-full text-left">
+          <thead><tr><th>Category</th><th>Patterns</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Traditional</strong></td><td>Monolith, Layered (3-tier), SOA</td></tr>
+            <tr><td><strong>Modern</strong></td><td>Microservices, Event-driven, Serverless, Microkernel</td></tr>
+            <tr><td><strong>Resilient</strong></td><td>Hexagonal, Onion, Clean architecture</td></tr>
+            <tr><td><strong>Data-centric</strong></td><td>CQRS, Event Sourcing</td></tr>
+            <tr><td><strong>Reactive</strong></td><td>Event loop, Actor Model (Akka, Erlang)</td></tr>
+            <tr><td><strong>Composable</strong></td><td>API Gateway, BFF (Backend for Frontend), Service Mesh</td></tr>
+            <tr><td><strong>Orchestration vs Choreography</strong></td><td>Centralized vs distributed control flow</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="staff-note">Staff focus — understand <em>when to apply each pattern</em> and how to evolve architecture over time.</p>
+    </div>
+
+    <!-- S03 DESIGN PRINCIPLES -->
+    <div id="s03" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-700 font-black text-xs shrink-0">03</span>
+        <h2 class="font-bold text-gray-800 text-lg">System Design Principles <span class="badge-tag ml-1">Staff-Level</span></h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Single Responsibility &amp; Separation of Concerns</li>
+        <li>Loose Coupling and High Cohesion</li>
+        <li>Scalability vs Maintainability trade-offs</li>
+        <li>Stateless design and distributed state management</li>
+        <li>Idempotency and determinism</li>
+        <li>Backpressure and rate limiting</li>
+        <li>Design for Failure — resilience-first thinking</li>
+        <li>Data gravity &amp; locality optimization</li>
+        <li>Eventual vs Strong consistency impact on architecture</li>
+      </ul>
+    </div>
+
+    <!-- S04 SCALABILITY STRATEGIES -->
+    <div id="s04" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-green-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 font-black text-xs shrink-0">04</span>
+        <h2 class="font-bold text-gray-800 text-lg">Scalability Strategies</h2>
+      </div>
+      <p class="sub-h text-green-600">A. Vertical Scaling (Scale-up)</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Kernel tuning and hardware scaling limits</li>
+        <li>CPU-bound vs IO-bound workloads</li>
+        <li>NUMA awareness, threading &amp; concurrency tuning</li>
+      </ul>
+      <p class="sub-h text-green-600">B. Horizontal Scaling (Scale-out)</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Stateless service design</li>
+        <li>Load distribution via consistent hashing</li>
+        <li>Auto-scaling and elasticity — AWS ASG, K8s HPA/VPA</li>
+        <li>Partitioning &amp; data distribution awareness</li>
+        <li>Scaling bottlenecks — DB, cache, message broker</li>
+      </ul>
+    </div>
+
+    <!-- S05 LOAD BALANCING -->
+    <div id="s05" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-blue-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black text-xs shrink-0">05</span>
+        <h2 class="font-bold text-gray-800 text-lg">Load Balancing &amp; Traffic Routing</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#2563eb">
+        <li>Layer 4 (TCP) vs Layer 7 (HTTP) load balancing</li>
+        <li>Round Robin, Least Connections, Weighted LB</li>
+        <li>Consistent Hashing and Sticky Sessions</li>
+        <li>GeoDNS, Anycast, Global Load Balancers (Route53, Cloudflare, GSLB)</li>
+        <li>Traffic shaping, shadowing, canary deployments</li>
+        <li>Service Mesh routing — Envoy, Istio</li>
+        <li>Health checks and connection draining</li>
+      </ul>
+      <p class="staff-note">Staff insight — understand traffic routing across data centers and multi-cluster failover orchestration.</p>
+    </div>
+
+    <!-- S06 CACHING -->
+    <div id="s06" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-amber-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-black text-xs shrink-0">06</span>
+        <h2 class="font-bold text-gray-800 text-lg">Caching &amp; Data Acceleration</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>In-memory caching — Redis, Memcached, Caffeine</li>
+        <li>CDN / Edge caching — Cloudflare, Akamai, Fastly</li>
+        <li>Application-level caching — read-through, write-behind</li>
+        <li>Tiered caching — L1 local, L2 distributed</li>
+        <li>Cache invalidation &amp; consistency strategies</li>
+        <li>Hot-key mitigation and cache stampede prevention</li>
+        <li>Cache warming &amp; prefetching</li>
+        <li>Distributed cache replication &amp; persistence</li>
+      </ul>
+    </div>
+
+    <!-- S07 DB SCALABILITY -->
+    <div id="s07" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-violet-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 text-violet-700 font-black text-xs shrink-0">07</span>
+        <h2 class="font-bold text-gray-800 text-lg">Database Scalability &amp; Data Design</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>Vertical vs horizontal scaling in databases</li>
+        <li>Read replicas, write partitioning</li>
+        <li>Sharding strategies — range, hash, directory, composite</li>
+        <li>Data federation &amp; multi-database architecture</li>
+        <li>Query optimization and indexing best practices</li>
+        <li>CQRS (Command Query Responsibility Segregation)</li>
+        <li>Event Sourcing — event log as source of truth</li>
+        <li>Schema versioning and evolution</li>
+        <li>Distributed transaction avoidance and compensation</li>
+      </ul>
+    </div>
+
+    <!-- S08 ASYNC COMMUNICATION -->
+    <div id="s08" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-indigo-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">08</span>
+        <h2 class="font-bold text-gray-800 text-lg">Message Queues &amp; Async Communication</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Queueing systems — RabbitMQ, Kafka, Pulsar, SQS</li>
+        <li>Publish-subscribe vs point-to-point</li>
+        <li>Event-driven architectures and streaming</li>
+        <li>Message durability, offset management, acknowledgements</li>
+        <li>Retry policies and dead-letter queues</li>
+        <li>Ordering guarantees and exactly-once semantics</li>
+        <li>Outbox pattern for reliable message delivery</li>
+        <li>Backpressure handling and consumer group design</li>
+        <li>Event versioning and schema registry</li>
+      </ul>
+    </div>
+
+    <!-- S09 DATA PIPELINES -->
+    <div id="s09" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-cyan-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 font-black text-xs shrink-0">09</span>
+        <h2 class="font-bold text-gray-800 text-lg">Data Pipelines &amp; Stream Processing</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0891b2">
+        <li>Batch vs Streaming data models</li>
+        <li>Lambda and Kappa architectures</li>
+        <li>Data transformation pipelines (ETL/ELT)</li>
+        <li>Stream windowing — tumbling, sliding, session</li>
+        <li>Watermarking and late event handling</li>
+        <li>Event-time vs processing-time semantics</li>
+        <li>Exactly-once processing in Kafka Streams / Flink</li>
+        <li>Real-time analytics and OLAP integration</li>
+      </ul>
+    </div>
+
+    <!-- S10 RESILIENCE PATTERNS TABLE -->
+    <div id="s10" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-red-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-700 font-black text-xs shrink-0">10</span>
+        <h2 class="font-bold text-gray-800 text-lg">Resilience &amp; Fault-Tolerance Patterns</h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
+        <table class="w-full text-left">
+          <thead><tr><th>Category</th><th>Patterns</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Resilience</strong></td><td>Circuit Breaker, Bulkhead, Retry, Timeout</td></tr>
+            <tr><td><strong>Fallbacks</strong></td><td>Graceful degradation, Caching fallback</td></tr>
+            <tr><td><strong>Recovery</strong></td><td>Compensating transaction, Saga pattern</td></tr>
+            <tr><td><strong>Isolation</strong></td><td>Thread pool segregation, connection isolation</td></tr>
+            <tr><td><strong>Rate limiting</strong></td><td>Token bucket, Leaky bucket algorithms</td></tr>
+            <tr><td><strong>Load shedding</strong></td><td>Drop or degrade non-critical requests</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="staff-note">Staff focus — design systems that degrade gracefully and never fail catastrophically.</p>
+    </div>
+
+    <!-- S11 GLOBAL DISTRIBUTION -->
+    <div id="s11" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-600 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-800 font-black text-xs shrink-0">11</span>
+        <h2 class="font-bold text-gray-800 text-lg">Global Distribution &amp; Geo-Scalability</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0f766e">
+        <li>Multi-region replication — sync/async</li>
+        <li>Latency-based routing &amp; geo-aware load balancing</li>
+        <li>Active-active vs active-passive setups</li>
+        <li>Bounded staleness consistency</li>
+        <li>Edge computing &amp; CDN integration</li>
+        <li>Data residency and compliance — GDPR, regional laws</li>
+        <li>Cross-region quorum &amp; consensus tuning</li>
+        <li>Conflict resolution and version vectors</li>
+      </ul>
+    </div>
+
+    <!-- S12 PERFORMANCE AT SCALE -->
+    <div id="s12" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-orange-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-700 font-black text-xs shrink-0">12</span>
+        <h2 class="font-bold text-gray-800 text-lg">Performance Engineering at Scale</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ea580c">
+        <li>Latency breakdown — network, serialization, disk, app</li>
+        <li>Tail latency (p95/p99/p999) and percentile monitoring</li>
+        <li>Queuing theory — Little's Law, Amdahl's Law</li>
+        <li>Throughput vs concurrency tuning</li>
+        <li>Async I/O vs multi-threaded models</li>
+        <li>Connection pooling and multiplexing</li>
+        <li>Profiling tools — JMH, <code>async-profiler</code>, Flamegraphs</li>
+        <li>Pre-computation &amp; batching for throughput</li>
+      </ul>
+    </div>
+
+    <!-- S13 OBSERVABILITY & CAPACITY -->
+    <div id="s13" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-green-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 font-black text-xs shrink-0">13</span>
+        <h2 class="font-bold text-gray-800 text-lg">Observability &amp; Capacity Management</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Service SLIs and SLOs for architecture performance</li>
+        <li>Metrics-driven autoscaling and capacity planning</li>
+        <li>Distributed tracing — OpenTelemetry, Jaeger</li>
+        <li>End-to-end latency visualization</li>
+        <li>Cost–reliability monitoring dashboards</li>
+        <li>Anomaly detection and traffic forecasting</li>
+        <li>Scaling simulation &amp; capacity models</li>
+      </ul>
+    </div>
+
+    <!-- S14 LEGACY MODERNIZATION -->
+    <div id="s14" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-slate-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-black text-xs shrink-0">14</span>
+        <h2 class="font-bold text-gray-800 text-lg">System Evolution &amp; Legacy Modernization</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>Strangler pattern — incremental migration</li>
+        <li>Anti-Corruption Layer pattern</li>
+        <li>Backward/forward compatibility in APIs</li>
+        <li>Contract testing for service boundaries</li>
+        <li>Refactoring strategies for monolith decomposition</li>
+        <li>Platform engineering and Internal Developer Platforms (IDP)</li>
+        <li>Tech debt assessment and refactor prioritization</li>
+      </ul>
+    </div>
+
+    <!-- S15 SECURITY & RELIABILITY -->
+    <div id="s15" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-rose-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-rose-100 text-rose-700 font-black text-xs shrink-0">15</span>
+        <h2 class="font-bold text-gray-800 text-lg">Security &amp; Reliability Considerations</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#e11d48">
+        <li>TLS termination and mutual TLS (mTLS)</li>
+        <li>Zero Trust Architecture and network segmentation</li>
+        <li>Secret and configuration management — Vault, KMS</li>
+        <li>API security — OAuth2, JWT, mTLS</li>
+        <li>Circuit breaker fallback security implications</li>
+        <li>Rate limiting to prevent DDoS amplification</li>
+        <li>Secure rollback and versioned deployments</li>
+      </ul>
+    </div>
+
+    <!-- S16 DEPLOYMENT PATTERNS TABLE -->
+    <div id="s16" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-purple-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-black text-xs shrink-0">16</span>
+        <h2 class="font-bold text-gray-800 text-lg">Deployment, Release &amp; Operations Patterns</h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
+        <table class="w-full text-left">
+          <thead><tr><th>Category</th><th>Pattern</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Deployment</strong></td><td>Blue-Green, Canary, Shadow</td><td>Safe rollout</td></tr>
+            <tr><td><strong>Orchestration</strong></td><td>Kubernetes, Nomad, ECS</td><td>Declarative control</td></tr>
+            <tr><td><strong>Observability</strong></td><td>Central logging, distributed tracing</td><td>Root cause diagnosis</td></tr>
+            <tr><td><strong>Progressive Delivery</strong></td><td>Feature flags, traffic splitting</td><td>Controlled experimentation</td></tr>
+            <tr><td><strong>Release Management</strong></td><td>Rolling updates, phased releases</td><td>Gradual exposure</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="staff-note">Staff role — ensure zero-downtime deploys, safe rollbacks, and gradual exposure under load.</p>
+    </div>
+
+    <!-- S17 GOVERNANCE -->
+    <div id="s17" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-pink-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100 text-pink-700 font-black text-xs shrink-0">17</span>
+        <h2 class="font-bold text-gray-800 text-lg">Architecture Governance &amp; Communication</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ec4899">
+        <li>Architecture Decision Records (ADRs)</li>
+        <li>RFC process and review guidelines</li>
+        <li>Cross-team dependency management</li>
+        <li>Technology radar and lifecycle tracking</li>
+        <li>Architecture review boards</li>
+        <li>System diagrams — C4, sequence, dataflow</li>
+        <li>Mentoring teams on architectural trade-offs</li>
+        <li>Establishing Non-Functional Requirements (NFRs) &amp; compliance review</li>
+      </ul>
+    </div>
+
+  </main>
+</div>
+  <script src="layer-utils.js"></script>
+</body>
+</html>

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cascading Failure Scenarios — Most Dangerous</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#b91c1c; border-bottom-color:#b91c1c; }
+    .tab-btn:hover:not(.active) { color:#450a0a; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fef2f2; border:1px solid #fca5a5; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#b91c1c; margin-bottom:.6rem; }
+    .ncode{ background:#450a0a; color:#fca5a5; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fca5a5; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#991b1b; color:#fca5a5; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #fee2e2;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fef2f2; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#b91c1c; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#450a0a; color:#fca5a5; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#991b1b; color:#fca5a5; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #fee2e2; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#7f1d1d; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-red-800 hover:text-red-950 font-semibold
+              bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-red-800 font-semibold">Cascading Failure Scenarios — Most Dangerous</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0 text-lg"></div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Cascading Failure Scenarios — Most Dangerous</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 36 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Cascading Failures Are the Most Dangerous</p>
+      <div class="ncode">Cascading failure = one failure causes another causes another → total system collapse
+They are dangerous because each step looks like a new independent failure
+
+The 3 root causes of every cascade:
+  1. No isolation  → failure can spread (no bulkhead, no circuit breaker)
+  2. No backpressure → load keeps arriving into degraded system
+  3. Positive feedback loop → degradation amplifies the original failure</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Further Cascading Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Retry Storm Cascades</td></tr>
+          <tr>
+            <td>Exponential Retry Amplification<span class="badge-crit">Must Know</span></td>
+            <td>Client retries aggressively on failure — each failure triggers N more requests</td>
+            <td>Upstream request rate exceeds downstream capacity by N×, error rate climbing</td>
+            <td>Apply exponential backoff + jitter immediately, shed excess retries</td>
+            <td>Retry budgets, client-side retry limits, retry-after header from server</td>
+            <td class="casc">Backend collapse — partial outage becomes total outage as retries multiply load</td>
+            <td class="troff">Exponential backoff increases latency for legitimate transient failures</td>
+          </tr>
+          <tr>
+            <td>Synchronised Retry Burst<span class="badge-crit">Must Know</span></td>
+            <td>All clients use identical retry interval — they all retry at exactly the same moment</td>
+            <td>Spike pattern in retry traffic — sudden bursts exactly N seconds apart</td>
+            <td>Add jitter to all retry intervals immediately across all clients</td>
+            <td>Full jitter on all retry timers (jitter = random × base_delay)</td>
+            <td class="casc">Thundering herd — synchronised burst overwhelms server repeatedly</td>
+            <td class="troff">Jitter makes retry timing less predictable for SLO tracking</td>
+          </tr>
+          <tr>
+            <td>Cross-Service Retry Cascade<span class="badge-crit">Must Know</span></td>
+            <td>Service A retries on Service B, B retries on C — load amplifies at every hop</td>
+            <td>Request rate multiplied by (retry factor)^hops downstream — exponential fan-out</td>
+            <td>Apply circuit breaker at each hop, stop retrying at first persistent failure</td>
+            <td>Per-hop retry budget, total retry budget across call chain, circuit breakers at every service</td>
+            <td class="casc">Entire service mesh overloaded — every layer amplifies load onto the next</td>
+            <td class="troff">Stopping retries at hop 1 may drop requests that would have succeeded at hop 2</td>
+          </tr>
+          <tr>
+            <td>DLQ Overflow from Retry Flood</td>
+            <td>DLQ configured but retry volume overwhelms it — DLQ storage fills, messages lost</td>
+            <td>DLQ depth growing, storage alerts, retry messages being dropped</td>
+            <td>Throttle retry feed to DLQ, archive overflow to cold storage</td>
+            <td>DLQ capacity planning with retry storm scenarios, DLQ depth monitoring alert</td>
+            <td class="casc">Silent message loss — DLQ overflow drops the messages that needed recovery</td>
+            <td class="troff">Large DLQ storage reserves capacity for rare storms but normally sits idle</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Resource Exhaustion Chains</td></tr>
+          <tr>
+            <td>Thread Pool → Connection Pool Chain<span class="badge-crit">Must Know</span></td>
+            <td>Slow dependency holds threads → thread pool fills → connection pool requests queue → timeouts</td>
+            <td>Thread pool saturation, then connection pool saturation in sequence</td>
+            <td>Kill slow requests, apply aggressive timeout to dependency</td>
+            <td>Bulkhead — separate thread pool per dependency so one slow dep doesn't starve all</td>
+            <td class="casc">Total API freeze — no thread available to accept new requests of any kind</td>
+            <td class="troff">Bulkhead pools require more threads total, increasing baseline memory use</td>
+          </tr>
+          <tr>
+            <td>OOM → Crash → Redistribution → OOM Chain<span class="badge-crit">Must Know</span></td>
+            <td>One node OOMs and crashes → its traffic shifts to remaining nodes → they OOM → cascade</td>
+            <td>First OOM kill, then rapid sequential OOM kills on other nodes</td>
+            <td>Immediately shed load (rate limit), stop new traffic entering</td>
+            <td>Memory quotas per node, load shedding before OOM, anti-affinity with capacity buffer</td>
+            <td class="casc">Full cluster OOM cascade — all nodes crash in sequence as traffic redistributes</td>
+            <td class="troff">Conservative memory limits reduce per-node cache effectiveness</td>
+          </tr>
+          <tr>
+            <td>GC Pause → Timeout → Retry Storm</td>
+            <td>Long GC pause on server → clients time out → clients retry → server under double load when GC ends</td>
+            <td>GC pause event followed immediately by retry traffic spike</td>
+            <td>Drop retries arriving during/after GC with backpressure, slow restart</td>
+            <td>Tune GC (G1GC, ZGC for low pause), heap cap, avoid GC pauses exceeding client timeout</td>
+            <td class="casc">Post-GC overload — server recovers from GC but immediately gets hammered by retries</td>
+            <td class="troff">Smaller heap means more frequent (though shorter) GC cycles</td>
+          </tr>
+          <tr>
+            <td>File Descriptor Exhaustion Chain</td>
+            <td>Leaked connections or too many open sockets — FD limit hit, new connections refused</td>
+            <td>EMFILE errors, new connection failures while CPU/memory look fine</td>
+            <td>Kill leaked connections, raise ulimit, restart process</td>
+            <td>Connection leak detection, FD monitoring alert, enforce connection pool limits</td>
+            <td class="casc">Downstream services cannot connect → their queues fill → their cascades start</td>
+            <td class="troff">Strict connection limits may reject valid burst connections during traffic spikes</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Load Redistribution Cascades</td></tr>
+          <tr>
+            <td>Node Failure → Overload → Next Node Fails<span class="badge-crit">Must Know</span></td>
+            <td>N-1 capacity design — one node fails, remaining nodes absorb 100%/N-1 of load and fail too</td>
+            <td>Sequential node failures, each crash preceded by CPU/latency spike</td>
+            <td>Shed load aggressively, stop routing to remaining nodes until load normalises</td>
+            <td>N+2 capacity design, load shedding before cascade, autoscale ahead of capacity cliff</td>
+            <td class="casc">Total cluster collapse — each node death makes remaining nodes less able to cope</td>
+            <td class="troff">N+2 capacity runs at lower utilisation — higher cost at normal load</td>
+          </tr>
+          <tr>
+            <td>Hot Spot Collapse → Traffic Shift Cascade</td>
+            <td>Hot partition node fails — its load shifts to adjacent partitions, making them hot too</td>
+            <td>Sequential partition overload events, hot key metrics shifting across partitions</td>
+            <td>Add local cache in front of hot partitions, rate limit hot keys</td>
+            <td>Consistent hashing with virtual nodes, hot key detection + replication</td>
+            <td class="casc">Entire cluster saturated — every partition becomes hot as collapse propagates</td>
+            <td class="troff">Hot key replication increases write fan-out and coordination complexity</td>
+          </tr>
+          <tr>
+            <td>AZ Failure → Cross-AZ Overload</td>
+            <td>One AZ fails — other AZs receive 50% more traffic than designed for</td>
+            <td>AZ health check failure followed by latency spike in remaining AZs</td>
+            <td>Activate autoscaling in remaining AZs, shed non-critical traffic</td>
+            <td>N+1 AZ capacity (each AZ handles 100% of traffic alone), pre-scale on AZ event</td>
+            <td class="casc">Remaining AZs overload and begin failing → region-wide outage</td>
+            <td class="troff">N+1 AZ sizing doubles infra cost in each AZ vs N×50%</td>
+          </tr>
+          <tr>
+            <td>Reconnect Storm After Mass Restart</td>
+            <td>Fleet-wide restart (deploy, crash recovery) — all clients reconnect simultaneously</td>
+            <td>Connection spike on LB/gateway exactly at restart time</td>
+            <td>Jittered startup, stagger restart across fleet</td>
+            <td>Gradual rolling restart, exponential backoff on reconnect, connection keep-alive</td>
+            <td class="casc">LB/gateway connection exhaustion — reconnect storm exceeds connection slot limit</td>
+            <td class="troff">Staggered restarts extend deployment windows significantly</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Dependency Cascade Failures</td></tr>
+          <tr>
+            <td>Single Dependency Outage Spreads<span class="badge-crit">Must Know</span></td>
+            <td>One shared dependency (DB, auth, cache) fails — all services depending on it fail together</td>
+            <td>Correlated error spike across multiple services pointing to same dependency</td>
+            <td>Apply circuit breaker to failing dependency, return cached/degraded responses</td>
+            <td>Bulkhead per dependency, graceful degradation mode for every dependency</td>
+            <td class="casc">Entire platform outage if dependency is central (auth, config service)</td>
+            <td class="troff">Degraded responses without dependency may return stale or incomplete data</td>
+          </tr>
+          <tr>
+            <td>Slow Dependency Backpressure Cascade<span class="badge-crit">Must Know</span></td>
+            <td>Slow dependency holds threads → upstream service threads fill → upstream slows → its callers slow</td>
+            <td>Latency spike propagating upstream, each service showing high thread wait</td>
+            <td>Per-dependency timeout + fail fast at first slow sign, shed load upstream</td>
+            <td>Timeout isolation per dependency, non-blocking IO, bulkhead</td>
+            <td class="casc">Entire call chain slows → user-facing latency becomes seconds → retries amplify</td>
+            <td class="troff">Tight timeouts may fail slow-but-correct operations in dependency</td>
+          </tr>
+          <tr>
+            <td>Circular Dependency Failure Loop</td>
+            <td>Service A calls B calls A — when one degrades, the loop amplifies degradation</td>
+            <td>Both services showing mutual high error rate, recursive call depth in traces</td>
+            <td>Break loop with circuit breaker, introduce async/queue decoupling</td>
+            <td>Acyclic dependency graph — enforce via architecture review</td>
+            <td class="casc">Both services exhaust resources together — neither recovers without external intervention</td>
+            <td class="troff">Strict acyclic dependencies limit some valid architectural patterns</td>
+          </tr>
+          <tr>
+            <td>Third-Party Failure Propagation</td>
+            <td>External API/SaaS fails — internal services waiting on it hold threads → cascade inward</td>
+            <td>External dependency latency spike followed by internal latency cascade</td>
+            <td>Circuit break external dependency, serve cached/default response</td>
+            <td>Strict timeout on all external calls, fallback for every external dependency</td>
+            <td class="casc">Internal platform degraded by external provider's outage without circuit breaker</td>
+            <td class="troff">Serving defaults without external data may mislead users (e.g. stale prices)</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Queue and Backlog Cascades</td></tr>
+          <tr>
+            <td>Consumer Lag → Queue Exhaustion → Crash<span class="badge-crit">Must Know</span></td>
+            <td>Slow consumer — queue grows — broker runs out of memory/disk — broker crashes</td>
+            <td>Consumer lag growing, broker disk/memory alert, then broker unavailable</td>
+            <td>Scale consumers immediately, apply backpressure to producers</td>
+            <td>Consumer lag SLO alert, broker disk watermarks, producer backpressure design</td>
+            <td class="casc">Broker crash → all consumers lose connection → reconnect storm → lag grows further</td>
+            <td class="troff">Aggressive backpressure on producers blocks upstream ingestion pipelines</td>
+          </tr>
+          <tr>
+            <td>Backpressure Failure → Producer Crash</td>
+            <td>Backpressure mechanism fails or is absent — producer buffers fill to OOM</td>
+            <td>Producer memory growing, eventually OOM kill</td>
+            <td>Apply system-level backpressure (TCP flow control), restart producer</td>
+            <td>Bounded producer buffers, explicit backpressure signal from queue to producer</td>
+            <td class="casc">Producer crash → data loss for in-flight messages → pipeline gap</td>
+            <td class="troff">Bounded buffers may reject valid bursts that would have cleared quickly</td>
+          </tr>
+          <tr>
+            <td>Queue Consumer Restart Storm</td>
+            <td>Consumer crashes on poison message — restarts, crashes again, restarts — tight loop</td>
+            <td>Consumer restart count spiking, same partition lag not clearing</td>
+            <td>Skip or quarantine poison message, move to DLQ</td>
+            <td>DLQ for unprocessable messages, max retry before DLQ, deserialization error handling</td>
+            <td class="casc">Partition processing stalled — lag grows while consumer thrashes on bad message</td>
+            <td class="troff">DLQ-after-N-retries may drop messages that fail intermittently but are valid</td>
+          </tr>
+          <tr>
+            <td>Queue Overload → Timeout → Retry Feed</td>
+            <td>Queue too full — producers time out — producers retry — more messages flood the queue</td>
+            <td>Queue depth spike, producer timeout metric, accelerating queue growth</td>
+            <td>Rate limit producer writes, circuit break queue when above high watermark</td>
+            <td>Queue high-watermark circuit breaker, producer rate limiter</td>
+            <td class="casc">Queue fills faster than consumers can drain — positive feedback loop to broker crash</td>
+            <td class="troff">Queue circuit breaker drops messages that could have been processed later</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Cache Failure Cascades</td></tr>
+          <tr>
+            <td>Cache Stampede → DB Overload Cascade<span class="badge-crit">Must Know</span></td>
+            <td>Cache expires or fails — all requests miss simultaneously — all hit DB at same moment</td>
+            <td>Cache hit ratio drops to 0%, DB connection pool exhaustion, DB latency explosion</td>
+            <td>Single-flight (only one request fetches, others wait), serve stale while refreshing</td>
+            <td>Probabilistic early expiry, cache locking (mutex on miss), soft TTL + background refresh</td>
+            <td class="casc">DB overload → DB slow → more cache misses as refresh takes longer → spiral</td>
+            <td class="troff">Single-flight increases cache-miss latency for all requesters while one fetches</td>
+          </tr>
+          <tr>
+            <td>Cache Node Failure → Hot Key Cascade</td>
+            <td>Cache cluster node fails — all keys it held now miss — one key is hot → DB gets all its traffic</td>
+            <td>Specific key miss rate spikes, DB QPS spike for single query pattern</td>
+            <td>Replicate hot keys to local/L1 cache, shed hot key excess load</td>
+            <td>Hot key replication to multiple cache nodes, L1 local cache for top-N hot keys</td>
+            <td class="casc">DB hotspot for that query → DB latency → all other cache refreshes slow → broader cascade</td>
+            <td class="troff">Hot key replication adds write fan-out cost for writes to those keys</td>
+          </tr>
+          <tr>
+            <td>Cold Start Cache Miss Flood</td>
+            <td>New deployment or cache restart — cold cache, all traffic misses until warmed</td>
+            <td>Cache hit ratio at 0% immediately after deploy, DB spike</td>
+            <td>Warm cache before routing traffic, canary deploy with pre-warm step</td>
+            <td>Cache pre-warming in deploy pipeline, traffic shifting only after hit ratio recovers</td>
+            <td class="casc">DB overload on deploy — every deployment event causes a mini-outage</td>
+            <td class="troff">Pre-warming extends deployment windows and requires read access to production data</td>
+          </tr>
+          <tr>
+            <td>Cache Eviction Storm → Backend Flood</td>
+            <td>Memory pressure causes mass cache eviction — many hot keys evicted simultaneously</td>
+            <td>Cache eviction metric spike, backend request rate jump</td>
+            <td>Increase cache memory, apply eviction priority (protect hot keys)</td>
+            <td>Cache memory headroom, eviction policy tuning (LFU over LRU for hot key protection)</td>
+            <td class="casc">Backend flood → backend slow → slower cache refresh → more misses → amplification</td>
+            <td class="troff">LFU eviction protects hot keys but may evict recently accessed data needed once</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Memory and GC Cascade Failures</td></tr>
+          <tr>
+            <td>Memory Leak → Fleet Slow Death Spiral<span class="badge-crit">Must Know</span></td>
+            <td>New deployment introduces memory leak — heap grows slowly over hours until OOM</td>
+            <td>Heap trend growing monotonically post-deploy, GC frequency increasing</td>
+            <td>Rollback deployment, restart leaking instances to buy time</td>
+            <td>Heap growth canary gate in deploy pipeline, heap trend monitoring</td>
+            <td class="casc">All instances OOM simultaneously after hours — entire fleet crashes at once</td>
+            <td class="troff">Canary heap monitoring adds hours to deployment validation time</td>
+          </tr>
+          <tr>
+            <td>GC Pause → Node Eviction → Overload</td>
+            <td>Long GC pause causes node to miss heartbeat — cluster evicts it — traffic redistributes → remaining nodes GC too</td>
+            <td>GC pause events correlating with cluster membership changes</td>
+            <td>Tune GC pause limits to stay below heartbeat timeout, use ZGC/Shenandoah</td>
+            <td>GC pause SLO below heartbeat interval, low-pause GC algorithms for all cluster members</td>
+            <td class="casc">Sequential node evictions — GC cascades across fleet as load increases on remaining nodes</td>
+            <td class="troff">Low-pause GC (ZGC) has higher memory overhead than G1GC</td>
+          </tr>
+          <tr>
+            <td>Heap Fragmentation Performance Spiral</td>
+            <td>Long-running process — heap fragmenting — allocation slower — latency growing — timeouts increasing</td>
+            <td>Latency trend growing over days, GC activity high but no single long pause</td>
+            <td>Scheduled restart during low-traffic window to defragment</td>
+            <td>Regular rolling restarts, off-heap storage for large objects</td>
+            <td class="casc">Latency spiral → more timeouts → more retries → more load → faster fragmentation</td>
+            <td class="troff">Scheduled restarts are operational complexity; off-heap adds implementation effort</td>
+          </tr>
+          <tr>
+            <td>JVM Metaspace / Class Loading Leak</td>
+            <td>Dynamic class generation (reflection, codegen) — metaspace fills — OutOfMemoryError: Metaspace</td>
+            <td>Metaspace usage growing, class count increasing, eventually OOM on class load</td>
+            <td>Restart JVM, increase MetaspaceSize limit as emergency measure</td>
+            <td>Metaspace monitoring, bounded class loading with weak references</td>
+            <td class="casc">JVM crash → recovery deploys new instance → metaspace refills → recurring crash</td>
+            <td class="troff">Larger MetaspaceSize delays but doesn't fix the underlying leak</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Data and Consistency Cascades</td></tr>
+          <tr>
+            <td>Corrupt Data Replication Cascade<span class="badge-crit">Must Know</span></td>
+            <td>Corrupted record on primary replicated to all replicas before detected</td>
+            <td>Checksum failure on replicas, downstream services returning corrupt results</td>
+            <td>Stop replication immediately, restore from pre-corruption snapshot</td>
+            <td>Checksums on all data, replication lag monitoring, immutable snapshots</td>
+            <td class="casc">All replicas corrupt — no clean copy remains if corruption reached all replicas and backup</td>
+            <td class="troff">Frequent snapshots reduce data loss window but add storage and IO cost</td>
+          </tr>
+          <tr>
+            <td>Split Brain → Dual Write → Data Corruption</td>
+            <td>Network partition — both partitions accept writes — when partition heals, data conflicts irreconcilably</td>
+            <td>Conflicting versions of same record on both sides after partition heals</td>
+            <td>Fence minority partition writes during partition, apply conflict resolution on heal</td>
+            <td>Consensus protocol (Raft) — minority partition cannot accept writes without quorum</td>
+            <td class="casc">Permanent data inconsistency — conflicting writes may be impossible to reconcile</td>
+            <td class="troff">Fencing minority reduces availability during partition (CAP theorem: CP over AP)</td>
+          </tr>
+          <tr>
+            <td>Schema Migration Cascade Failure</td>
+            <td>Breaking schema change deployed — old services can't read new schema, new can't read old</td>
+            <td>Query failures and deserialization errors across multiple services simultaneously</td>
+            <td>Rollback schema change, restore backward-compatible column</td>
+            <td>Expand-contract migration pattern — never break backward compatibility in a single step</td>
+            <td class="casc">All services fail simultaneously — the schema is the shared contract for the whole system</td>
+            <td class="troff">Expand-contract requires multi-deployment migration spanning weeks</td>
+          </tr>
+          <tr>
+            <td>Stale Leader → Wrong Decision Cascade</td>
+            <td>Old leader (zombie) still accepting writes after new leader elected — conflicting decisions propagate</td>
+            <td>Conflicting state detected after partition heals, term/epoch mismatch in logs</td>
+            <td>Fence zombie leader via epoch/fencing token, reject writes with stale term</td>
+            <td>STONITH, fencing tokens in all write paths, leader lease expiry before accepting writes</td>
+            <td class="casc">Both leaders' decisions replicated — system state diverges across all followers</td>
+            <td class="troff">Leader lease adds latency to every write (must hold valid lease before accepting)</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Multi-Layer and Observability Cascades</td></tr>
+          <tr>
+            <td>Microservice Fan-Out Cascade<span class="badge-crit">Must Know</span></td>
+            <td>Gateway calls 10 services, each calls 3 more — one slow leaf service makes entire request tree hang</td>
+            <td>Gateway latency spike, all 10 upstream services show high thread wait on same downstream</td>
+            <td>Apply per-service timeout + partial response, return what's available</td>
+            <td>Scatter-gather with bounded timeout, partial response design for all fan-out endpoints</td>
+            <td class="casc">Gateway thread exhaustion — fan-out cascade fills all gateway threads simultaneously</td>
+            <td class="troff">Partial responses require clients to handle incomplete data gracefully</td>
+          </tr>
+          <tr>
+            <td>Bulkhead Absence → Total System Collapse<span class="badge-crit">Must Know</span></td>
+            <td>All services share one thread pool — one slow dependency fills all threads, no service can respond</td>
+            <td>All endpoints slow/failing simultaneously despite only one dependency being degraded</td>
+            <td>Emergency: kill slow dependency calls, restart to clear threads</td>
+            <td>Bulkhead isolation — separate thread pool per dependency, reject-on-full per pool</td>
+            <td class="casc">Complete API failure from single dependency degradation — amplified from partial to total</td>
+            <td class="troff">Per-dependency thread pools multiply total thread count, increasing baseline memory</td>
+          </tr>
+          <tr>
+            <td>Alert Storm → Pager Fatigue → Delayed Response</td>
+            <td>Cascade triggers hundreds of alerts — operator overwhelmed — critical alert missed in noise</td>
+            <td>Massive alert volume, on-call not acknowledging in time, incident spreading</td>
+            <td>Suppress/correlate alerts immediately, escalate via secondary channel</td>
+            <td>SLO-based burn rate alerting (few high-signal alerts vs many threshold alerts)</td>
+            <td class="casc">Cascading failure spreads while operator manages alert noise instead of root cause</td>
+            <td class="troff">Fewer alerts means some real issues won't generate a page</td>
+          </tr>
+          <tr>
+            <td>Observability Overload During Cascade</td>
+            <td>Cascade generates massive telemetry — metrics/log pipeline overwhelmed — operators fly blind</td>
+            <td>Log pipeline backlog, Prometheus OOM, dashboards stale during the worst moment</td>
+            <td>Prioritise critical metrics, apply telemetry sampling during incident</td>
+            <td>HA observability infrastructure, separate observability network plane, adaptive sampling</td>
+            <td class="casc">Operators cannot see what is happening → slower response → cascade worsens</td>
+            <td class="troff">Separate observability infra doubles cost; adaptive sampling reduces data fidelity</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Cascading Failures for Interviews</p>
+      <div class="ncode"> 1. Retry amplification      → backoff + jitter + retry budget + circuit breaker
+ 2. Node failure overload    → N+2 capacity + load shed + autoscale ahead
+ 3. Thread pool chain        → bulkhead + timeout + non-blocking IO
+ 4. Cache stampede           → single-flight + soft TTL + probabilistic expiry
+ 5. OOM cascade              → memory quotas + load shed + anti-affinity buffer
+ 6. Dependency backpressure  → per-dep timeout + circuit breaker + fail fast
+ 7. Queue → broker crash     → consumer lag SLO + backpressure + broker watermarks
+ 8. Corrupt data replication → checksums + immutable snapshots + replication stop
+ 9. Split brain              → consensus + fencing + minority cannot write
+10. Bulkhead absence         → separate thread pool per dep + reject-on-full</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">The 3 Universal Cascade-Breaking Patterns — Apply in This Order</p>
+      <div class="ncode">1. ISOLATE first  → bulkhead + circuit breaker
+   (stop the spread before fixing the root cause)
+
+2. SHED LOAD      → rate limit + load shedding + reject-on-full
+   (reduce pressure on degraded components)
+
+3. RECOVER slowly → jittered restart + staggered rollout + gradual re-enable
+   (avoid reconnect storm or stampede when recovering)</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascade Patterns — Trigger → Chain → Collapse</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Trigger</th><th>Chain</th><th>Break It With</th></tr></thead>
+        <tbody>
+          <tr><td>Slow dependency</td><td>Threads fill → all APIs slow → clients retry → backend collapse</td><td>Timeout + bulkhead + circuit breaker</td></tr>
+          <tr><td>Node crash</td><td>Traffic shifts → remaining overload → sequential crashes</td><td>N+2 capacity + load shed + autoscale</td></tr>
+          <tr><td>Cache miss</td><td>All requests hit DB → DB slow → slower refresh → more misses</td><td>Single-flight + soft TTL + pre-warm</td></tr>
+          <tr><td>Retry storm</td><td>Retries multiply load → backend more degraded → more retries</td><td>Backoff + jitter + retry budget</td></tr>
+          <tr><td>Queue overload</td><td>Lag grows → broker OOM → broker crash → reconnect storm</td><td>Consumer lag SLO + backpressure + watermark</td></tr>
+          <tr><td>OOM on one node</td><td>Traffic shifts → next OOM → next crash → total fleet collapse</td><td>Memory quota + load shed + buffer capacity</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Why Cascades Are Uniquely Hard to Debug</p>
+      <div class="ncode">During cascade, every layer shows failures → operators see 10+ "root causes"
+Each symptom looks independent → team splits effort across wrong targets
+By the time root cause identified → cascade has already spread further
+
+Key insight: the FIRST failure is the root cause. Everything else is cascade.
+
+Debug strategy:
+  1. Check timeline — what failed FIRST? (look at earliest alert timestamp)
+  2. Check dependency graph — who depends on the first failure?
+  3. Stop the cascade first (shed load, circuit break) THEN debug root cause</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#450a0a;border:1px solid #991b1b;">
+      <p class="text-xs font-bold text-red-300 uppercase tracking-widest mb-3">Principal Takeaway — Cascade Prevention Design</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200">Isolate</p>
+          <p class="text-xs text-red-400 mt-0.5">Bulkhead + circuit breaker per dependency</p>
+        </div>
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200">Shed</p>
+          <p class="text-xs text-red-400 mt-0.5">Rate limit + load shed before saturation</p>
+        </div>
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200">Capacity</p>
+          <p class="text-xs text-red-400 mt-0.5">N+2 headroom for node failure absorption</p>
+        </div>
+        <div class="bg-red-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-200">Backoff</p>
+          <p class="text-xs text-red-400 mt-0.5">Jitter + retry budget breaks amplification</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

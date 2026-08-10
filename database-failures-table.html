@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Database Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#be123c; border-bottom-color:#be123c; }
+    .tab-btn:hover:not(.active) { color:#881337; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fff1f2; border:1px solid #fecdd3; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#be123c; margin-bottom:.6rem; }
+    .ncode{ background:#1c0008; color:#fda4af; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fecdd3; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#881337; color:#fecdd3; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #ffe4e6;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fff1f2; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#be123c; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#881337; color:#fecdd3; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #ffe4e6; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-rose-700 hover:text-rose-900 font-semibold
+              bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-rose-800 font-semibold">Database Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-rose-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 7c0-1.1 3.6-2 8-2s8 .9 8 2v10c0 1.1-3.6 2-8 2s-8-.9-8-2V7z
+             M4 12c0 1.1 3.6 2 8 2s8-.9 8-2"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Database Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 9 categories · 37 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ══════════ TAB 1 ══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why Database Failures Are Highest-Impact</p>
+      <div class="ncode">Databases are: source of truth + bottleneck + consistency layer
+
+Almost every large-scale outage eventually touches the database layer.
+
+9 root failure classes:
+  availability | performance | replication | consistency | concurrency
+  storage | scaling | schema | recovery</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Database Availability Failures</td></tr>
+          <tr>
+            <td>Primary DB Crash<span class="badge-crit">Must Know</span></td>
+            <td>Hardware/software failure, OOM kill, VM termination</td>
+            <td>DB health checks fail, connection refused</td>
+            <td>Failover to replica, circuit breaker on app side</td>
+            <td>HA replication, automatic failover (RDS Multi-AZ, Patroni)</td>
+            <td class="casc">Entire application unavailable — every write fails</td>
+            <td class="troff">HA replication adds cost and failover complexity</td>
+          </tr>
+          <tr>
+            <td>Replica Failure</td>
+            <td>Replica node crash, network partition to replica</td>
+            <td>Replication lag stops updating, replica health alert</td>
+            <td>Remove from read pool, rebuild replica</td>
+            <td>Multi-replica setup, automated replica rebuild</td>
+            <td class="casc">Reduced read capacity → read traffic overloads primary</td>
+            <td class="troff">More replicas cost more and require monitoring</td>
+          </tr>
+          <tr>
+            <td>Complete DB Outage<span class="badge-crit">Must Know</span></td>
+            <td>Cluster failure, DC outage, network failure to DB tier</td>
+            <td>Connection failures across all services simultaneously</td>
+            <td>Disaster recovery failover to secondary region</td>
+            <td>Multi-region DB deployment, automated DR runbooks</td>
+            <td class="casc">Global service outage — every dependent service fails</td>
+            <td class="troff">Cross-region replication adds latency and significant cost</td>
+          </tr>
+          <tr>
+            <td>Connection Refused / Exhausted<span class="badge-crit">Must Know</span></td>
+            <td>DB max_connections reached — app sends more than DB accepts</td>
+            <td>Connection pool wait time maxed, "too many connections" errors</td>
+            <td>Increase max_connections carefully, queue requests via pooler</td>
+            <td>PgBouncer/ProxySQL, proper pool sizing, connection reuse</td>
+            <td class="casc">App thread pool exhaustion → all requests fail → retry storm</td>
+            <td class="troff">Larger connection pools can overload DB with concurrent queries</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Database Performance Failures</td></tr>
+          <tr>
+            <td>Slow Queries<span class="badge-crit">Must Know</span></td>
+            <td>Missing index, full table scan, expensive join, N+1 problem</td>
+            <td>Query latency metrics, slow query log, p99 spike</td>
+            <td>Cache results, optimise query, add index, read from replica</td>
+            <td>EXPLAIN ANALYZE on all queries, index review, query limits</td>
+            <td class="casc">Thread pool exhaustion → all callers slow → retry amplification</td>
+            <td class="troff">More indexes hurt write performance and increase storage</td>
+          </tr>
+          <tr>
+            <td>CPU Saturation</td>
+            <td>Heavy query load, complex aggregations, insufficient hardware</td>
+            <td>DB CPU &gt;90%, latency spike, query queue depth</td>
+            <td>Read replicas for heavy reads, query sharding</td>
+            <td>Capacity planning, async processing, query caching</td>
+            <td class="casc">Latency spike → caller retries → DB further overloaded</td>
+            <td class="troff">Over-provisioning hardware is expensive</td>
+          </tr>
+          <tr>
+            <td>Lock Contention<span class="badge-crit">Must Know</span></td>
+            <td>Many concurrent writes competing for same rows/tables</td>
+            <td>Lock wait time metrics, pg_locks / SHOW PROCESSLIST</td>
+            <td>Retry with backoff, reduce lock scope, batching</td>
+            <td>Better partitioning, row-level locking, optimistic locking</td>
+            <td class="casc">Transaction backlog → connection pile-up → service unavailable</td>
+            <td class="troff">Reduced lock granularity reduces consistency guarantees</td>
+          </tr>
+          <tr>
+            <td>Disk IO Bottleneck</td>
+            <td>Heavy concurrent reads/writes exceeding disk throughput</td>
+            <td>High IO wait %, disk latency metrics, slow query correlation</td>
+            <td>SSD upgrade, read caching, buffer pool tuning</td>
+            <td>Faster storage (NVMe), I/O partitioning, caching layer</td>
+            <td class="casc">Query timeouts cascade → retry storm → worse IO pressure</td>
+            <td class="troff">NVMe/SSD storage is significantly more expensive</td>
+          </tr>
+          <tr>
+            <td>Query Storm</td>
+            <td>Traffic spike, buggy query pattern, missing connection limit</td>
+            <td>QPS spike, CPU and connection count surge simultaneously</td>
+            <td>Rate limiting on queries, cache hot queries immediately</td>
+            <td>Query throttling, connection pooling, query analysis CI</td>
+            <td class="casc">DB collapses → entire application layer unavailable</td>
+            <td class="troff">Query throttling drops requests — user-visible errors</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Replication and Replica Failures</td></tr>
+          <tr>
+            <td>Replication Lag<span class="badge-crit">Must Know</span></td>
+            <td>Follower falls behind primary — slow network, large write burst</td>
+            <td>Seconds-behind-primary metric, replica lag alert</td>
+            <td>Route critical reads to primary, set bounded staleness</td>
+            <td>Tune replication, synchronous replication on critical paths</td>
+            <td class="casc">Stale reads at scale → wrong business decisions applied</td>
+            <td class="troff">Synchronous replication significantly increases write latency</td>
+          </tr>
+          <tr>
+            <td>Replica Divergence</td>
+            <td>Missed replication events, storage issue on replica</td>
+            <td>Checksum mismatch between primary and replica</td>
+            <td>Re-sync replica from primary, read repair</td>
+            <td>Quorum writes, sync replication on critical paths</td>
+            <td class="casc">Inconsistent reads — different users see different data</td>
+            <td class="troff">More replication traffic increases network bandwidth cost</td>
+          </tr>
+          <tr>
+            <td>Split Brain DB<span class="badge-crit">Must Know</span></td>
+            <td>Network partition causes both sides to promote a primary</td>
+            <td>Two primaries detected, conflicting writes in WAL</td>
+            <td>Fencing tokens, force one primary down</td>
+            <td>Consensus-based failover (Patroni+etcd, AWS RDS Multi-AZ)</td>
+            <td class="casc">Silent data corruption — both primaries accept incompatible writes</td>
+            <td class="troff">Consensus failover reduces availability during partition</td>
+          </tr>
+          <tr>
+            <td>Failed Failover</td>
+            <td>Replica not promotable — stale, lagged, or unreachable</td>
+            <td>Failover timeout, no new primary elected</td>
+            <td>Manual failover, promote replica manually</td>
+            <td>Continuous failover testing (chaos engineering), replica monitoring</td>
+            <td class="casc">Extended outage — primary down, replica cannot take over</td>
+            <td class="troff">Failover testing in production adds operational risk</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Database Consistency Failures</td></tr>
+          <tr>
+            <td>Stale Read<span class="badge-crit">Must Know</span></td>
+            <td>Read routed to lagging replica — returns outdated data</td>
+            <td>Version mismatch, user-visible data mismatch post-write</td>
+            <td>Route critical reads to primary, read-your-writes routing</td>
+            <td>Session consistency, quorum reads on critical paths</td>
+            <td class="casc">Wrong business decisions — user acts on outdated balance/state</td>
+            <td class="troff">Reading from primary reduces read scalability of replica set</td>
+          </tr>
+          <tr>
+            <td>Lost Write<span class="badge-crit">Must Know</span></td>
+            <td>Write acknowledged before durably persisted — crash before fsync</td>
+            <td>Audit mismatch, expected record not found after crash</td>
+            <td>Replay from WAL or event log</td>
+            <td>fsync=on, synchronous_commit=on, acks after durable write</td>
+            <td class="casc">Missing business state propagates — downstream processes on absent data</td>
+            <td class="troff">Synchronous commit significantly increases write latency</td>
+          </tr>
+          <tr>
+            <td>Dirty Read</td>
+            <td>Transaction reads uncommitted data from another transaction</td>
+            <td>Inconsistent reads during concurrent transactions</td>
+            <td>Raise isolation level to at least Read Committed</td>
+            <td>Proper isolation level enforcement, MVCC</td>
+            <td class="casc">Incorrect calculations — reads in-flight data that later rolls back</td>
+            <td class="troff">Higher isolation levels reduce concurrent throughput</td>
+          </tr>
+          <tr>
+            <td>Write Conflict</td>
+            <td>Concurrent writes to same row — optimistic lock violation</td>
+            <td>Conflict errors (OCC violation), serialization failures</td>
+            <td>Retry transaction with backoff</td>
+            <td>Optimistic locking (version column), serializable isolation</td>
+            <td class="casc">User-visible failures — transaction rejected, must retry</td>
+            <td class="troff">More retries add latency; serializable isolation hurts throughput</td>
+          </tr>
+          <tr>
+            <td>Phantom Read</td>
+            <td>New rows added during transaction — re-read returns different set</td>
+            <td>Query inconsistency — different count on repeated SELECT</td>
+            <td>Serializable isolation or predicate locking</td>
+            <td>Serializable transactions on critical business logic</td>
+            <td class="casc">Invalid business rules applied based on phantom row set</td>
+            <td class="troff">Serializable isolation significantly reduces concurrency</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Transaction and Concurrency Failures</td></tr>
+          <tr>
+            <td>Deadlock<span class="badge-crit">Must Know</span></td>
+            <td>Two transactions wait on locks held by each other</td>
+            <td>Deadlock detection logs, transaction aborted errors</td>
+            <td>DB aborts one transaction — app must retry</td>
+            <td>Consistent lock ordering, timeout on lock acquisition</td>
+            <td class="casc">Transaction backlog builds — all pending work stalls</td>
+            <td class="troff">Less aggressive locking reduces safety guarantees</td>
+          </tr>
+          <tr>
+            <td>Long-Running Transaction<span class="badge-crit">Must Know</span></td>
+            <td>Large batch update, missing LIMIT, forgotten open transaction</td>
+            <td>pg_stat_activity duration, SHOW PROCESSLIST wait time</td>
+            <td>Kill transaction, break into smaller batches</td>
+            <td>Statement timeout, query analysis, batch size limits</td>
+            <td class="casc">Holds locks → blocks all writers → connection pile-up</td>
+            <td class="troff">Breaking into batches adds application complexity</td>
+          </tr>
+          <tr>
+            <td>Connection Leak</td>
+            <td>App fails to close DB connections — pool fills permanently</td>
+            <td>Connection pool exhausted, idle connections accumulating</td>
+            <td>Restart/recycle connections, force close idle connections</td>
+            <td>Connection pooler (PgBouncer), idle timeout, proper try-finally</td>
+            <td class="casc">Pool exhausts → all new requests blocked → service-wide failure</td>
+            <td class="troff">Aggressive idle timeout may disconnect valid long-lived connections</td>
+          </tr>
+          <tr>
+            <td>Transaction Timeout</td>
+            <td>Slow DB or network — transaction exceeds configured timeout</td>
+            <td>Timeout metrics, user-visible operation failures</td>
+            <td>Retry with backoff, break operation into smaller transactions</td>
+            <td>Faster queries/indexing, appropriate timeout tuning</td>
+            <td class="casc">Retry amplification — each timeout triggers another try</td>
+            <td class="troff">Short timeouts may abort valid slow-but-correct operations</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Storage and Persistence Failures</td></tr>
+          <tr>
+            <td>Disk Full<span class="badge-crit">Must Know</span></td>
+            <td>WAL/log/temp file growth fills disk — no space left for writes</td>
+            <td>Disk usage alerts, write failure errors from DB</td>
+            <td>Emergency cleanup of logs/temp files, expand volume</td>
+            <td>Log rotation, retention policies, disk monitoring with headroom alert</td>
+            <td class="casc">DB cannot write WAL → all writes fail → entire service down</td>
+            <td class="troff">Aggressive cleanup risks deleting WAL needed for replication</td>
+          </tr>
+          <tr>
+            <td>WAL Corruption</td>
+            <td>Unclean shutdown, storage hardware failure, bit flip in WAL</td>
+            <td>DB fails to start, recovery errors in log</td>
+            <td>Restore WAL from replica, restore from backup</td>
+            <td>Checksums on WAL, ECC storage, replica as WAL backup</td>
+            <td class="casc">DB cannot start → extended downtime until restored from backup</td>
+            <td class="troff">Checksum validation adds minor write overhead per record</td>
+          </tr>
+          <tr>
+            <td>Data Corruption</td>
+            <td>Hardware bug, bit flip, software bug, bad upgrade</td>
+            <td>Checksum mismatch, unexpected null/garbled records</td>
+            <td>Restore affected rows from replica or backup</td>
+            <td>ECC memory, storage checksums, page-level verification</td>
+            <td class="casc">Corrupted data propagates to analytics, downstream services, reports</td>
+            <td class="troff">Continuous page verification adds read overhead</td>
+          </tr>
+          <tr>
+            <td>Backup Failure<span class="badge-crit">Must Know</span></td>
+            <td>Backup job fails — network issue, disk full, process killed</td>
+            <td>Missing backup in scheduled window, backup job alerts</td>
+            <td>Retry backup, switch to alternate backup target</td>
+            <td>Automated backup monitoring, backup testing (restore rehearsal)</td>
+            <td class="casc">Disaster recovery impossible — no valid backup to restore from</td>
+            <td class="troff">Backup infrastructure adds cost; restore rehearsal adds risk</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Scaling and Partitioning Failures</td></tr>
+          <tr>
+            <td>Hot Partition / Hot Shard<span class="badge-crit">Must Know</span></td>
+            <td>One shard receives disproportionate traffic (hotkey, hotuser)</td>
+            <td>One shard at 100% CPU while others are idle</td>
+            <td>Rebalance shards, replicate hot shard, local cache</td>
+            <td>Better shard key selection, virtual partitions</td>
+            <td class="casc">Single shard overloads → all queries to that shard fail</td>
+            <td class="troff">Rebalancing is complex and risks data inconsistency mid-migration</td>
+          </tr>
+          <tr>
+            <td>Cross-Shard Query Explosion</td>
+            <td>Query requires data from multiple shards — fan-out to all shards</td>
+            <td>Query latency spike, all shards hit simultaneously</td>
+            <td>Denormalization, caching aggregated results</td>
+            <td>Query-aware sharding design, precomputed aggregates</td>
+            <td class="casc">Massive DB load — all shards hit by scatter-gather query</td>
+            <td class="troff">Denormalization duplicates data, complicating writes</td>
+          </tr>
+          <tr>
+            <td>Shard Rebalancing Failure</td>
+            <td>Migration interrupted mid-flight — partial shard state</td>
+            <td>Uneven shard distribution, routing errors post-migration</td>
+            <td>Resume migration, rollback to pre-migration state</td>
+            <td>Gradual migration with checkpointing, dual-write period</td>
+            <td class="casc">Partial unavailability — some records inaccessible during migration</td>
+            <td class="troff">Slower migration extends dual-write period and complexity</td>
+          </tr>
+          <tr>
+            <td>Metadata Node Bottleneck</td>
+            <td>Central coordinator/metadata service overloaded (HDFS NameNode)</td>
+            <td>Coordinator latency spike, all operations slow</td>
+            <td>Cache metadata, replicate coordinator</td>
+            <td>Distributed metadata (federated NameNode, sharded coordinator)</td>
+            <td class="casc">Entire cluster slowdown — every op waits on coordinator</td>
+            <td class="troff">Distributed metadata adds consistency complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Schema and Migration Failures</td></tr>
+          <tr>
+            <td>Schema Migration Failure<span class="badge-crit">Must Know</span></td>
+            <td>Breaking schema change deployed — NOT NULL added, column removed</td>
+            <td>Query/app errors immediately after migration</td>
+            <td>Rollback migration, apply expand-contract fix</td>
+            <td>Expand-contract migration pattern, online schema change tools</td>
+            <td class="casc">Entire application incompatible — all services fail on query</td>
+            <td class="troff">Longer expand-contract migrations delay feature delivery</td>
+          </tr>
+          <tr>
+            <td>Backward Compatibility Failure</td>
+            <td>Old application version incompatible with new schema</td>
+            <td>Serialization/query errors, unexpected null fields in old app</td>
+            <td>Dual-write support, add backward-compatible fallback</td>
+            <td>Never break existing columns — add new, deprecate old gradually</td>
+            <td class="casc">Multi-service outage — all old-version services fail simultaneously</td>
+            <td class="troff">Supporting multiple schema versions adds application complexity</td>
+          </tr>
+          <tr>
+            <td>Large Index Build Failure</td>
+            <td>Adding index on large table — interrupted or crashes during build</td>
+            <td>Index missing, slow queries resume, index build job alert</td>
+            <td>Retry online index build, run CONCURRENTLY (Postgres)</td>
+            <td>Online index builds, monitor progress, schedule off-peak</td>
+            <td class="casc">Slow query storm resumes — queries that relied on index degrade</td>
+            <td class="troff">CONCURRENT index build takes longer and may be blocked by long txns</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">9 — Recovery and Failover Failures</td></tr>
+          <tr>
+            <td>Slow Recovery<span class="badge-crit">Must Know</span></td>
+            <td>Large WAL to replay after crash — long time before DB accepts connections</td>
+            <td>Recovery in progress, DB not accepting connections, long downtime</td>
+            <td>Restore from recent snapshot to reduce WAL replay length</td>
+            <td>Frequent checkpointing, incremental backups, fast storage</td>
+            <td class="casc">Extended service downtime — all dependents wait for DB recovery</td>
+            <td class="troff">More frequent checkpoints increase IO and write latency</td>
+          </tr>
+          <tr>
+            <td>Failed Restore<span class="badge-crit">Must Know</span></td>
+            <td>Backup corrupted, incomplete, or incompatible version</td>
+            <td>Restore validation failure, checksum mismatch on restore</td>
+            <td>Use alternate backup, restore from replica WAL</td>
+            <td>Backup testing — regular restore rehearsal, checksum validation</td>
+            <td class="casc">Permanent data loss if no valid backup — catastrophic</td>
+            <td class="troff">Regular restore rehearsal adds cost and operational overhead</td>
+          </tr>
+          <tr>
+            <td>Failover Loop</td>
+            <td>Unstable primary — fails, replica promoted, fails again repeatedly</td>
+            <td>Frequent failover events, repeated leader changes in short window</td>
+            <td>Stabilise election, find root cause of primary instability</td>
+            <td>Better health checks, separate DB liveness from query liveness</td>
+            <td class="casc">Write unavailability throughout loop — service writes all fail</td>
+            <td class="troff">Slower failover threshold reduces flapping but extends MTTR</td>
+          </tr>
+          <tr>
+            <td>Cold Start Recovery Overload</td>
+            <td>DB recovers — all users reconnect and query simultaneously</td>
+            <td>Immediate CPU/QPS spike right after recovery completes</td>
+            <td>Gradual traffic ramp-up, circuit breaker on app side</td>
+            <td>DB warm-up: pre-populate buffer pool, gradual traffic admission</td>
+            <td class="casc">DB immediately re-crashes from cold-start traffic surge</td>
+            <td class="troff">Slower traffic ramp-up extends total user-facing recovery time</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Database Failures for Interviews</p>
+      <div class="ncode"> 1. Primary crash         → HA replication + automatic failover
+ 2. Complete outage       → multi-region DR + automated runbook
+ 3. Slow queries          → EXPLAIN + index + cache + query timeout
+ 4. Replication lag       → read from primary + bounded staleness
+ 5. Deadlock              → lock ordering + timeout + retry
+ 6. Lock contention       → row-level locks + optimistic locking + batching
+ 7. Split brain           → consensus failover (Patroni+etcd) + fencing
+ 8. Disk full             → log rotation + retention policy + headroom alert
+ 9. Lost write            → fsync=on + synchronous_commit + durable ack
+10. Backup failure        → backup monitoring + restore rehearsal</div>
+    </div>
+
+    <a href="cache-failures-table.html"
+       class="flex items-center justify-between bg-white border border-emerald-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-emerald-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-1">Related — Deep Dive</p>
+        <p class="font-bold text-gray-800 text-base">Cache Failure Scenarios</p>
+        <p class="text-sm text-gray-500 mt-0.5">8 categories, 37 scenarios — stampede / avalanche / hot key / eviction / consistency</p>
+      </div>
+      <svg class="w-6 h-6 text-emerald-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-table -->
+
+  <!-- ══════════ TAB 2 — STAFF INSIGHTS ══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Database Thinking — 8 Questions to Ask Always</p>
+      <div class="ncode">1. Unavailable or slow?    → failover/circuit-breaker vs index+cache+timeout
+2. Replicas diverge?       → quorum reads + read repair + sync replication
+3. Retries overload DB?    → circuit breaker + rate limit + connection pooler
+4. Transactions deadlock?  → lock ordering + statement timeout + optimistic lock
+5. One shard hotspot?      → virtual partitions + hot shard cache + rebalance
+6. Failover itself fail?   → regular failover testing + replica monitor + fencing
+7. Recovery overloads?     → gradual ramp-up + buffer pool warmup + throttle
+8. Stale reads harmful?    → read-your-writes routing + session consistency</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root DB Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Slow queries</td><td>Thread exhaustion in app → retry storm → DB further overloaded</td></tr>
+          <tr><td>Replication lag</td><td>Stale reads at scale → wrong business decisions across all users</td></tr>
+          <tr><td>Connection exhaustion</td><td>All app requests blocked → service-wide failure</td></tr>
+          <tr><td>Hot partition</td><td>Single shard saturates → all queries to that shard fail</td></tr>
+          <tr><td>Deadlock</td><td>Transaction backlog → lock pile-up → connection exhaustion</td></tr>
+          <tr><td>Disk full</td><td>WAL write fails → DB shuts down → entire service unavailable</td></tr>
+          <tr><td>Failed failover</td><td>Extended downtime → all dependent services down</td></tr>
+          <tr><td>Cold start surge</td><td>DB recovers → immediately re-crashes from surge → loop</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Unavailable vs Slow DB — Know the Difference in Interviews</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-rose-50 border border-rose-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-rose-700 mb-2">DB Unavailable (Obvious)</p>
+          <ul class="text-xs text-rose-800 space-y-1 list-disc pl-4">
+            <li>Connection refused immediately</li>
+            <li>Circuit breaker opens fast</li>
+            <li>Alerts fire promptly</li>
+            <li>Recovery: failover or restart</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">DB Slow (More Dangerous)</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>Queries return — just slowly</li>
+            <li>Health checks still pass</li>
+            <li>App threads queue up silently</li>
+            <li>Retries multiply load on DB</li>
+            <li>Full outage before anyone detects</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All DB Failures Reduce to 7 States</p>
+      <div class="ncode">1. DB unavailable   → crash / failover / connection exhaustion
+2. DB slow          → slow query / lock contention / IO bottleneck
+3. Replicas inconsistent → lag / divergence / split brain
+4. Transactions blocked  → deadlock / long tx / lock contention
+5. Storage exhausted     → disk full / WAL corruption / backup fail
+6. Shards overloaded     → hot partition / cross-shard / metadata bottleneck
+7. Recovery failed       → slow WAL replay / bad backup / failover loop
+
+Slow DB failures are most dangerous — silent, gradual, then catastrophic</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#1c0008;border:1px solid #881337;">
+      <p class="text-xs font-bold text-rose-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-rose-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-rose-200">Unavailable or Slow?</p>
+          <p class="text-xs text-rose-400 mt-0.5">Failover vs index + cache</p>
+        </div>
+        <div class="bg-rose-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-rose-200">Replicas Consistent?</p>
+          <p class="text-xs text-rose-400 mt-0.5">Quorum reads + primary route</p>
+        </div>
+        <div class="bg-rose-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-rose-200">Hotspot Risk?</p>
+          <p class="text-xs text-rose-400 mt-0.5">Shard key + hot cache</p>
+        </div>
+        <div class="bg-rose-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-rose-200">Recovery Tested?</p>
+          <p class="text-xs text-rose-400 mt-0.5">Backup rehearsal + failover drill</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

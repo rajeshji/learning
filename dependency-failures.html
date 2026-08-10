@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dependency Failures in System Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#b45309; border-bottom-color:#b45309; }
+    .tab-btn:hover:not(.active) { color:#78350f; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .tc { background:#fff; border:1px solid #fde68a; border-radius:1rem; padding:1rem 1.25rem; }
+    .tc-num { display:inline-flex; align-items:center; justify-content:center;
+              width:1.5rem; height:1.5rem; border-radius:999px; background:#b45309;
+              color:#fff; font-size:.65rem; font-weight:800; margin-bottom:.5rem; }
+    .tc-title { font-weight:700; font-size:.85rem; color:#1e293b; }
+    .tc-badge     { font-size:.62rem; font-weight:700; border-radius:999px;
+                    padding:.15em .6em; margin-left:.4rem;
+                    background:#fef3c7; color:#92400e; }
+    .tc-badge-red { background:#fee2e2; color:#991b1b; }
+    .tc-row { display:flex; gap:.5rem; margin-top:.45rem; align-items:flex-start; }
+    .tc-lbl { font-size:.6rem; font-weight:800; text-transform:uppercase;
+              letter-spacing:.07em; min-width:3rem; padding-top:.1rem; }
+    .lbl-what { color:#dc2626; }
+    .lbl-eg   { color:#0369a1; }
+    .tc-val   { font-size:.77rem; color:#374151; line-height:1.55; }
+    .tc-think { background:#1c1107; color:#fcd34d; font-family:'Courier New',monospace;
+                font-size:.74rem; border-radius:.5rem; padding:.55rem .8rem;
+                white-space:pre; margin-top:.6rem; line-height:1.7; }
+
+    .mc { background:#fff; border:1px solid #fde68a; border-radius:1rem; padding:1rem 1.25rem; }
+    .mc-title { font-weight:700; font-size:.83rem; color:#1e293b; margin-bottom:.5rem; }
+    .mc-say { background:#1c1107; color:#fcd34d; font-family:'Courier New',monospace;
+              font-size:.74rem; border-radius:.55rem; padding:.65rem .9rem;
+              white-space:pre-wrap; line-height:1.8; }
+
+    .nc   { background:#fffbeb; border:1px solid #fde68a; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#b45309; margin-bottom:.6rem; }
+    .ncode{ background:#1c1107; color:#fcd34d; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.77rem; }
+    .nt th{ background:#fef3c7; color:#78350f; font-weight:700; font-size:.63rem;
+            text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .7rem; text-align:left; }
+    .nt td{ padding:.38rem .7rem; border-top:1px solid #fef3c7;
+            color:#374151; vertical-align:top; line-height:1.5; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-amber-700 hover:text-amber-900 font-semibold
+              bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-amber-800 font-semibold">Dependency Failures</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101
+             m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Dependency Failures</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Interview-focused · 12 types · circuit breaker / fallback / retry / decouple · staff patterns</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-6xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('types',this)">Failure Types</button>
+    <button class="tab-btn"        onclick="switchTab('mit',this)">Mitigations</button>
+    <button class="tab-btn"        onclick="switchTab('cheat',this)">Cheat Sheet</button>
+  </div>
+
+  <!-- ════════════ TAB 1 — FAILURE TYPES ════════════ -->
+  <div id="tab-types" class="tab-pane active pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Core Mental Model — Generate Any Dependency Failure From This</p>
+      <div class="ncode">Dependency failure = unavailable / slow / partial / incorrect / overloaded / incompatible</div>
+      <p class="text-sm text-gray-700 mt-3">
+        Key insight: <strong>your service is fine — but it fails because of what it depends on.</strong>
+        This is why isolation (circuit breaker, fallback) matters more than correctness alone.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">1</span>
+          <span class="tc-title">Dependency Unavailable (Down)</span>
+          <span class="tc-badge tc-badge-red">Most Common</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">DB, cache, or third-party API is completely down</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Database outage / Redis unavailable / payment gateway down</span></div>
+        <pre class="tc-think">Service cannot proceed without dependency</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">2</span>
+          <span class="tc-title">Slow Dependency (Latency Spike)</span>
+          <span class="tc-badge tc-badge-red">Dangerous</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Dependency responds but very slowly — ties up caller threads</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">DB query takes 10s instead of 10ms — upstream API times out</span></div>
+        <pre class="tc-think">Your service becomes slow
+because dependency is slow</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">3</span>
+          <span class="tc-title">Partial Availability</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Dependency works for some requests but fails for others</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">One DB shard down / partial region outage</span></div>
+        <pre class="tc-think">Inconsistent success / failure
+→ hardest to detect</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">4</span>
+          <span class="tc-title">Dependency Timeout</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Call to dependency does not return within the allowed time</span></div>
+        <pre class="tc-think">Waiting too long → request fails
+→ thread held open</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">5</span>
+          <span class="tc-title">Dependency Overload</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Dependency cannot handle the incoming request volume</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">DB overwhelmed by queries / API rate limit exceeded</span></div>
+        <pre class="tc-think">Dependency becomes the bottleneck</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">6</span>
+          <span class="tc-title">Incorrect Response / Data Corruption</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Dependency returns wrong or corrupted data — call succeeds</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Wrong pricing data / corrupted cache value</span></div>
+        <pre class="tc-think">System misbehaves even though
+call technically succeeds</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">7</span>
+          <span class="tc-title">Version / Contract Mismatch</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">API change breaks compatibility — field removed, schema changed</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Dependency deploys v2 — your service still expects v1 response shape</span></div>
+        <pre class="tc-think">Services don't agree on contract
+→ silent data errors</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">8</span>
+          <span class="tc-title">Third-Party API Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">External service outside your control fails</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Payment provider / SMS gateway / email service down</span></div>
+        <pre class="tc-think">No control over dependency behavior
+→ must design for absence</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">9</span>
+          <span class="tc-title">Auth / Authorization Failure</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Access to dependency is denied — expired token, wrong credentials</span></div>
+        <pre class="tc-think">Dependency exists and is healthy
+but access fails</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">10</span>
+          <span class="tc-title">Network Issue to Dependency</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Cannot reach dependency due to network failure — partition, DNS, timeout</span></div>
+        <pre class="tc-think">Dependency is healthy
+but unreachable</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">11</span>
+          <span class="tc-title">Dependency State Inconsistency</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">Dependency holds outdated or inconsistent state</span></div>
+        <div class="tc-row"><span class="tc-lbl lbl-eg">Example</span><span class="tc-val">Read replica lags behind / cache not yet invalidated</span></div>
+        <pre class="tc-think">Dependency returns stale data</pre>
+      </div>
+
+      <div class="tc">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="tc-num">12</span>
+          <span class="tc-title">Cascading Dependency Failure</span>
+          <span class="tc-badge tc-badge-red">Most Dangerous</span>
+        </div>
+        <div class="tc-row"><span class="tc-lbl lbl-what">What</span><span class="tc-val">One dependency fails — downstream impact propagates to many services</span></div>
+        <pre class="tc-think">Failure propagates across system
+→ entire fleet affected</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-5">
+      <p class="nh">6-Bucket Memory Model — Use This in Interviews</p>
+      <div class="ncode">Dependency failures =
+  1. Down          → unavailable entirely
+  2. Slow          → latency spike / timeout
+  3. Partial       → works for some, fails for others
+  4. Incorrect     → returns wrong / corrupt data
+  5. Overloaded    → rate limited or overwhelmed
+  6. Incompatible  → version / contract mismatch</div>
+      <p class="text-sm text-gray-700 mt-3">
+        Staff-level insight: <strong>your system is only as reliable as its weakest dependency.</strong>
+        Design for the absence of every dependency.
+      </p>
+    </div>
+
+  </div><!-- /tab-types -->
+
+  <!-- ════════════ TAB 2 — MITIGATIONS ════════════ -->
+  <div id="tab-mit" class="tab-pane pb-16">
+
+    <div class="nc mb-5">
+      <p class="nh">Staff Pattern — Use Every Time</p>
+      <div class="flex flex-wrap gap-2 text-xs font-semibold items-center">
+        <span class="bg-blue-600 text-white px-3 py-1.5 rounded-lg">Detect</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-amber-600 text-white px-3 py-1.5 rounded-lg">Mitigate</span>
+        <span class="text-gray-400">→</span>
+        <span class="bg-green-600 text-white px-3 py-1.5 rounded-lg">Prevent</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="mc">
+        <p class="mc-title">1. Dependency Unavailable (Down)</p>
+        <pre class="mc-say">Detect via health checks / error rate spike
+→ circuit breaker: stop calling failing dep
+→ fallback to cached or default response
+→ Prevent by decoupling and reducing
+  hard synchronous dependencies</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">2. Slow Dependency (Latency Spike)</p>
+        <pre class="mc-say">Detect via latency metrics (P95 / P99)
+→ strict timeouts + async / non-blocking calls
+→ reduce synchronous dependency calls
+→ Prevent with caching and request batching</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">3. Partial Availability</p>
+        <pre class="mc-say">Detect via inconsistent success/error rate
+→ retry with backoff to healthy instances
+→ route traffic via load balancing away from
+  failing shards / regions
+→ Prevent with multi-region redundancy</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">4. Dependency Timeout</p>
+        <pre class="mc-say">Detect via timeout metrics
+→ set strict client-side timeouts everywhere
+→ fail fast — don't block threads waiting
+→ Prevent by tuning timeout values
+  and reducing latency in the dep path</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">5. Dependency Overload</p>
+        <pre class="mc-say">Detect via high error rate / throttling signals
+→ rate limit outgoing calls to the dep
+→ queue requests / degrade non-critical paths
+→ Prevent by caching and reducing
+  request volume hitting the dep</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">6. Incorrect Response / Data Corruption</p>
+        <pre class="mc-say">Detect via response validation / anomaly checks
+→ validate responses before using them
+→ reject bad data, fallback to last known good
+→ Prevent with schema validation
+  and checksums on critical paths</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">7. Version / Contract Mismatch</p>
+        <pre class="mc-say">Detect via API errors after deployment
+→ ensure backward-compatible APIs
+  (never remove fields, use versioned endpoints)
+→ Prevent with contract testing in CI
+  and gradual canary rollouts</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">8. Third-Party API Failure</p>
+        <pre class="mc-say">Detect via external API monitoring / error rate
+→ fallback to secondary provider or degraded mode
+→ retry with backoff if idempotent and safe
+→ Prevent by caching responses and
+  reducing real-time reliance on 3rd parties</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">9. Auth / Authorization Failure</p>
+        <pre class="mc-say">Detect via auth error responses (401 / 403)
+→ auto-refresh tokens / re-authenticate
+→ fallback to limited access if possible
+→ Prevent with proactive token rotation
+  and expiry monitoring + alerting</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">10. Network Issue to Dependency</p>
+        <pre class="mc-say">Detect via connection errors / timeout spikes
+→ retry with backoff + alternate endpoints
+→ circuit breaker to stop failing calls
+→ Prevent with multi-region routing
+  and redundant network paths</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">11. Dependency State Inconsistency</p>
+        <pre class="mc-say">Detect via data mismatch checks / lag metrics
+→ reconcile: re-fetch from authoritative source
+→ fallback to primary over replica for critical reads
+→ Prevent with cache invalidation strategies
+  and quorum reads where needed</pre>
+      </div>
+
+      <div class="mc">
+        <p class="mc-title">12. Cascading Dependency Failure</p>
+        <pre class="mc-say">Detect via multi-service latency / error spikes
+→ circuit breakers + bulkheads to contain blast
+→ degrade non-critical features to protect core
+→ Prevent by isolating services:
+  strict timeouts, async decoupling, no fan-out</pre>
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="nc mt-5">
+      <p class="nh">5 Core Dependency Mitigation Patterns — Everything Maps Here</p>
+      <div class="ncode">1. Retry          → handle transient / intermittent failures
+2. Timeout        → avoid blocking threads indefinitely
+3. Circuit Breaker → stop calling a known-failing dependency
+4. Fallback        → serve cached or degraded response
+5. Decouple        → async messaging, local cache, queue</div>
+    </div>
+
+    <div class="rounded-2xl p-5 mt-4" style="background:#1c1107;border:1px solid #78350f;">
+      <p class="text-xs font-bold text-amber-300 uppercase tracking-widest mb-2">Staff-Level One-Liner</p>
+      <p class="text-sm text-white leading-relaxed font-medium">
+        "I would detect dependency issues via latency and error metrics, apply timeouts and retries
+        for transient failures, use circuit breakers to prevent cascading failures, and fallback to
+        cached or degraded responses where possible."
+      </p>
+    </div>
+
+  </div><!-- /tab-mit -->
+
+  <!-- ════════════ TAB 3 — CHEAT SHEET ════════════ -->
+  <div id="tab-cheat" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">All 12 — Type + Instant Mitigation at a Glance</p>
+      <div class="overflow-x-auto mt-1">
+        <table class="nt">
+          <thead>
+            <tr><th>#</th><th>Failure</th><th>Think</th><th>Detect</th><th>Mitigate</th><th>Prevent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="font-semibold">Dep. Down</td><td>Can't proceed</td><td>Health checks</td><td>Circuit breaker + fallback</td><td>Decouple, reduce hard deps</td></tr>
+            <tr><td>2</td><td class="font-semibold">Dep. Slow</td><td>Caller slows too</td><td>P95 / P99 latency</td><td>Timeout + async</td><td>Cache, batch requests</td></tr>
+            <tr><td>3</td><td class="font-semibold">Partial Avail.</td><td>Inconsistent results</td><td>Inconsistent error rate</td><td>Retry to healthy instances</td><td>Multi-region redundancy</td></tr>
+            <tr><td>4</td><td class="font-semibold">Timeout</td><td>Thread blocked</td><td>Timeout metrics</td><td>Fail fast, cap retries</td><td>Tune timeouts, reduce path</td></tr>
+            <tr><td>5</td><td class="font-semibold">Dep. Overload</td><td>Dep is bottleneck</td><td>Throttle errors</td><td>Rate limit outgoing calls</td><td>Cache, reduce volume</td></tr>
+            <tr><td>6</td><td class="font-semibold">Wrong Response</td><td>Silent misbehavior</td><td>Validation anomaly</td><td>Validate + fallback</td><td>Schema validation, checksums</td></tr>
+            <tr><td>7</td><td class="font-semibold">Contract Mismatch</td><td>Silent data errors</td><td>API errors post-deploy</td><td>Versioned endpoints</td><td>Contract tests + canary</td></tr>
+            <tr><td>8</td><td class="font-semibold">3rd-Party Failure</td><td>No control</td><td>External monitoring</td><td>Fallback provider</td><td>Cache, reduce real-time dep</td></tr>
+            <tr><td>9</td><td class="font-semibold">Auth Failure</td><td>Dep healthy, access fails</td><td>401 / 403 rate</td><td>Token refresh / re-auth</td><td>Proactive rotation + alerts</td></tr>
+            <tr><td>10</td><td class="font-semibold">Network to Dep</td><td>Dep healthy, unreachable</td><td>Connection errors</td><td>Retry + alternate endpoint</td><td>Multi-region routing</td></tr>
+            <tr><td>11</td><td class="font-semibold">Stale State</td><td>Stale data returned</td><td>Lag metrics / mismatch</td><td>Re-fetch from primary</td><td>Cache invalidation, quorum</td></tr>
+            <tr><td>12</td><td class="font-semibold">Cascading Failure</td><td>Failure propagates</td><td>Multi-svc error spike</td><td>Circuit breaker + bulkhead</td><td>Async decoupling, timeouts</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Ultra-Compact Playbook — Say This When You Freeze</p>
+      <div class="ncode">1. Detect via errors / latency metrics
+2. Stop calling failing dep → circuit breaker
+3. Retry if transient → exponential backoff
+4. Fallback to cache or degraded response
+5. Decouple long-term → async / caching / queue</div>
+    </div>
+
+    <div class="nc" style="background:#fffbeb;">
+      <p class="nh">Final Design Principle</p>
+      <p class="text-sm text-gray-700">
+        Your system is only as reliable as its weakest dependency.
+        <strong class="text-amber-800">Design for the absence of every dependency you call.</strong><br/>
+        Ask for every dep: "What happens to my service if this is down for 5 minutes?"
+      </p>
+    </div>
+
+    <a href="load-traffic-failures.html"
+       class="flex items-center justify-between bg-white border border-teal-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-teal-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-teal-600 mb-1">Related</p>
+        <p class="font-bold text-gray-800 text-base">Load / Traffic Failures</p>
+        <p class="text-sm text-gray-500 mt-0.5">Thundering herd, hot key, retry storm, backpressure — same format</p>
+      </div>
+      <svg class="w-6 h-6 text-teal-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+    <a href="dependency-failures-table.html"
+       class="flex items-center justify-between bg-white border border-amber-200 rounded-2xl
+              p-5 shadow-sm hover:shadow-md hover:border-amber-400 transition-all group mt-2">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Deep Dive Table</p>
+        <p class="font-bold text-gray-800 text-base">Dependency Failures — Full Scenario Table</p>
+        <p class="text-sm text-gray-500 mt-0.5">7 categories, 34 scenarios — detect / mitigate / prevent / cascading / trade-off</p>
+      </div>
+      <svg class="w-6 h-6 text-amber-500 shrink-0 group-hover:translate-x-1 transition-transform"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+
+  </div><!-- /tab-cheat -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

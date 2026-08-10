@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Page Cache vs Buffer Cache — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#0369a1; border-bottom-color:#0369a1; }
+    .tab-btn:hover:not(.active){ color:#0c4a6e; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc   { background:#f0f9ff; border:1px solid #bae6fd; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#0369a1; margin-bottom:.6rem; }
+    .ntip { font-size:.78rem; color:#075985; background:#e0f2fe;
+            border-radius:.5rem; padding:.5rem .85rem;
+            border-left:3px solid #0369a1; margin-top:.65rem; line-height:1.6; }
+    .nt   { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th{ background:#e0f2fe; color:#0c4a6e; font-weight:700;
+            font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+            padding:.4rem .75rem; text-align:left; }
+    .nt td{ padding:.38rem .75rem; border-top:1px solid #e0f2fe;
+            color:#374151; vertical-align:top; }
+    .ncode{ background:#0c1a2e; color:#7dd3fc; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw  { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#0369a1; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#0369a1; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+    .nc-green { background:#f0fdf4; border:1px solid #bbf7d0;
+                border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-green { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+                text-transform:uppercase; color:#16a34a; margin-bottom:.6rem; }
+    .nc-dark  { background:#0f172a; border:1px solid #1e293b;
+                border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-dark  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+                text-transform:uppercase; color:#7dd3fc; margin-bottom:.6rem; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-bottom:1rem; }
+    @media(max-width:640px){ .grid-2 { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-sky-600 hover:text-sky-800 font-semibold
+              bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-sky-700 font-semibold">Page Cache vs Buffer Cache</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Page Cache vs Buffer Cache</h1>
+      <p class="text-xs text-gray-400 mt-0.5">File I/O caching, dirty pages, writeback, O_DIRECT — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- BIG PICTURE -->
+    <div class="nc">
+      <p class="nh"> The Big Picture</p>
+      <p class="text-sm text-gray-600 mb-2">Applications constantly read and write files. Without OS caching, every operation would hit disk — thousands of times slower than RAM. Linux caches data in two complementary layers:</p>
+      <div class="grid-2">
+        <div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:.75rem;padding:.9rem 1rem;">
+          <p style="font-size:.68rem;font-weight:800;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;"> Page Cache</p>
+          <p class="text-xs text-blue-800">Caches <strong>file contents</strong> in RAM. Serves <code>read()</code>, <code>write()</code>, <code>mmap()</code>.</p>
+        </div>
+        <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:.75rem;padding:.9rem 1rem;">
+          <p style="font-size:.68rem;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;"> Buffer Cache</p>
+          <p class="text-xs text-amber-800">Caches <strong>disk blocks &amp; filesystem metadata</strong>. Inodes, journals, superblocks.</p>
+        </div>
+      </div>
+      <div class="ncode">Application (read/write, mmap, etc.)
+↓
+Virtual File System (VFS)
+↓                    ↓
+Page Cache      Buffer Cache
+(File Contents) (Disk Blocks & Metadata)
+↓                    ↓
+Block Layer (I/O Scheduler)
+↓
+Disk Driver → Physical Disk (HDD / SSD)</div>
+      <p class="ntip">Modern Linux uses a <strong>Unified Page Cache</strong> — the same physical pages can represent both file contents and block metadata. No double caching.</p>
+    </div>
+
+    <!-- WHY CACHING EXISTS -->
+    <div class="nc">
+      <p class="nh">Why Caching Exists — The Latency Cliff</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Storage Layer</th><th>Approx. Latency</th><th>vs RAM</th></tr></thead>
+        <tbody>
+          <tr><td>L1 Cache</td><td>~1 ns</td><td>10× faster</td></tr>
+          <tr><td>RAM</td><td>~100 ns</td><td>baseline</td></tr>
+          <tr><td>NVMe SSD</td><td>~100 µs</td><td>1,000× slower</td></tr>
+          <tr><td>HDD</td><td>~5–10 ms</td><td>100,000× slower</td></tr>
+        </tbody>
+      </table>
+      <p class="text-xs text-gray-500">Without caching: every file read touches disk, metadata lookups are expensive, and applications become I/O bound. Caching eliminates repeated disk access.</p>
+    </div>
+
+    <!-- PAGE CACHE vs BUFFER CACHE DETAIL -->
+    <div class="nc">
+      <p class="nh">Page Cache — What It Caches</p>
+      <p class="text-sm text-gray-600 mb-2">Stores <strong>file contents</strong> in RAM. When an app reads a file, the OS checks the Page Cache first.</p>
+      <div class="ncode">Application
+↓ read()
+Page Cache ──► Cache HIT?  YES → return from RAM 
+                           NO  → Filesystem → Buffer Cache → Disk
+                                 → fill Page Cache → return data</div>
+      <p class="ntip">Second read of the same file = zero disk I/O. This is why applications start faster after the first execution.</p>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Buffer Cache — What It Caches</p>
+      <p class="text-sm text-gray-600 mb-2">Stores <strong>raw disk blocks and filesystem metadata</strong> — operates <em>below</em> the filesystem layer.</p>
+      <div class="nkw">
+        <span>Inodes</span><span>Directory entries</span><span>Superblocks</span>
+        <span>Journal blocks</span><span>Raw block device data</span><span>ext4 metadata</span>
+      </div>
+      <div class="ncode">Filesystem internals
+↓
+Buffer Cache (Block Device Layer)
+↓
+Physical Disk Blocks</div>
+    </div>
+
+    <!-- CONCEPTUAL DIFFERENCE TABLE -->
+    <div class="nc">
+      <p class="nh">Conceptual Difference</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Page Cache</th><th>Buffer Cache</th></tr></thead>
+        <tbody>
+          <tr><td>Caches</td><td>File data (contents)</td><td>Disk blocks &amp; metadata</td></tr>
+          <tr><td>Layer</td><td>Filesystem layer</td><td>Block device layer</td></tr>
+          <tr><td>Used by</td><td><code>read()</code>, <code>write()</code>, <code>mmap()</code></td><td>Filesystem internals, journaling</td></tr>
+          <tr><td>Data unit</td><td>Memory page (4 KB)</td><td>Disk block (512 B – 4 KB)</td></tr>
+          <tr><td>Example</td><td>Nginx static files, text reads</td><td>ext4 journal, inode access</td></tr>
+          <tr><td>Modern Linux</td><td colspan="2" style="text-align:center;">Unified — share the same physical memory</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- WRITE PATH & DIRTY PAGES -->
+    <div class="nc">
+      <p class="nh">Write Path — Dirty Pages &amp; Writeback</p>
+      <p class="text-sm text-gray-600 mb-2">Writes are <strong>asynchronous</strong> — Linux delays disk writes, batching them into larger sequential operations for much higher throughput.</p>
+      <div class="grid-2">
+        <div>
+          <div class="ncode">Application
+↓ write()
+Page Cache
+↓ Mark Dirty 
+Background Writeback
+(pdflush / flusher thread)
+↓
+Buffer Cache (Block Layer)
+↓
+Disk Write</div>
+        </div>
+        <div>
+          <p style="font-size:.68rem;font-weight:800;color:#c2410c;text-transform:uppercase;margin-bottom:.5rem;"> Dirty Page Risk</p>
+          <ul class="dot-ul text-xs">
+            <li>Dirty = memory has newer data than disk</li>
+            <li>If system crashes before flush → data loss</li>
+            <li>Too many dirty pages = writeback spike → high P99</li>
+            <li>Tune with <code>vm.dirty_ratio</code> and <code>vm.dirty_background_ratio</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- UNIFIED CACHE -->
+    <div class="nc">
+      <p class="nh">Unified Cache in Modern Linux (2.4+)</p>
+      <div class="grid-2">
+        <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:.75rem;padding:.75rem 1rem;">
+          <p style="font-size:.68rem;font-weight:800;color:#991b1b;text-transform:uppercase;margin-bottom:.35rem;">Old UNIX (Before 2.4) </p>
+          <p class="text-xs text-red-800">Separate Page Cache + Buffer Cache. Same data could exist <strong>twice</strong>. Wasted RAM, duplicate copies, synchronization bugs.</p>
+        </div>
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:.75rem;padding:.75rem 1rem;">
+          <p style="font-size:.68rem;font-weight:800;color:#166534;text-transform:uppercase;margin-bottom:.35rem;">Modern Linux </p>
+          <p class="text-xs text-green-800">Single Unified Page Cache. Same physical pages hold file data <strong>and</strong> block metadata. No double caching, better memory efficiency.</p>
+        </div>
+      </div>
+      <p class="ntip">Benefits: no duplicate copies · consistent view · better memory utilization · simpler kernel design.</p>
+    </div>
+
+    <!-- MMAP -->
+    <div class="nc">
+      <p class="nh">mmap() and Page Cache</p>
+      <p class="text-sm text-gray-600 mb-2">Memory-mapped files use the <strong>same Page Cache</strong> — no copy needed. Shared between <code>mmap()</code> and <code>read()</code> callers.</p>
+      <div class="ncode">Application
+↓ mmap()
+Virtual Memory ←→ Page Cache ←→ Disk
+                  (lazy load via page faults)</div>
+      <div class="nkw"><span>No explicit read() after mapping</span><span>Lazy loading via page faults</span><span>Shared cache with read()</span><span>Used by Elasticsearch</span></div>
+    </div>
+
+    <!-- O_DIRECT -->
+    <div class="nc">
+      <p class="nh">Databases &amp; O_DIRECT — Bypassing Page Cache</p>
+      <p class="text-sm text-gray-600 mb-2">Most databases bypass the Page Cache entirely. Reason: they already implement sophisticated internal caching.</p>
+      <div class="grid-2">
+        <div>
+          <p style="font-size:.68rem;font-weight:700;color:#0369a1;text-transform:uppercase;margin-bottom:.35rem;">Page Cache (Default)</p>
+          <ul class="dot-ul text-xs"><li>Data cached in RAM</li><li>Great for repeated reads</li><li>Supports <code>mmap()</code></li><li>Kernel handles eviction</li><li>Best for: web servers, logs</li></ul>
+        </div>
+        <div>
+          <p style="font-size:.68rem;font-weight:700;color:#c2410c;text-transform:uppercase;margin-bottom:.35rem;">O_DIRECT — Bypass Cache</p>
+          <ul class="dot-ul text-xs"><li>Bypasses Page Cache</li><li>No double caching</li><li>Application manages caching</li><li>Used by: PostgreSQL, MySQL, Oracle</li><li>Predictable, lower memory footprint</li></ul>
+        </div>
+      </div>
+      <table class="nt mt-3">
+        <thead><tr><th>Workload</th><th>Recommendation</th></tr></thead>
+        <tbody>
+          <tr><td>Web servers / static files</td><td> Page Cache</td></tr>
+          <tr><td>Large databases</td><td> O_DIRECT</td></tr>
+          <tr><td>Search engines (Elasticsearch)</td><td> mmap() + Page Cache</td></tr>
+          <tr><td>Sequential streaming reads</td><td>O_DIRECT or tuned readahead</td></tr>
+          <tr><td>Kafka log segments</td><td> Page Cache (sequential)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- REAL-WORLD EXAMPLES -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <div class="grid-2">
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:.75rem;padding:.75rem 1rem;">
+          <p style="font-size:.68rem;font-weight:800;color:#166534;text-transform:uppercase;margin-bottom:.35rem;"> Nginx</p>
+          <p class="text-xs text-green-800">Serves static files through Page Cache. Repeated requests return from RAM at memory speed. No disk I/O after first serve.</p>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #d8b4fe;border-radius:.75rem;padding:.75rem 1rem;">
+          <p style="font-size:.68rem;font-weight:800;color:#6b21a8;text-transform:uppercase;margin-bottom:.35rem;"> PostgreSQL</p>
+          <p class="text-xs text-purple-800">Uses O_DIRECT. Its own Shared Buffer Cache handles caching. Linux Page Cache is minimized to avoid wasted RAM.</p>
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:.75rem;padding:.75rem 1rem;">
+          <p style="font-size:.68rem;font-weight:800;color:#9a3412;text-transform:uppercase;margin-bottom:.35rem;"> Elasticsearch</p>
+          <p class="text-xs text-orange-800">Uses <code>mmap()</code> extensively. Index segments stay in Page Cache. Low-latency searches because data is already in RAM.</p>
+        </div>
+        <div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:.75rem;padding:.75rem 1rem;">
+          <p style="font-size:.68rem;font-weight:800;color:#0c4a6e;text-transform:uppercase;margin-bottom:.35rem;"> Kafka</p>
+          <p class="text-xs text-sky-800">Sequential log appends + reads. Page Cache retains log segments. Consumers can read at near-memory speed via OS cache.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE FAULTS & OBSERVABILITY -->
+    <div class="nc">
+      <p class="nh">Page Faults &amp; Observability</p>
+      <div class="grid-2">
+        <div>
+          <p class="text-xs font-bold text-sky-700 mb-1">Types of Page Faults</p>
+          <table class="nt">
+            <thead><tr><th>Type</th><th>Description</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td>Minor</td><td>Page in memory, no mapping yet (lazy alloc, CoW)</td><td style="color:#16a34a">Fast</td></tr>
+              <tr><td>Major</td><td>Page not in memory → disk read required</td><td style="color:#dc2626">~100µs–10ms</td></tr>
+            </tbody>
+          </table>
+          <p class="ntip" style="margin-top:.5rem;">High major faults = memory pressure or insufficient RAM. Monitor with <code>pgmajfault/s</code> in <code>vmstat</code>.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-sky-700 mb-1">Linux Observability Tools</p>
+          <table class="nt">
+            <thead><tr><th>Tool</th><th>What it shows</th></tr></thead>
+            <tbody>
+              <tr><td><code>free -h</code></td><td>Cached, Buffers, Used</td></tr>
+              <tr><td><code>cat /proc/meminfo</code></td><td>Cached, Dirty, Writeback</td></tr>
+              <tr><td><code>vmstat 1</code></td><td>si/so, pgmajfault/s</td></tr>
+              <tr><td><code>iostat -x 1</code></td><td>Disk I/O, await, util%</td></tr>
+              <tr><td><code>perf stat</code></td><td>Page cache misses</td></tr>
+              <tr><td><code>/proc/fs/nr_dirty</code></td><td>Dirty pages count</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAFF ENGINEER THINKING -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <table class="nt">
+        <thead><tr><th>Level</th><th>Question Asked</th></tr></thead>
+        <tbody>
+          <tr><td> Junior</td><td>"Why is memory usage so high?"</td></tr>
+          <tr><td> Senior</td><td>"Is Linux using Page Cache? Is that expected?"</td></tr>
+          <tr><td> Staff</td><td>"Is Page Cache helping or hurting? Are we double caching? Should this use O_DIRECT? Are dirty pages causing latency spikes? Is memory pressure evicting useful cache pages?"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PRODUCTION FAILURES -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="grid-2">
+        <div>
+          <p class="text-xs font-bold text-orange-700 mb-1">Slow File Reads</p>
+          <p class="text-xs text-gray-600">Cause: Cold Page Cache (restart or eviction). Solution: warm the cache or preload files with <code>cat file &gt; /dev/null</code>.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-orange-700 mb-1">DB Uses Too Much Memory</p>
+          <p class="text-xs text-gray-600">Cause: DB buffer pool + Linux Page Cache double-caching the same data. Solution: Use <code>O_DIRECT</code>.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-orange-700 mb-1">High Disk Write Latency</p>
+          <p class="text-xs text-gray-600">Cause: Too many dirty pages flushed simultaneously. Solution: tune <code>vm.dirty_ratio</code> and <code>vm.dirty_background_ratio</code>.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-orange-700 mb-1">Memory Pressure / OOM</p>
+          <p class="text-xs text-gray-600">Cause: Page Cache consumes too much RAM. Solution: adjust <code>vm.vfs_cache_pressure</code>, monitor cache reclaim.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DECISION FRAMEWORK -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended Approach</th></tr></thead>
+        <tbody>
+          <tr><td>Web server serving static files</td><td>Page Cache (default)</td></tr>
+          <tr><td>Database engine</td><td>O_DIRECT + internal cache</td></tr>
+          <tr><td>Search engine</td><td>mmap() + Page Cache</td></tr>
+          <tr><td>Large sequential file processing</td><td>Readahead tuning (<code>blockdev --setra</code>)</td></tr>
+          <tr><td>Metadata-heavy filesystem</td><td>Buffer Cache optimization</td></tr>
+          <tr><td>Embedded / constrained systems</td><td>Reduce cache footprint, tune vfs_cache_pressure</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- DEBUGGING CHECKLIST -->
+    <div class="nc-green">
+      <p class="nh-green">Production Debugging Checklist — File I/O Degradation</p>
+      <ol class="text-xs text-gray-700 space-y-1" style="list-style:decimal;padding-left:1.2rem;line-height:1.8;">
+        <li>Check cache usage: <code>free -h</code> and <code>/proc/meminfo</code> — look at <code>Cached</code>, <code>Dirty</code>, <code>Writeback</code>.</li>
+        <li>Measure disk activity: <code>iostat -x 1</code>, <code>iotop</code> — identify which process is causing I/O.</li>
+        <li>Check major page faults: <code>vmstat 1</code> — <code>pgmajfault/s</code> spiking = memory pressure.</li>
+        <li>Verify O_DIRECT usage: are databases bypassing the cache as expected?</li>
+        <li>Tune dirty page thresholds if writeback is spiking: <code>vm.dirty_ratio</code>, <code>vm.dirty_background_ratio</code>.</li>
+        <li>Check swap usage: <code>si/so</code> in vmstat — swapping = insufficient RAM, 10,000× latency hit.</li>
+        <li>Investigate cache eviction: <code>vm.vfs_cache_pressure</code> controls how aggressively the kernel reclaims page cache.</li>
+      </ol>
+    </div>
+
+    <!-- MENTAL MODEL / CHEAT SHEET -->
+    <div class="nc-dark">
+      <p class="nh-dark">Interview Cheat Sheet</p>
+      <div class="ncode" style="background:#0a0f1e;color:#93c5fd;border:none;padding:.5rem 0 0 0;">Page Cache  → caches file CONTENTS in RAM (read/write/mmap)
+Buffer Cache → caches disk BLOCKS & metadata (inodes, journals)
+Modern Linux → Unified Page Cache (same physical pages, no duplication)
+
+READ PATH
+  App → Page Cache (hit?) → YES: return from RAM 
+                           → NO:  Buffer Cache → Disk → fill cache
+
+WRITE PATH
+  App → Page Cache → mark DIRTY → Background Writeback → Disk
+  (asynchronous, batched — huge throughput win)
+
+mmap()       → same Page Cache pages, lazy via page faults
+O_DIRECT     → bypasses Page Cache (DBs: PostgreSQL, MySQL, Oracle)
+Dirty pages  → memory newer than disk; crash before flush = data loss
+
+TUNING KNOBS
+  vm.dirty_ratio              (% RAM before FORCED writeback)
+  vm.dirty_background_ratio   (% RAM for background writeback start)
+  vm.vfs_cache_pressure       (how aggressively to reclaim page cache)
+
+GOLDEN RULES
+  • Page Cache is your friend for general file I/O
+  • O_DIRECT when you own caching (databases)
+  • Avoid swap — 10,000× slower than RAM
+  • High major faults = memory pressure, fix root cause
+  • Measure, then tune. Always.</div>
+    </div>
+
+    <!-- KEY TAKEAWAYS -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <ul class="dot-ul">
+        <li><strong>Page Cache</strong> stores <strong>file contents</strong> in RAM, dramatically accelerating repeated reads and writes.</li>
+        <li><strong>Buffer Cache</strong> stores <strong>filesystem metadata and raw disk blocks</strong>, enabling efficient low-level storage operations.</li>
+        <li>Modern Linux uses a <strong>Unified Page Cache</strong> — page and buffer cache share the same physical memory, eliminating duplicate copies.</li>
+        <li><code>mmap()</code>, <code>read()</code>, and filesystem operations all share the same page cache pages — no redundant caching.</li>
+        <li>Databases bypass the page cache using <strong>O_DIRECT</strong> because they already implement sophisticated internal caching.</li>
+        <li>Staff Engineers optimize <strong>cache utilization, dirty page writeback, memory pressure, and direct I/O decisions</strong> to balance latency, throughput, durability, and RAM usage.</li>
+        <li>Monitor: <code>Cached</code>, <code>Dirty</code>, <code>Writeback</code> in <code>/proc/meminfo</code> + <code>pgmajfault/s</code> in <code>vmstat</code>.</li>
+      </ul>
+    </div>
+
+    <!-- PRINCIPAL TAKEAWAY -->
+    <div style="background:linear-gradient(135deg,#0c4a6e,#1e3a5f);border-radius:1rem;padding:1.25rem 1.5rem;margin-bottom:1rem;">
+      <p style="font-size:.65rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#7dd3fc;margin-bottom:.75rem;">Principal Takeaway</p>
+      <div class="grid-2" style="gap:.5rem;">
+        <div style="background:rgba(255,255,255,.08);border-radius:.6rem;padding:.7rem .85rem;">
+          <p style="font-size:.7rem;font-weight:700;color:#bae6fd;margin-bottom:.2rem;">Cache Is Your Best Friend</p>
+          <p style="font-size:.68rem;color:#93c5fd;">RAM is 100,000× faster than disk. Let the OS cache work for you — don't fight it.</p>
+        </div>
+        <div style="background:rgba(255,255,255,.08);border-radius:.6rem;padding:.7rem .85rem;">
+          <p style="font-size:.7rem;font-weight:700;color:#bae6fd;margin-bottom:.2rem;">Know Your I/O Path</p>
+          <p style="font-size:.68rem;color:#93c5fd;">VFS → Page Cache → Buffer Cache → Block Layer → Disk. Every optimization happens at a layer.</p>
+        </div>
+        <div style="background:rgba(255,255,255,.08);border-radius:.6rem;padding:.7rem .85rem;">
+          <p style="font-size:.7rem;font-weight:700;color:#bae6fd;margin-bottom:.2rem;">Avoid Swapping</p>
+          <p style="font-size:.68rem;color:#93c5fd;">Swap extends memory but at 10,000× the latency. If you're swapping, fix root cause.</p>
+        </div>
+        <div style="background:rgba(255,255,255,.08);border-radius:.6rem;padding:.7rem .85rem;">
+          <p style="font-size:.7rem;font-weight:700;color:#bae6fd;margin-bottom:.2rem;">Measure, Then Tune</p>
+          <p style="font-size:.68rem;color:#93c5fd;">Profile before tuning dirty ratios or cache pressure. Always validate with before/after metrics.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/PageCache/page-cache.png"
+        alt="Page Cache vs Buffer Cache — Complete Reference Sheet"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+        onerror="this.parentElement.innerHTML='<div class=\'text-center py-16 text-gray-400\'><p class=\'text-lg font-semibold\'> Image not found</p><p class=\'text-sm mt-2\'>Save the infographic to:<br><code class=\'bg-gray-100 px-2 py-1 rounded text-xs text-gray-700\'>images/foundation/l1/OS/PageCache/page-cache.png</code></p></div>'"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

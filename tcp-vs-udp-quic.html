@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TCP vs UDP vs QUIC — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+
+    .proto-tcp  { background:#f0fdf4; border:1px solid #bbf7d0; }
+    .proto-udp  { background:#fff7ed; border:1px solid #fed7aa; }
+    .proto-quic { background:#f5f3ff; border:1px solid #ddd6fe; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">TCP vs UDP vs QUIC</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">TCP vs UDP vs QUIC</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Use cases, latency trade-offs, and when to choose each protocol</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">Why It Matters</p>
+      <p class="nq">Protocol selection is a <strong>system design decision</strong> that directly impacts latency, reliability, scalability, CPU usage, user experience, and cost. A Staff Engineer must justify <em>why</em> a protocol is chosen, what trade-offs it introduces, and how it affects the overall architecture.</p>
+      <div class="grid grid-cols-3 gap-3 mt-3 text-center text-xs">
+        <div class="proto-tcp rounded-lg p-3">
+          <p class="font-bold text-green-700 text-sm mb-1">TCP</p>
+          <p class="text-gray-500">Reliable applications</p>
+          <p class="font-semibold text-green-600 mt-1">Priority: Correctness</p>
+        </div>
+        <div class="proto-udp rounded-lg p-3">
+          <p class="font-bold text-orange-700 text-sm mb-1">UDP</p>
+          <p class="text-gray-500">Real-time communication</p>
+          <p class="font-semibold text-orange-600 mt-1">Priority: Lowest Latency</p>
+        </div>
+        <div class="proto-quic rounded-lg p-3">
+          <p class="font-bold text-violet-700 text-sm mb-1">QUIC</p>
+          <p class="text-gray-500">Modern Internet apps</p>
+          <p class="font-semibold text-violet-600 mt-1">Priority: Low Latency + Reliable</p>
+        </div>
+      </div>
+      <div class="nkw mt-3">
+        <span>TCP Handshake</span>
+        <span>UDP Datagram</span>
+        <span>QUIC / HTTP/3</span>
+        <span>Head-of-Line Blocking</span>
+        <span>0-RTT</span>
+        <span>Multiplexing</span>
+        <span>Connection Migration</span>
+      </div>
+    </div>
+
+    <!-- Protocol Cards -->
+    <div class="nc proto-tcp">
+      <p class="nh" style="color:#15803d">TCP — Transmission Control Protocol</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">Characteristics</p>
+          <ul class="dot-ul">
+            <li>Connection-oriented (3-way handshake)</li>
+            <li>Reliable, ordered delivery</li>
+            <li>Automatic retransmissions</li>
+            <li>Congestion + flow control</li>
+            <li>Kernel implementation</li>
+            <li>Byte stream abstraction</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">Typical Use Cases</p>
+          <ul class="dot-ul">
+            <li>REST APIs, gRPC over HTTP/2</li>
+            <li>MySQL / PostgreSQL</li>
+            <li>Elasticsearch replication</li>
+            <li>SSH, FTP, SMTP, IMAP</li>
+            <li>Banking / financial transactions</li>
+            <li>Large file transfers</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+        <div class="bg-green-100 rounded-lg p-2">
+          <p class="font-bold text-green-800 mb-1">✅ Advantages</p>
+          <p class="text-gray-600">Reliable · Auto-retransmit · Congestion control · Mature ecosystem · Excellent observability</p>
+        </div>
+        <div class="bg-red-50 rounded-lg p-2">
+          <p class="font-bold text-red-700 mb-1">❌ Disadvantages</p>
+          <p class="text-gray-600">1-RTT handshake · Head-of-line blocking · Higher latency · Kernel update required for innovation</p>
+        </div>
+      </div>
+      <p class="ntip"><strong>Choose TCP when</strong>: every byte matters, data loss is unacceptable, transactions must be correct, or broad compatibility is required.</p>
+    </div>
+
+    <div class="nc proto-udp">
+      <p class="nh" style="color:#c2410c">UDP — User Datagram Protocol</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">Characteristics</p>
+          <ul class="dot-ul">
+            <li>Connectionless (no handshake)</li>
+            <li>No retransmission</li>
+            <li>No ordering guarantee</li>
+            <li>Datagram-based</li>
+            <li>Tiny header (8 bytes vs TCP's 20)</li>
+            <li>Minimal CPU overhead</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">Typical Use Cases</p>
+          <ul class="dot-ul">
+            <li>DNS queries</li>
+            <li>Online gaming</li>
+            <li>VoIP / video calls (WebRTC)</li>
+            <li>Live video streaming</li>
+            <li>IoT telemetry (fire-and-forget)</li>
+            <li>Network discovery / multicast</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+        <div class="bg-orange-50 rounded-lg p-2">
+          <p class="font-bold text-orange-700 mb-1">✅ Advantages</p>
+          <p class="text-gray-600">Zero setup overhead · Lowest latency · Minimal CPU · Broadcast + multicast support</p>
+        </div>
+        <div class="bg-red-50 rounded-lg p-2">
+          <p class="font-bold text-red-700 mb-1">❌ Disadvantages</p>
+          <p class="text-gray-600">No reliability · No ordering · No congestion control · App must implement retries</p>
+        </div>
+      </div>
+      <p class="ntip"><strong>Choose UDP when</strong>: milliseconds matter, small packet loss is acceptable, or real-time experience is more important than perfect delivery.</p>
+    </div>
+
+    <div class="nc proto-quic">
+      <p class="nh">QUIC — Quick UDP Internet Connections</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">Characteristics</p>
+          <ul class="dot-ul">
+            <li>Built on UDP</li>
+            <li>TLS 1.3 integrated (always encrypted)</li>
+            <li>Multiplexed independent streams</li>
+            <li>0-RTT / 1-RTT connection setup</li>
+            <li>Connection migration (IP change)</li>
+            <li>User-space (no kernel update needed)</li>
+            <li>HTTP/3 transport layer</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">Typical Use Cases</p>
+          <ul class="dot-ul">
+            <li>HTTP/3 websites (Chrome, Cloudflare)</li>
+            <li>YouTube / Gmail</li>
+            <li>WhatsApp (mobile network switching)</li>
+            <li>Modern gRPC</li>
+            <li>CDN edge delivery</li>
+            <li>Mobile-first applications</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+        <div class="bg-violet-50 rounded-lg p-2">
+          <p class="font-bold text-violet-700 mb-1">✅ Advantages</p>
+          <p class="text-gray-600">0-RTT setup · No HoL blocking · Built-in TLS · Multiplexing · Mobile connection migration</p>
+        </div>
+        <div class="bg-red-50 rounded-lg p-2">
+          <p class="font-bold text-red-700 mb-1">❌ Disadvantages</p>
+          <p class="text-gray-600">Higher CPU · Harder to debug (encrypted) · Depends on UDP path · Less mature tooling</p>
+        </div>
+      </div>
+      <p class="ntip"><strong>Choose QUIC when</strong>: building modern Internet services, users switch networks frequently, tail latency matters, or many concurrent streams need independent reliability.</p>
+    </div>
+
+    <!-- Head-of-Line Blocking -->
+    <div class="nc">
+      <p class="nh">Head-of-Line Blocking — The Key Difference</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="proto-tcp rounded-lg p-3">
+          <p class="text-xs font-bold text-green-700 mb-2">TCP (HTTP/2)</p>
+          <div class="ncode" style="font-size:.72rem;padding:.45rem .65rem">Packet 1 ✔
+Packet 2 ✔
+Packet 3 ✗ Lost
+Packet 4 ⏸ BLOCKED
+Packet 5 ⏸ BLOCKED
+Packet 6 ⏸ BLOCKED</div>
+          <p class="text-xs text-gray-500 mt-1">One lost packet blocks all streams on that connection.</p>
+        </div>
+        <div class="proto-udp rounded-lg p-3">
+          <p class="text-xs font-bold text-orange-700 mb-2">UDP</p>
+          <div class="ncode" style="font-size:.72rem;padding:.45rem .65rem">Packet 1 ✔
+Packet 2 ✔
+Packet 3 ✗ Lost
+Packet 4 ✔ (continues)
+Packet 5 ✔ (continues)
+Packet 6 ✔ (continues)</div>
+          <p class="text-xs text-gray-500 mt-1">No waiting. Loss is the app's problem.</p>
+        </div>
+        <div class="proto-quic rounded-lg p-3">
+          <p class="text-xs font-bold text-violet-700 mb-2">QUIC (HTTP/3)</p>
+          <div class="ncode" style="font-size:.72rem;padding:.45rem .65rem">Stream A: pkt 3 lost
+  → only Stream A waits
+
+Stream B: continues ✔
+Stream C: continues ✔
+Stream D: continues ✔</div>
+          <p class="text-xs text-gray-500 mt-1">Loss affects only the impacted stream.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Latency Comparison Table -->
+    <div class="nc">
+      <p class="nh">Latency Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Stage</th><th>TCP</th><th>UDP</th><th>QUIC</th></tr></thead>
+        <tbody>
+          <tr><td>Connection setup</td><td>1 RTT handshake + TLS (1–2 RTT more)</td><td>0 RTT</td><td>0–1 RTT (TLS included)</td></tr>
+          <tr><td>First-byte latency</td><td>Highest</td><td>Lowest</td><td>Very Low</td></tr>
+          <tr><td>Packet loss recovery</td><td>Retransmit blocks entire stream</td><td>App decides</td><td>Per-stream only</td></tr>
+          <tr><td>Tail latency (P99)</td><td>Higher (HoL blocking)</td><td>Depends on app</td><td>Lower than TCP</td></tr>
+          <tr><td>Network switching</td><td>TCP reconnect needed</td><td>Stateless</td><td>Seamless migration</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Full Feature Comparison -->
+    <div class="nc">
+      <p class="nh">Full Feature Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>TCP</th><th>UDP</th><th>QUIC</th></tr></thead>
+        <tbody>
+          <tr><td>Reliable delivery</td><td>✅</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Ordered delivery</td><td>✅</td><td>❌</td><td>✅ (per stream)</td></tr>
+          <tr><td>Retransmission</td><td>✅</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Flow control</td><td>✅</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Congestion control</td><td>✅</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Built-in encryption</td><td>❌ (TLS separate)</td><td>❌</td><td>✅ (TLS 1.3)</td></tr>
+          <tr><td>Multiplexed streams</td><td>❌ (HoL blocks)</td><td>N/A</td><td>✅</td></tr>
+          <tr><td>Connection migration</td><td>❌</td><td>N/A</td><td>✅</td></tr>
+          <tr><td>Latency</td><td>Medium</td><td>Lowest</td><td>Low</td></tr>
+          <tr><td>CPU overhead</td><td>Low</td><td>Lowest</td><td>Higher</td></tr>
+          <tr><td>Debug tooling</td><td>Excellent</td><td>Good</td><td>Harder (encrypted)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Protocol</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>REST APIs</td><td>TCP</td><td>Correctness and broad compatibility</td></tr>
+          <tr><td>Database replication</td><td>TCP</td><td>Ordered, reliable delivery</td></tr>
+          <tr><td>SSH / FTP</td><td>TCP</td><td>Command/file ordering required</td></tr>
+          <tr><td>Online gaming</td><td>UDP</td><td>Fresh state &gt; delayed accurate state</td></tr>
+          <tr><td>Video conferencing</td><td>UDP</td><td>Better to drop frames than delay them</td></tr>
+          <tr><td>DNS queries</td><td>UDP</td><td>Small request/response, no setup needed</td></tr>
+          <tr><td>IoT telemetry</td><td>UDP</td><td>Lightweight, fire-and-forget</td></tr>
+          <tr><td>HTTP/3 websites</td><td>QUIC</td><td>Faster setup, no HoL blocking</td></tr>
+          <tr><td>Mobile applications</td><td>QUIC</td><td>Connection migration (Wi-Fi ↔ Cellular)</td></tr>
+          <tr><td>CDN edge delivery</td><td>QUIC</td><td>Lower perceived latency globally</td></tr>
+          <tr><td>Financial transactions</td><td>TCP</td><td>Zero tolerance for loss</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">TCP is reliable, UDP is fast</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Use TCP for APIs, UDP for games</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>What is the acceptable packet loss rate?</li>
+            <li>Does ordering matter at the transport or app layer?</li>
+            <li>How often do users switch networks?</li>
+            <li>Is head-of-line blocking hurting P99?</li>
+            <li>Is handshake cost significant at our request rate?</li>
+            <li>Is QUIC feasible given our firewall/UDP blocking risk?</li>
+            <li>How do we observe QUIC in production (encrypted)?</li>
+            <li>Does HTTP/3 improve perceived performance for our users?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Common Interview Questions -->
+    <div class="nc">
+      <p class="nh">Common Interview Questions</p>
+      <ol class="list-decimal pl-4 space-y-1 mt-1">
+        <li class="text-xs text-gray-700">Why choose TCP over UDP for database replication?</li>
+        <li class="text-xs text-gray-700">Why do online games use UDP?</li>
+        <li class="text-xs text-gray-700">Why was HTTP/3 built on QUIC instead of TCP?</li>
+        <li class="text-xs text-gray-700">What problem does QUIC solve that HTTP/2 could not?</li>
+        <li class="text-xs text-gray-700">How does head-of-line blocking affect web performance?</li>
+        <li class="text-xs text-gray-700">When is packet loss preferable to increased latency?</li>
+        <li class="text-xs text-gray-700">Why is QUIC particularly beneficial for mobile networks?</li>
+        <li class="text-xs text-gray-700">How would you transport telemetry from millions of IoT devices?</li>
+        <li class="text-xs text-gray-700">Why isn't UDP suitable for financial transactions?</li>
+        <li class="text-xs text-gray-700">How would you select a transport protocol for a global chat app?</li>
+      </ol>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">TCP:  Correctness above all
+  Connection-oriented · Reliable · Ordered · 1-RTT setup
+  Best for: APIs, databases, SSH, financial transactions
+
+UDP:  Speed above all
+  Connectionless · No reliability · 0-RTT · Minimal overhead
+  Best for: gaming, VoIP, DNS, IoT, live streaming
+
+QUIC: Speed + Reliability + Modern features
+  Built on UDP · TLS 1.3 built-in · 0-1 RTT
+  Multiplexed streams (no HoL blocking across streams)
+  Connection migration (IP change transparent)
+  Best for: HTTP/3, mobile apps, CDN edge, modern gRPC
+
+Head-of-Line Blocking:
+  TCP/HTTP2: one lost packet blocks ALL streams on connection
+  QUIC/HTTP3: one lost packet blocks only THAT stream
+
+Protocol selection criteria:
+  Correctness required?      → TCP
+  Latency critical, loss ok? → UDP
+  Modern web, mobile?        → QUIC
+  Financial/transactional?   → TCP (non-negotiable)
+
+Real-world: YouTube, Gmail, Cloudflare, Chrome → QUIC
+            MySQL, PostgreSQL, Redis  → TCP
+            DNS, WebRTC, online games → UDP</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/131a7265-e566-40a9-b9ed-a04250a3608b.png"
+        alt="TCP vs UDP vs QUIC visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

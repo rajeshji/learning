@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Layer 3 — Communication &amp; Messaging Systems</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .dot-list { list-style:disc; padding-left:1.25rem; }
+    .dot-list li { line-height:1.85; break-inside:avoid; }
+    .dot-list li::marker { color:var(--dot,#0891b2); }
+    @media(min-width:640px){ .two-col{ columns:2; column-gap:1.75rem; } }
+    .section-block { scroll-margin-top:5rem; }
+    .toc-link { display:block; padding:.26rem .65rem; border-radius:.4rem; font-size:.72rem;
+                color:#64748b; transition:all .15s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .toc-link:hover { background:#ecfeff; color:#0e7490; }
+    .sub-h { font-size:.7rem; font-weight:700; letter-spacing:.06em;
+             text-transform:uppercase; margin-top:1rem; margin-bottom:.45rem; }
+    .badge-tag { font-size:.6rem; font-weight:600; background:#f1f5f9;
+                 color:#64748b; padding:.1em .5em; border-radius:999px; vertical-align:middle; }
+    th { background:#f8fafc; font-size:.72rem; font-weight:700; color:#475569;
+         text-transform:uppercase; letter-spacing:.05em; padding:.55rem .85rem; text-align:left; }
+    td { font-size:.82rem; color:#374151; padding:.5rem .85rem; vertical-align:top; border-top:1px solid #f1f5f9; }
+    strong { color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="foundation.html"
+       class="flex items-center gap-1.5 text-cyan-600 hover:text-cyan-800 font-semibold
+              bg-cyan-50 hover:bg-cyan-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-cyan-700 font-semibold">Layer 3 — Communication &amp; Messaging Systems</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 py-8 flex gap-7 items-start">
+
+  <!-- SIDEBAR TOC -->
+  <nav class="hidden xl:block w-52 shrink-0 sticky top-20 self-start">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p class="text-[0.68rem] font-bold text-gray-400 uppercase tracking-widest mb-3">13 Topics</p>
+      <a href="#s01" class="toc-link">01 &middot; Comm Fundamentals</a>
+      <a href="#s02" class="toc-link">02 &middot; Messaging Architecture</a>
+      <a href="#s03" class="toc-link">03 &middot; Broker Systems</a>
+      <a href="#s04" class="toc-link">04 &middot; Event-Driven Arch</a>
+      <a href="#s05" class="toc-link">05 &middot; Streaming &amp; Real-Time</a>
+      <a href="#s06" class="toc-link">06 &middot; Reliability &amp; Fault Tol.</a>
+      <a href="#s07" class="toc-link">07 &middot; Consistency &amp; Tx</a>
+      <a href="#s08" class="toc-link">08 &middot; Observability</a>
+      <a href="#s09" class="toc-link">09 &middot; Security &amp; Governance</a>
+      <a href="#s10" class="toc-link">10 &middot; Performance Tuning</a>
+      <a href="#s12" class="toc-link">12 &middot; Advanced Patterns</a>
+      <a href="#s13" class="toc-link">13 &middot; Case Studies</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 min-w-0 space-y-5 pb-16">
+
+    <!-- S01 COMMUNICATION FUNDAMENTALS -->
+    <div id="s01" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-cyan-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 font-black text-xs shrink-0">01</span>
+        <h2 class="font-bold text-gray-800 text-lg">Communication Fundamentals</h2>
+      </div>
+
+      <p class="sub-h text-cyan-600">1.1 Network &amp; Transport Foundations</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0891b2">
+        <li>OSI model — focus: layers 3–7</li>
+        <li>TCP: 3-way handshake, congestion control, retransmission</li>
+        <li>Nagle's algorithm, delayed ACKs, head-of-line blocking</li>
+        <li>UDP: stateless communication, datagram reordering/loss handling</li>
+        <li>QUIC: multiplexing without HOL blocking, 0-RTT setup, TLS 1.3 integration</li>
+        <li>Flow control &amp; congestion control mechanisms</li>
+        <li>TCP Keepalive &amp; connection pooling</li>
+      </ul>
+
+      <p class="sub-h text-cyan-600">1.2 Application-Level Protocols</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0891b2">
+        <li>HTTP/1.1, HTTP/2, HTTP/3 — pipelining, multiplexing, prioritization</li>
+        <li>REST API patterns — idempotent methods, pagination, retries</li>
+        <li>gRPC: streaming, bi-directional RPC, HTTP/2 multiplexing, Protobuf &amp; reflection</li>
+        <li>WebSockets and SSE (Server-Sent Events)</li>
+        <li>Thrift / Avro RPC frameworks</li>
+      </ul>
+
+      <p class="sub-h text-cyan-600">1.3 Serialization &amp; Data Exchange</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0891b2">
+        <li>JSON, Avro, Protobuf, Thrift — performance, compatibility, compression</li>
+        <li>Binary vs text serialization trade-offs</li>
+        <li>Schema evolution — backward / forward compatibility</li>
+        <li>Schema Registry (Kafka, Confluent)</li>
+        <li>Message envelope and headers</li>
+        <li>Payload validation &amp; versioning</li>
+      </ul>
+
+      <p class="sub-h text-cyan-600">1.4 Synchronous vs Asynchronous Communication</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0891b2">
+        <li>Request/Response model</li>
+        <li>Async Messaging — decoupled producers/consumers</li>
+        <li>Fan-out, fan-in, broadcast patterns</li>
+        <li>Push vs Pull delivery</li>
+        <li>Eventual vs immediate consistency implications</li>
+      </ul>
+    </div>
+
+    <!-- S02 MESSAGING ARCHITECTURE -->
+    <div id="s02" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-blue-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black text-xs shrink-0">02</span>
+        <h2 class="font-bold text-gray-800 text-lg">Messaging System Architecture</h2>
+      </div>
+
+      <p class="sub-h text-blue-600">2.1 Core Components</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>Producer, Consumer, Broker, Topic, Partition, Offset</li>
+        <li>Consumer groups and rebalance protocols</li>
+        <li>Message batching &amp; compression</li>
+        <li>Offset management — auto vs manual commit</li>
+        <li>Queue depth &amp; partition throughput metrics</li>
+      </ul>
+
+      <p class="sub-h text-blue-600">2.2 Messaging Models</p>
+      <div class="overflow-x-auto mt-2 rounded-xl border border-gray-100">
+        <table class="w-full text-left">
+          <thead><tr>
+            <th>Model</th><th>Description</th><th>Example</th>
+          </tr></thead>
+          <tbody>
+            <tr><td><strong>Point-to-Point</strong></td><td>One producer &rarr; one consumer</td><td>RabbitMQ queue</td></tr>
+            <tr><td><strong>Publish-Subscribe</strong></td><td>One producer &rarr; many subscribers</td><td>Kafka topics</td></tr>
+            <tr><td><strong>Fan-out / Fan-in</strong></td><td>Aggregate or broadcast messages</td><td>SNS + SQS, Pulsar</td></tr>
+            <tr><td><strong>Event-Driven</strong></td><td>Trigger reactions asynchronously</td><td>EventBridge, NATS</td></tr>
+            <tr><td><strong>Request-Reply</strong></td><td>RPC over messaging</td><td>Kafka request/reply</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="sub-h text-blue-600">2.3 Delivery Semantics</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>At-most-once</li>
+        <li>At-least-once</li>
+        <li>Exactly-once</li>
+        <li>Idempotency design</li>
+        <li>Deduplication strategies</li>
+        <li>Transactional publishing — Outbox pattern, CDC</li>
+        <li>Atomic commit between DB + message broker</li>
+      </ul>
+
+      <p class="sub-h text-blue-600">2.4 Ordering Guarantees</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>Partition-level ordering (Kafka)</li>
+        <li>Global ordering challenges</li>
+        <li>Reordering and sequence numbers</li>
+        <li>Out-of-order message compensation</li>
+      </ul>
+
+      <p class="sub-h text-blue-600">2.5 Acknowledgment &amp; Commit Strategies</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>Auto-acknowledge vs manual acknowledgment</li>
+        <li>Consumer commit logic — sync / async</li>
+        <li>Offset commit and commit lag</li>
+        <li>Transactional acknowledgment (Kafka EOS)</li>
+      </ul>
+    </div>
+
+    <!-- S03 BROKER SYSTEMS -->
+    <div id="s03" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-indigo-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">03</span>
+        <h2 class="font-bold text-gray-800 text-lg">Message Broker Systems</h2>
+      </div>
+
+      <p class="sub-h text-indigo-600">3.1 Kafka Internals</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Brokers, Topics, Partitions, Segments</li>
+        <li>ZooKeeper / KRaft (controller management)</li>
+        <li>Producer acks — <code>0</code>, <code>1</code>, <code>all</code></li>
+        <li>Leader and ISR (In-Sync Replicas)</li>
+        <li>Log Compaction vs Retention</li>
+        <li>Offset management &amp; consumer rebalancing</li>
+        <li>Kafka Connect and Schema Registry</li>
+        <li>Kafka Streams API — stateful stream processing</li>
+      </ul>
+
+      <p class="sub-h text-indigo-600">3.2 RabbitMQ / AMQP Internals</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Exchange types: Direct, Fanout, Topic, Headers</li>
+        <li>Queues, Bindings, Routing Keys</li>
+        <li>Prefetch count, flow control, acknowledgment modes</li>
+        <li>Message durability vs transient</li>
+        <li>Dead Letter Exchanges (DLX)</li>
+      </ul>
+
+      <p class="sub-h text-indigo-600">3.3 Apache Pulsar Internals</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Multi-tier storage — hot / cold</li>
+        <li>Segment-based architecture</li>
+        <li>Message deduplication &amp; compaction</li>
+        <li>Multi-tenancy &amp; geo-replication</li>
+      </ul>
+
+      <p class="sub-h text-indigo-600">3.4 AWS SQS / SNS</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Visibility timeout</li>
+        <li>Dead Letter Queues (DLQs)</li>
+        <li>FIFO vs Standard queues</li>
+        <li>Message batching and throughput scaling</li>
+      </ul>
+    </div>
+
+    <!-- S04 EVENT-DRIVEN ARCHITECTURE -->
+    <div id="s04" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-violet-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 text-violet-700 font-black text-xs shrink-0">04</span>
+        <h2 class="font-bold text-gray-800 text-lg">Event-Driven Architecture (EDA)</h2>
+      </div>
+
+      <p class="sub-h text-violet-600">4.1 Core Concepts</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>Event sourcing — immutable event log</li>
+        <li>CQRS (Command Query Responsibility Segregation)</li>
+        <li>Outbox pattern for transactional publishing</li>
+        <li>Change Data Capture (CDC) — Debezium, Maxwell</li>
+        <li>Event versioning and replay</li>
+        <li>Eventual consistency and compensating actions</li>
+      </ul>
+
+      <p class="sub-h text-violet-600">4.2 Event Processing</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>Stateless vs stateful event consumers</li>
+        <li>Exactly-once stream processing</li>
+        <li>Time-windowed aggregations</li>
+        <li>Event replay and backfill</li>
+        <li>Idempotent consumer logic</li>
+        <li>Poison message handling</li>
+      </ul>
+    </div>
+
+    <!-- S05 STREAMING & REAL-TIME -->
+    <div id="s05" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-purple-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-black text-xs shrink-0">05</span>
+        <h2 class="font-bold text-gray-800 text-lg">Streaming Systems &amp; Real-Time Processing</h2>
+      </div>
+
+      <p class="sub-h text-purple-600">5.1 Stream Processing Concepts</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#9333ea">
+        <li>Dataflow model: source &rarr; processor &rarr; sink</li>
+        <li>Stateful processing and windowing — tumbling, sliding, session</li>
+        <li>Late data handling — watermarks, event-time processing</li>
+        <li>Aggregations, joins, repartitioning</li>
+        <li>Stateful stores and changelogs</li>
+      </ul>
+
+      <p class="sub-h text-purple-600">5.2 Frameworks</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#9333ea">
+        <li>Kafka Streams</li>
+        <li>Apache Flink</li>
+        <li>Spark Structured Streaming</li>
+        <li>ksqlDB</li>
+        <li>Faust (Python)</li>
+      </ul>
+
+      <p class="sub-h text-purple-600">5.3 Reliability &amp; Scaling</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#9333ea">
+        <li>Checkpointing and offset commits</li>
+        <li>Stateful operator recovery</li>
+        <li>Scaling and partition rebalancing</li>
+        <li>Exactly-once vs at-least-once trade-offs</li>
+      </ul>
+    </div>
+
+    <!-- S06 RELIABILITY & FAULT TOLERANCE -->
+    <div id="s06" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-red-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-700 font-black text-xs shrink-0">06</span>
+        <h2 class="font-bold text-gray-800 text-lg">Reliability, Delivery &amp; Fault Tolerance</h2>
+      </div>
+
+      <p class="sub-h text-red-500">6.1 Failure Modes</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>Message loss</li>
+        <li>Message duplication</li>
+        <li>Poison messages — permanently failing</li>
+        <li>Broker crash / partition unavailability</li>
+        <li>Consumer lag / stuck offsets</li>
+        <li>Schema mismatch between producer and consumer</li>
+      </ul>
+
+      <p class="sub-h text-red-500">6.2 Recovery Techniques</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>Acknowledgment retry and backoff</li>
+        <li>Dead Letter Queues (DLQs)</li>
+        <li>Replay and reprocessing logic</li>
+        <li>Compaction for log cleanup</li>
+        <li>Idempotency enforcement</li>
+        <li>Duplicate detection tables / hash tracking</li>
+      </ul>
+
+      <p class="sub-h text-red-500">6.3 Backpressure &amp; Flow Control</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>Producer throttling</li>
+        <li>Bounded queues</li>
+        <li>Pull-based vs push-based flow</li>
+        <li>Credit-based flow control (AMQP)</li>
+        <li>Reactive Streams principles</li>
+      </ul>
+    </div>
+
+    <!-- S07 CONSISTENCY & TRANSACTIONS -->
+    <div id="s07" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-amber-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-black text-xs shrink-0">07</span>
+        <h2 class="font-bold text-gray-800 text-lg">Consistency &amp; Transactions</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>Distributed transaction patterns — 2PC, Saga</li>
+        <li>Outbox Pattern</li>
+        <li>Exactly-once transactional semantics (Kafka EOS)</li>
+        <li>Consistent offsets and commit logs</li>
+        <li>Atomicity between DB and message broker</li>
+        <li>Ordering + consistency trade-offs in multi-partition systems</li>
+      </ul>
+    </div>
+
+    <!-- S08 OBSERVABILITY -->
+    <div id="s08" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-700 font-black text-xs shrink-0">08</span>
+        <h2 class="font-bold text-gray-800 text-lg">Observability, Monitoring &amp; Debugging</h2>
+      </div>
+
+      <p class="sub-h text-teal-600">8.1 Metrics to Track</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Producer throughput</li>
+        <li>Consumer lag</li>
+        <li>Queue depth / partition size</li>
+        <li>DLQ count</li>
+        <li>Message retry count</li>
+        <li>Consumer rebalances</li>
+        <li>Broker disk usage, partition ISR count</li>
+      </ul>
+
+      <p class="sub-h text-teal-600">8.2 Tools</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Prometheus + Grafana dashboards</li>
+        <li>Kafka Exporter / RabbitMQ Exporter</li>
+        <li>OpenTelemetry tracing — producer &rarr; consumer latency</li>
+        <li>Jaeger / Zipkin for message flow correlation</li>
+        <li>Distributed log tracing</li>
+      </ul>
+
+      <p class="sub-h text-teal-600">8.3 Alerting &amp; Instrumentation</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Lag threshold alerts</li>
+        <li>Queue length anomaly detection</li>
+        <li>DLQ growth alerts</li>
+        <li>Throughput drop alerts</li>
+        <li>Latency percentile (P95, P99) monitoring</li>
+      </ul>
+    </div>
+
+    <!-- S09 SECURITY & GOVERNANCE -->
+    <div id="s09" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-slate-600 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-200 text-slate-800 font-black text-xs shrink-0">09</span>
+        <h2 class="font-bold text-gray-800 text-lg">Security &amp; Governance</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>TLS and mTLS for service-to-service encryption</li>
+        <li>SASL authentication (Kafka, RabbitMQ)</li>
+        <li>ACL-based authorization — per-topic or per-queue</li>
+        <li>Message encryption at rest &amp; in transit</li>
+        <li>Token-based producer / consumer authentication</li>
+        <li>Message audit trails and access logging</li>
+        <li>Data classification &amp; retention governance</li>
+      </ul>
+    </div>
+
+    <!-- S10 PERFORMANCE TUNING -->
+    <div id="s10" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-green-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 font-black text-xs shrink-0">10</span>
+        <h2 class="font-bold text-gray-800 text-lg">Performance Tuning &amp; Optimization</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Message batch sizing and compression</li>
+        <li>Kafka: <code>linger.ms</code>, <code>acks</code>, <code>retries</code> tuning</li>
+        <li>Consumer poll interval and prefetch settings</li>
+        <li>Broker partition count tuning</li>
+        <li>Disk and network throughput tuning</li>
+        <li>Handling network partitions and timeouts</li>
+        <li>Connection pooling and keepalive optimization</li>
+      </ul>
+    </div>
+
+    <!-- S12 ADVANCED PATTERNS -->
+    <div id="s12" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-pink-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100 text-pink-700 font-black text-xs shrink-0">12</span>
+        <h2 class="font-bold text-gray-800 text-lg">Advanced Staff-Level Design Patterns</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ec4899">
+        <li>Outbox &amp; Inbox patterns</li>
+        <li>Saga pattern with message orchestration</li>
+        <li>Event replay &amp; audit log reconstruction</li>
+        <li>CQRS + Event Sourcing combo</li>
+        <li>Stream-table duality (Kafka Streams concept)</li>
+        <li>Lambda / Kappa architecture for stream processing</li>
+        <li>Circuit breaker, retry, and DLQ triad</li>
+        <li>Reactive backpressure and flow control</li>
+        <li>Gossip and discovery protocols (NATS, Pulsar clusters)</li>
+      </ul>
+    </div>
+
+    <!-- S13 CASE STUDIES -->
+    <div id="s13" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-orange-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-700 font-black text-xs shrink-0">13</span>
+        <h2 class="font-bold text-gray-800 text-lg">Case Studies — Real Systems</h2>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-gray-100">
+        <table class="w-full text-left">
+          <thead><tr><th>System</th><th>Key Learning Area</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Kafka</strong></td><td>Log-based streaming, exactly-once semantics</td></tr>
+            <tr><td><strong>RabbitMQ</strong></td><td>Queuing, flow control, routing exchanges</td></tr>
+            <tr><td><strong>Apache Pulsar</strong></td><td>Multi-tenancy, tiered storage, geo-replication</td></tr>
+            <tr><td><strong>SQS + SNS</strong></td><td>Serverless messaging, fan-out, DLQ</td></tr>
+            <tr><td><strong>Google Pub/Sub</strong></td><td>Global scalability, acknowledgment model</td></tr>
+            <tr><td><strong>Uber's Kafka Infra</strong></td><td>Dynamic topic management, autoscaling</td></tr>
+            <tr><td><strong>Netflix Conductor</strong></td><td>Orchestrated workflows over messaging</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+  <script src="layer-utils.js"></script>
+</body>
+</html>

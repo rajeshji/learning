@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dependency Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#b45309; border-bottom-color:#b45309; }
+    .tab-btn:hover:not(.active) { color:#78350f; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fffbeb; border:1px solid #fde68a; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#b45309; margin-bottom:.6rem; }
+    .ncode{ background:#1c1107; color:#fcd34d; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fde68a; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#78350f; color:#fde68a; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #fef3c7;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fffbeb; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#5b21b6; font-size:.71rem; }
+    .cat-hdr td { background:#b45309; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#78350f; color:#fde68a; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #fef3c7; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-amber-700 hover:text-amber-900 font-semibold
+              bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-amber-800 font-semibold">Dependency Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101
+             m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Dependency Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 7 categories · 34 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- ══════════ TAB 1 — TABLE ══════════ -->
+  <div id="tab-table" class="tab-pane active pb-16">
+
+    <div class="nc mb-4">
+      <p class="nh">Why Dependency Failures Are the Most Dangerous</p>
+      <div class="ncode">Your system can fail even when your own service is perfectly healthy.
+
+Modern services depend on:
+  databases | caches | queues | third-party APIs
+  microservices | service discovery | auth systems
+
+7 root causes:
+  unavailable | slow | overloaded | inconsistent
+  incompatible | communication failure | cascading failure</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Dependency Unavailable and Down Failures</td></tr>
+          <tr>
+            <td>Database Down<span class="badge-crit">Must Know</span></td>
+            <td>DB process crash, failover not completing, storage failure</td>
+            <td>Connection failures, DB health check alerts</td>
+            <td>Failover to replica, circuit breaker to stop calls</td>
+            <td>HA DB clusters, automatic failover, read replicas</td>
+            <td class="casc">Entire service unavailable — every request that needs DB fails</td>
+            <td class="troff">Replication increases cost and adds write latency</td>
+          </tr>
+          <tr>
+            <td>Cache Unavailable<span class="badge-crit">Must Know</span></td>
+            <td>Redis/Memcached crash, network partition to cache</td>
+            <td>Cache connection errors, miss rate spike</td>
+            <td>Fallback to DB for all reads, rate limit to protect DB</td>
+            <td>Cache replication, multi-AZ cache cluster</td>
+            <td class="casc">All cache misses hit DB simultaneously → DB overload</td>
+            <td class="troff">Cache replication adds cost and synchronization overhead</td>
+          </tr>
+          <tr>
+            <td>Queue / Broker Down</td>
+            <td>Kafka/RabbitMQ broker crash or network partition</td>
+            <td>Consumer lag stops updating, broker health alerts</td>
+            <td>Retry/reconnect producers and consumers, failover broker</td>
+            <td>Multi-broker cluster, partition replication</td>
+            <td class="casc">Event pipeline stops — no events processed, backlog builds</td>
+            <td class="troff">Multi-broker replication adds latency per write</td>
+          </tr>
+          <tr>
+            <td>Microservice Down<span class="badge-crit">Must Know</span></td>
+            <td>Service crash, bad deployment, OOM, CrashLoop</td>
+            <td>5xx rate spike, health check failure on that service</td>
+            <td>Circuit breaker + fallback response or degraded mode</td>
+            <td>Multiple replicas, canary deployments, health checks</td>
+            <td class="casc">Downstream service chain fails — all callers of that service fail</td>
+            <td class="troff">Fallback may return stale or reduced-quality response</td>
+          </tr>
+          <tr>
+            <td>Third-Party API Down<span class="badge-crit">Must Know</span></td>
+            <td>External provider outage — payment, SMS, email, maps</td>
+            <td>External API timeout/error rate spike</td>
+            <td>Fallback provider, degraded mode (queue for later)</td>
+            <td>Multi-provider strategy, cache recent responses</td>
+            <td class="casc">Payment / notification failures → user-visible product failures</td>
+            <td class="troff">Multiple providers cost more and add switching complexity</td>
+          </tr>
+          <tr>
+            <td>Service Discovery Down</td>
+            <td>Consul/etcd/Zookeeper unavailable or returning stale data</td>
+            <td>Service lookup failures, connection errors to healthy services</td>
+            <td>Use cached service endpoints as fallback</td>
+            <td>Replicated registry (etcd HA), client-side endpoint caching</td>
+            <td class="casc">Services cannot locate each other → system-wide communication failure</td>
+            <td class="troff">Registry replication adds consistency complexity</td>
+          </tr>
+          <tr>
+            <td>Auth Service Down</td>
+            <td>OAuth server, JWT validator, or IAM service unavailable</td>
+            <td>Login/auth failures, 401/403 surge across all services</td>
+            <td>Cached token validation, short-lived degraded mode</td>
+            <td>HA auth infrastructure, local token validation</td>
+            <td class="casc">Entire platform inaccessible — no request can be authorized</td>
+            <td class="troff">Cached token validation is a security risk if tokens revoked</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Slow Dependency and Latency Failures</td></tr>
+          <tr>
+            <td>Slow Database Queries<span class="badge-crit">Must Know</span></td>
+            <td>Missing index, full table scan, expensive join under load</td>
+            <td>Query latency metrics, slow query log</td>
+            <td>Cache results, optimise query, read from replica</td>
+            <td>Proper indexing, query explain analysis, query timeout</td>
+            <td class="casc">Thread pool exhaustion — all callers wait → full service slowdown</td>
+            <td class="troff">Indexes increase storage cost and write overhead</td>
+          </tr>
+          <tr>
+            <td>Slow Cache Response</td>
+            <td>Cache cluster overloaded, network congestion to cache node</td>
+            <td>Cache latency spike, P99 increase on cache calls</td>
+            <td>Timeout and fallback to DB, local in-memory mini-cache</td>
+            <td>Better cache key distribution, cache cluster partitioning</td>
+            <td class="casc">Request queue builds → DB also hit → double slowdown</td>
+            <td class="troff">DB fallback under cache slowness can overload DB</td>
+          </tr>
+          <tr>
+            <td>Slow External API<span class="badge-crit">Must Know</span></td>
+            <td>Third-party provider network issue or high load on their end</td>
+            <td>External API latency monitoring, P95/P99 increase</td>
+            <td>Timeout + async retry, degrade gracefully without response</td>
+            <td>Caching recent responses, async processing for non-critical</td>
+            <td class="casc">Retry storm — clients retry slow calls → amplify external traffic</td>
+            <td class="troff">Short timeouts may abort calls that would have succeeded</td>
+          </tr>
+          <tr>
+            <td>Slow Internal Microservice</td>
+            <td>High CPU or load in a dependency service, GC pause</td>
+            <td>P95/P99 increase on calls to that service</td>
+            <td>Circuit breaker, load shedding on that service</td>
+            <td>Autoscaling, SLO-based alerting, async where possible</td>
+            <td class="casc">Cascading latency — every caller slows → retry storm → overload</td>
+            <td class="troff">More replicas increase cost</td>
+          </tr>
+          <tr>
+            <td>Slow Queue Consumption</td>
+            <td>Consumers overloaded, slow message processing logic</td>
+            <td>Consumer lag metrics increasing, throughput drop</td>
+            <td>Scale consumers, increase parallelism, reduce processing time</td>
+            <td>Backpressure on producers, consumer autoscaling</td>
+            <td class="casc">Event processing delay → downstream state lags → stale reads</td>
+            <td class="troff">Larger consumer pools increase cost and coordination overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Dependency Timeout and Retry Failures</td></tr>
+          <tr>
+            <td>Dependency Timeout<span class="badge-crit">Must Know</span></td>
+            <td>Dependency too slow to respond within configured timeout</td>
+            <td>Timeout metric spike, P99 latency increase</td>
+            <td>Timeout + fail fast + circuit breaker</td>
+            <td>Proper timeout tuning, async non-blocking calls</td>
+            <td class="casc">Threads held open → thread pool exhaustion → all requests fail</td>
+            <td class="troff">Short timeouts may abort valid slow-but-correct requests</td>
+          </tr>
+          <tr>
+            <td>Retry Storm<span class="badge-crit">Must Know</span></td>
+            <td>Clients retry failed/slow dependency calls without backoff</td>
+            <td>Dependency receives 2-10× normal traffic from retries</td>
+            <td>Exponential backoff + jitter, circuit breaker</td>
+            <td>Retry budgets, backoff policies, retry caps</td>
+            <td class="casc">Dependency collapses from amplified retry traffic</td>
+            <td class="troff">Fewer retries reduce resilience for transient failures</td>
+          </tr>
+          <tr>
+            <td>Infinite Retry Loop</td>
+            <td>No retry limit — client retries forever on permanent failure</td>
+            <td>Endless retry logs, dependency never gets to recover</td>
+            <td>Circuit breaker opens after threshold, retry cap</td>
+            <td>Safe retry policies — always cap retries, add DLQ</td>
+            <td class="casc">Queue explosion, dependency never recovers under constant retries</td>
+            <td class="troff">Retry cap may permanently lose requests that would have succeeded</td>
+          </tr>
+          <tr>
+            <td>Blocking Synchronous Dependency</td>
+            <td>Service makes sync call — blocks thread waiting on slow dependency</td>
+            <td>Long request duration, thread pool queue depth increasing</td>
+            <td>Add async processing, use timeout + fail fast</td>
+            <td>Event-driven architecture, async non-blocking IO</td>
+            <td class="casc">Full request chain slows — all callers hold threads waiting</td>
+            <td class="troff">Async systems are harder to reason about and trace</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Dependency Overload Failures</td></tr>
+          <tr>
+            <td>Database Overload<span class="badge-crit">Must Know</span></td>
+            <td>Too many concurrent queries, connection storm, batch job running</td>
+            <td>DB CPU/QPS spike, slow query count increasing</td>
+            <td>Read replicas, query throttling, cache hot paths</td>
+            <td>Read/write separation, sharding, caching, query limits</td>
+            <td class="casc">Entire application slows → latency cascade → retries → worse</td>
+            <td class="troff">Read replicas can have consistency lag</td>
+          </tr>
+          <tr>
+            <td>Cache Overload</td>
+            <td>Too many keys, hot partition, too many requests to cache cluster</td>
+            <td>Cache CPU/memory saturation, eviction rate spike</td>
+            <td>Scale cache cluster, rebalance hot keys</td>
+            <td>Better key distribution, cache partitioning, local L1 cache</td>
+            <td class="casc">Cache eviction storm → miss rate spike → DB overloaded</td>
+            <td class="troff">Larger cache cluster costs significantly more</td>
+          </tr>
+          <tr>
+            <td>Queue Saturation</td>
+            <td>Producers send faster than consumers can process indefinitely</td>
+            <td>Queue lag growing unboundedly, broker memory pressure</td>
+            <td>Scale consumers, drop low-priority messages, DLQ</td>
+            <td>Backpressure on producers, consumer autoscaling</td>
+            <td class="casc">Processing delay cascade → broker memory exhaustion → crash</td>
+            <td class="troff">More consumers increase cost and coordination overhead</td>
+          </tr>
+          <tr>
+            <td>API Rate Limit Exceeded</td>
+            <td>Service makes too many calls to external API in short window</td>
+            <td>429 responses from external API, feature degradation</td>
+            <td>Local rate limiting, request batching, cache responses</td>
+            <td>Request batching, caching, respect rate limits</td>
+            <td class="casc">External API lockout → feature completely unavailable</td>
+            <td class="troff">Throttling reduces throughput — some requests are dropped</td>
+          </tr>
+          <tr>
+            <td>Service Mesh Overload</td>
+            <td>Sidecar proxy (Envoy/Linkerd) CPU-saturated under high inter-service traffic</td>
+            <td>Sidecar CPU spike, inter-service latency explosion</td>
+            <td>Bypass mesh for heavy internal traffic, scale sidecars</td>
+            <td>Capacity planning for mesh overhead, tune sidecar limits</td>
+            <td class="casc">Inter-service latency explodes → entire microservice layer slows</td>
+            <td class="troff">Bypassing mesh reduces observability and security controls</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Dependency Inconsistency and Data Failures</td></tr>
+          <tr>
+            <td>Stale Cache Data<span class="badge-crit">Must Know</span></td>
+            <td>Cache not invalidated after DB update — old value served</td>
+            <td>Cache value differs from DB value, user complaints</td>
+            <td>Invalidate cache on write, force cache refresh</td>
+            <td>Write-through cache, short TTL, CDC-based invalidation</td>
+            <td class="casc">Wrong data served at scale — wrong prices, balances, inventory</td>
+            <td class="troff">Aggressive invalidation increases cache miss rate and DB load</td>
+          </tr>
+          <tr>
+            <td>Replica Lag</td>
+            <td>Follower replica falls behind leader — replication slow or paused</td>
+            <td>Replica lag metrics in seconds, stale read user complaints</td>
+            <td>Route critical reads to primary/leader</td>
+            <td>Tune replication pipeline, bounded staleness reads</td>
+            <td class="casc">Stale reads propagate → wrong business decisions at scale</td>
+            <td class="troff">Reading from primary reduces read scalability benefits</td>
+          </tr>
+          <tr>
+            <td>Incorrect API Response</td>
+            <td>Provider bug, data corruption, silent serialization error</td>
+            <td>Response validation failures, anomalous data in output</td>
+            <td>Reject and fallback to default/cached value</td>
+            <td>Response schema validation, checksums on critical data</td>
+            <td class="casc">Corrupted data propagates to all downstream consumers</td>
+            <td class="troff">Validation adds per-request latency overhead</td>
+          </tr>
+          <tr>
+            <td>Out-of-Sync Services</td>
+            <td>Eventual consistency lag — services have different view of state</td>
+            <td>Reconciliation job finds mismatched state across services</td>
+            <td>Re-sync via event replay or reconciliation</td>
+            <td>Outbox pattern, CDC, stronger consistency guarantees</td>
+            <td class="casc">Cross-service inconsistency → wrong business logic applied</td>
+            <td class="troff">Stronger consistency reduces availability during failures</td>
+          </tr>
+          <tr>
+            <td>Duplicate Events From Dependency</td>
+            <td>Broker retry or redelivery sends same event more than once</td>
+            <td>Duplicate IDs, repeated side effects in consumer logs</td>
+            <td>Consumer-side deduplication by event ID</td>
+            <td>Idempotent consumers, exactly-once semantics</td>
+            <td class="casc">Double processing — double charges, double orders</td>
+            <td class="troff">Deduplication store adds storage and lookup overhead</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Dependency Compatibility and Contract Failures</td></tr>
+          <tr>
+            <td>API Contract Mismatch<span class="badge-crit">Must Know</span></td>
+            <td>Dependency deploys breaking API change — field removed/renamed</td>
+            <td>Serialization/parsing errors, unexpected null fields</td>
+            <td>Rollback dependency, version routing fallback</td>
+            <td>Backward-compatible API design, contract testing in CI</td>
+            <td class="casc">Multi-service failure — all callers of that API break simultaneously</td>
+            <td class="troff">Supporting multiple API versions adds maintenance complexity</td>
+          </tr>
+          <tr>
+            <td>Schema Evolution Failure</td>
+            <td>Producer publishes new schema — consumer cannot deserialize</td>
+            <td>Consumer decode failures, pipeline errors</td>
+            <td>Schema version routing, rollback producer schema</td>
+            <td>Schema registry (Confluent), backward-compatible evolution</td>
+            <td class="casc">Entire event pipeline breaks — all consumers error out</td>
+            <td class="troff">Slower expand-contract migrations delay feature delivery</td>
+          </tr>
+          <tr>
+            <td>Auth Token Mismatch</td>
+            <td>Expired token, wrong signing key, token not yet propagated</td>
+            <td>Auth failures (401/403), service-to-service call rejections</td>
+            <td>Token refresh, re-authenticate, retry with new token</td>
+            <td>Automated token rotation, proactive token refresh before expiry</td>
+            <td class="casc">Cross-service auth failure — entire mesh of service calls fails</td>
+            <td class="troff">Token automation adds operational complexity</td>
+          </tr>
+          <tr>
+            <td>Protocol Version Mismatch</td>
+            <td>gRPC/HTTP/TLS protocol version incompatibility after upgrade</td>
+            <td>Connection failures, protocol handshake errors in logs</td>
+            <td>Version negotiation, rollback to compatible version</td>
+            <td>Compatibility testing before upgrades, canary rollout</td>
+            <td class="casc">All inter-service communication fails simultaneously</td>
+            <td class="troff">Multi-protocol support adds client/server complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Dependency Communication Failures</td></tr>
+          <tr>
+            <td>Service Discovery Failure<span class="badge-crit">Must Know</span></td>
+            <td>Registry unavailable or returning stale/incorrect endpoints</td>
+            <td>Lookup failures, connection errors to healthy services</td>
+            <td>Cached endpoints fallback, hardcoded emergency endpoints</td>
+            <td>HA registry (etcd/Consul), client-side endpoint caching</td>
+            <td class="casc">Services cannot locate each other → system-wide comms failure</td>
+            <td class="troff">Cached endpoints risk routing to stale/dead instances</td>
+          </tr>
+          <tr>
+            <td>DNS Failure to Dependency</td>
+            <td>DNS outage — service cannot resolve dependency hostname</td>
+            <td>DNS resolution errors, connection failures on dep calls</td>
+            <td>Retry alternate DNS resolver, use IP fallback</td>
+            <td>Multi-DNS providers, client-side DNS caching</td>
+            <td class="casc">Dependency entirely inaccessible even though it is healthy</td>
+            <td class="troff">Cached DNS can route to stale IPs after failover</td>
+          </tr>
+          <tr>
+            <td>Cross-Region Dependency Failure</td>
+            <td>WAN link failure, cloud provider inter-region outage</td>
+            <td>Regional traffic errors, high cross-region latency</td>
+            <td>Failover to same-region dependency replica</td>
+            <td>Multi-region active-active, local replicas per region</td>
+            <td class="casc">Global service degradation — entire region cannot call dependency</td>
+            <td class="troff">Cross-region replication adds cost and consistency complexity</td>
+          </tr>
+          <tr>
+            <td>Network Partition to Dependency</td>
+            <td>Partial network failure — service cannot reach dependency</td>
+            <td>Timeout spike on dependency calls, no DNS/connection error</td>
+            <td>Retry with alternate endpoint, circuit breaker</td>
+            <td>Redundant network paths, multi-AZ deployment</td>
+            <td class="casc">Dependency isolation → callers fail → cascade up the call chain</td>
+            <td class="troff">Network redundancy adds significant infrastructure cost</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Dependency Failures for Interviews</p>
+      <div class="ncode"> 1. DB down              → HA cluster + automatic failover + circuit breaker
+ 2. Cache unavailable    → fallback to DB + rate limit to protect DB
+ 3. Microservice down    → circuit breaker + fallback + redundant replicas
+ 4. 3rd-party API down   → fallback provider + cache responses + degrade gracefully
+ 5. Slow DB query        → index + cache + query timeout
+ 6. Slow external API    → timeout + async + cache recent responses
+ 7. Dependency timeout   → fail fast + circuit breaker + thread pool guard
+ 8. Retry storm          → backoff + jitter + circuit breaker + retry cap
+ 9. API contract mismatch → backward-compatible APIs + contract tests + canary
+10. Stale cache data      → write-through + short TTL + CDC invalidation</div>
+    </div>
+
+  </div><!-- /tab-table -->
+
+  <!-- ══════════ TAB 2 — STAFF INSIGHTS ══════════ -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Dependency Thinking — 7 Questions to Ask Always</p>
+      <div class="ncode">1. Is dependency DOWN or just SLOW?
+   → down: circuit breaker + fallback
+   → slow: timeout + async + fail fast
+
+2. Is dependency CRITICAL or OPTIONAL?
+   → critical: HA + redundancy + fallback
+   → optional: degrade gracefully, return default
+
+3. Can FALLBACK / DEGRADED MODE work?
+   → cached data? default value? queue for later?
+
+4. Will RETRIES AMPLIFY the failure?
+   → circuit breaker? jitter? retry cap?
+
+5. Can failures be ISOLATED?
+   → bulkhead: separate thread pools per dependency
+
+6. Is dependency STATE CONSISTENT?
+   → stale cache? replica lag? duplicate events?
+
+7. Can dependency OVERLOAD spread system-wide?
+   → DB overload → application slow → retries → worse</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Dependency Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Slow DB</td><td>Threads held open → thread pool exhausts → all requests fail</td></tr>
+          <tr><td>Cache down</td><td>All requests hit DB → DB overload → DB slowdown → cascade</td></tr>
+          <tr><td>Retry storm</td><td>Dependency receives amplified traffic → collapses → harder to recover</td></tr>
+          <tr><td>Slow external API</td><td>Threads blocked waiting → queue builds → service unavailable</td></tr>
+          <tr><td>Discovery failure</td><td>Services cannot locate each other → entire cluster unreachable</td></tr>
+          <tr><td>Replica lag</td><td>Stale reads at scale → wrong business decisions made across system</td></tr>
+          <tr><td>Contract mismatch</td><td>All callers of updated API break simultaneously</td></tr>
+          <tr><td>Queue overload</td><td>Event processing collapses → downstream state diverges</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Down vs Slow — Why Slow Dependencies Are Most Dangerous</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-amber-700 mb-2">Dependency Down (Obvious)</p>
+          <ul class="text-xs text-amber-800 space-y-1 list-disc pl-4">
+            <li>Connection refused immediately</li>
+            <li>Circuit breaker opens fast</li>
+            <li>Fallback triggers promptly</li>
+            <li>Impact: fast and bounded</li>
+          </ul>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+          <p class="text-xs font-bold text-red-700 mb-2">Dependency Slow (Most Dangerous)</p>
+          <ul class="text-xs text-red-800 space-y-1 list-disc pl-4">
+            <li>Dependency responds — just slowly</li>
+            <li>Health checks still pass</li>
+            <li>Caller threads queue up silently</li>
+            <li>Thread pool fills gradually</li>
+            <li>Retries multiply the load</li>
+            <li>Full outage by the time anyone notices</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Dependency Failures Reduce to 6 States</p>
+      <div class="ncode">1. Unavailable   → dep is down: circuit breaker + fallback
+2. Slow          → dep is late: timeout + fail fast + async
+3. Overloaded    → dep is overwhelmed: rate limit + cache + backpressure
+4. Inconsistent  → dep returns stale/wrong data: validate + invalidate
+5. Incompatible  → dep changed contract: versioning + contract tests
+6. Unreachable   → dep is healthy but can't be found: DNS + discovery + retry
+
+Slow dependencies are most dangerous because they silently cause:
+  thread exhaustion → retry amplification → queue buildup → cascade</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#1c1107;border:1px solid #78350f;">
+      <p class="text-xs font-bold text-amber-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-amber-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-amber-200">Down or Slow?</p>
+          <p class="text-xs text-amber-400 mt-0.5">Breaker + fallback vs timeout</p>
+        </div>
+        <div class="bg-amber-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-amber-200">Critical or Optional?</p>
+          <p class="text-xs text-amber-400 mt-0.5">HA + fallback vs degrade</p>
+        </div>
+        <div class="bg-amber-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-amber-200">Retry Risk?</p>
+          <p class="text-xs text-amber-400 mt-0.5">Breaker + jitter + cap</p>
+        </div>
+        <div class="bg-amber-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-amber-200">Consistent?</p>
+          <p class="text-xs text-amber-400 mt-0.5">Validate + invalidate + sync</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

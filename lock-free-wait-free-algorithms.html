@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lock-Free &amp; Wait-Free Algorithms — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Lock-Free &amp; Wait-Free Algorithms</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Lock-Free &amp; Wait-Free Algorithms</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Non-Blocking Concurrency, CAS, ABA, Hazard Pointers &amp; Memory Reclamation</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- ═══════════════════ TEXT TAB ═══════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">THE BIG PICTURE</div>
+      <div class="nh">🌍 The Complete Story</div>
+      <p class="text-gray-700 mb-3">Instead of learning <strong>mutexes, CAS, atomic operations, memory ordering, ABA problem, hazard pointers, epoch-based reclamation, lock-free queues,</strong> and <strong>wait-free algorithms</strong> separately, this page explains <strong>how modern concurrent systems achieve scalability without blocking, how CPUs enable atomic synchronization, and when Staff Engineers should choose lock-free or wait-free designs.</strong></p>
+
+      <p class="font-semibold text-violet-700 mb-2">Traditional synchronization uses locks:</p>
+      <div class="ncode">Thread A → Acquire Lock → Critical Section → Release Lock
+
+While one thread owns the lock, every other thread WAITS.
+As CPU cores increase, locks become the scalability bottleneck.</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-2">Modern systems use atomic CPU instructions instead:</p>
+      <div class="ncode">Multiple Threads → Atomic Operations (CAS / FAA / LL-SC) → No Blocking → High Parallelism</div>
+
+      <p class="text-gray-700 mt-3">This is the foundation of <strong>Lock-Free</strong> and <strong>Wait-Free</strong> algorithms.</p>
+    </div>
+
+    <!-- Why Lock-Free -->
+    <div class="nc">
+      <div class="section-badge">WHY IT EXISTS</div>
+      <div class="nh">Why Lock-Free Algorithms Exist</div>
+      <p class="text-gray-700 mb-3">Locks introduce several problems that compound at scale:</p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+        <div style="background:#faf5ff;border:1px solid #ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;margin-bottom:4px;">⏸️</div>
+          <div class="font-semibold text-violet-700 text-sm">Blocking</div>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;margin-bottom:4px;">🔄</div>
+          <div class="font-semibold text-violet-700 text-sm">Context Switches</div>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;margin-bottom:4px;">💀</div>
+          <div class="font-semibold text-violet-700 text-sm">Deadlocks</div>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;margin-bottom:4px;">⬆️</div>
+          <div class="font-semibold text-violet-700 text-sm">Priority Inversion</div>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;margin-bottom:4px;">🔥</div>
+          <div class="font-semibold text-violet-700 text-sm">Lock Contention</div>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #ede9fe;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;margin-bottom:4px;">📉</div>
+          <div class="font-semibold text-violet-700 text-sm">Poor Scalability</div>
+        </div>
+      </div>
+      <p class="text-gray-700">Instead of sleeping, threads <strong>repeatedly attempt atomic updates</strong>. No thread ever blocks inside the operating system.</p>
+    </div>
+
+    <!-- Progress Guarantees -->
+    <div class="nc">
+      <div class="section-badge">CORE CONCEPT</div>
+      <div class="nh">Concurrency Progress Guarantees</div>
+      <p class="text-gray-700 mb-3">Concurrency algorithms are classified by <strong>how much progress they guarantee</strong>. Guarantees become stronger going downward:</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Type</th><th>Progress Guarantee</th><th>Blocking?</th><th>Deadlock?</th><th>Starvation?</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Blocking (Lock-Based)</strong></td><td>No guarantee</td><td>Yes</td><td>Possible</td><td>Possible</td></tr>
+          <tr><td><strong>Obstruction-Free</strong></td><td>One isolated thread progresses</td><td>No</td><td>No</td><td>Possible</td></tr>
+          <tr><td><strong>Lock-Free</strong></td><td>Some thread always progresses</td><td>No</td><td>No</td><td>Possible</td></tr>
+          <tr><td><strong>Wait-Free</strong></td><td>Every thread progresses in bounded steps</td><td>No</td><td>No</td><td>No</td></tr>
+        </tbody>
+      </table>
+
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Lock-Based</th><th>Lock-Free</th><th>Wait-Free</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Blocking</strong></td><td>Yes</td><td>No</td><td>No</td></tr>
+          <tr><td><strong>Deadlock</strong></td><td>Possible</td><td>Impossible</td><td>Impossible</td></tr>
+          <tr><td><strong>Starvation</strong></td><td>Possible</td><td>Possible</td><td>Impossible</td></tr>
+          <tr><td><strong>Progress</strong></td><td>None guaranteed</td><td>System-wide</td><td>Per-thread</td></tr>
+          <tr><td><strong>Complexity</strong></td><td>Low</td><td>High</td><td>Very High</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Lock-Free -->
+    <div class="nc">
+      <div class="section-badge">LOCK-FREE</div>
+      <div class="nh">Lock-Free Algorithm — How It Works</div>
+      <div class="nq">"At least one thread always completes its operation. Even if another thread pauses or crashes, the system keeps making progress."</div>
+      <p class="text-gray-700 mb-3">Threads compete using CAS. If Thread A's CAS succeeds, Thread B retries. Eventually someone always succeeds — the system never stops.</p>
+      <div class="ncode">// Lock-free CAS retry pattern
+while (true) {
+    int current = atomic.load(acquire);    // read current value
+    int desired = compute(current);        // calculate new value
+    if (atomic.CAS(current, desired)) {    // try atomically
+        break;                             // SUCCESS — done
+    }
+    // CAS failed — someone else changed it — retry
+}
+
+// Key insight:
+// Thread A wins CAS → completes
+// Thread B loses CAS → retries from fresh read
+// At least ONE thread always makes progress per round</div>
+    </div>
+
+    <!-- Wait-Free -->
+    <div class="nc">
+      <div class="section-badge">WAIT-FREE</div>
+      <div class="nh">Wait-Free Algorithm — Guaranteed Progress</div>
+      <div class="nq">"Every thread completes within a bounded number of steps — no retries forever, no starvation, every thread eventually succeeds."</div>
+      <p class="text-gray-700 mb-3">Wait-free is harder to implement. Instead of retry loops, algorithms use helping mechanisms where threads help each other complete.</p>
+      <div class="ncode">// Wait-Free Counter — simplest example
+// Each thread writes to its OWN cell — no contention, no retry
+struct WaitFreeCounter {
+    long cells[MAX_THREADS];   // one cell per thread
+
+    void increment(int thread_id) {
+        cells[thread_id]++;    // always succeeds in O(1) — wait-free!
+    }
+
+    long sum() {
+        long total = 0;
+        for (int i = 0; i < MAX_THREADS; i++)
+            total += cells[i];
+        return total;
+    }
+}
+// Java equivalent: LongAdder
+// Every increment finishes immediately — truly wait-free</div>
+    </div>
+
+    <!-- Atomic CPU Instructions -->
+    <div class="nc">
+      <div class="section-badge">HARDWARE FOUNDATION</div>
+      <div class="nh">Atomic CPU Instructions</div>
+      <p class="text-gray-700 mb-3">Lock-free algorithms rely on hardware support. Without these instructions, lock-free algorithms are impossible:</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Instruction</th><th>Purpose</th><th>x86</th><th>ARM</th></tr></thead>
+        <tbody>
+          <tr><td><strong>CAS (Compare-And-Swap)</strong></td><td>Replace value only if unchanged</td><td><code>LOCK CMPXCHG</code></td><td><code>LDREX/STREX</code> loop</td></tr>
+          <tr><td><strong>FAA (Fetch-And-Add)</strong></td><td>Atomic increment, returns old value</td><td><code>LOCK XADD</code></td><td><code>LDADD</code> (ARMv8.1)</td></tr>
+          <tr><td><strong>LL/SC</strong></td><td>Load-Linked / Store-Conditional</td><td>N/A (simulated)</td><td>Native</td></tr>
+          <tr><td><strong>Atomic Exchange</strong></td><td>Swap values atomically</td><td><code>LOCK XCHG</code></td><td><code>SWP</code></td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">CAS — Most Important Primitive</p>
+      <div class="ncode">// CAS flow:
+// 1. Read current value from memory
+// 2. Compare with expected
+// 3. If equal → write new value atomically → return SUCCESS
+// 4. If not equal → do nothing → return FAILURE → caller retries
+
+bool CAS(int* addr, int expected, int new_val) {
+    atomic {
+        if (*addr == expected) { *addr = new_val; return true; }
+        return false;
+    }
+}
+
+// CAS Retry Loop:
+int current = read();
+do {
+    int desired = current + 1;
+} while (!CAS(&value, current, desired));  // retry until success</div>
+    </div>
+
+    <!-- Lock-Free Data Structures -->
+    <div class="nc">
+      <div class="section-badge">DATA STRUCTURES</div>
+      <div class="nh">Lock-Free Data Structures</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Lock-Free Queue (Michael-Scott Queue)</p>
+      <div class="ncode">// Producer: CAS on tail
+// Consumer: CAS on head
+// Both operate simultaneously — no mutex needed
+
+Producer                Consumer
+   ↓                       ↓
+CAS Tail               CAS Head
+   ↓                       ↓
+ Queue  ←─────────────→  Queue
+   ↓                       ↓
+Enqueue                 Dequeue
+
+// Java: ConcurrentLinkedQueue uses this algorithm
+// Multiple producers AND consumers can operate concurrently</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Lock-Free Stack (Treiber Stack)</p>
+      <div class="ncode">void push(Node* n) {
+    do {
+        n->next = head.load(relaxed);
+    } while (!head.CAS(n->next, n, release, relaxed));
+}
+
+Node* pop() {
+    Node* old_head;
+    do {
+        old_head = head.load(acquire);
+        if (!old_head) return nullptr;
+    } while (!head.CAS(old_head, old_head->next, release, relaxed));
+    return old_head;
+}
+// Warning: ABA problem — safe memory reclamation required</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Sequence Lock (Seqlock) — Linux timekeeping</p>
+      <div class="ncode">// Writers increment sequence counter (odd = writing, even = done)
+// Readers retry if they see an odd sequence
+// Readers NEVER block — writers use atomic counter, not mutex
+
+void write(int val) {
+    seq.fetch_add(1, release);  // mark start (odd)
+    data = val;
+    seq.fetch_add(1, release);  // mark end (even)
+}
+
+int read() {
+    int s1, val, s2;
+    do {
+        s1 = seq.load(acquire);       // read seq
+        if (s1 & 1) continue;         // writer active — retry
+        val = data;
+        s2 = seq.load(acquire);
+    } while (s1 != s2);               // retry if changed mid-read
+    return val;
+}</div>
+    </div>
+
+    <!-- ABA Problem -->
+    <div class="nc">
+      <div class="section-badge">CRITICAL FAILURE MODE</div>
+      <div class="nh">The ABA Problem</div>
+      <div class="nc-warn">
+        <div class="nh-warn">⚠️ Most Dangerous Lock-Free Bug</div>
+        <p class="text-gray-700 text-sm">CAS sees same value after A→B→A transition. Although the pointer appears unchanged, the object changed underneath — CAS succeeds incorrectly, corrupting state.</p>
+      </div>
+      <div class="ncode">// Lock-Free Stack — ABA Scenario:
+Initial:   head → A → B → C
+
+Thread 1 reads head = A  (plans to CAS head: A → B)
+Thread 1 is preempted...
+
+Thread 2:  pop A  → head = B → C
+Thread 2:  pop B  → head = C
+Thread 2:  push A → head = A → C  ← A is back!
+
+Thread 1 resumes:
+  CAS(head, A, B) → SUCCEEDS (head still looks like A)
+  But B was freed! head now points to freed memory → CRASH 💥</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-2">ABA Solutions:</p>
+      <table class="nt">
+        <thead><tr><th>Solution</th><th>How It Works</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Stamped Reference</strong></td><td>CAS on (pointer, version) — Thread 1's (A, ver=1) fails when Thread 2 pushes (A, ver=2)</td><td>Low</td></tr>
+          <tr><td><strong>Hazard Pointers</strong></td><td>Thread announces which node it's using — prevents freeing until all hazard pointers clear</td><td>Medium</td></tr>
+          <tr><td><strong>Epoch-Based Reclamation</strong></td><td>Defer freeing until all threads advance past the epoch where deletion occurred</td><td>Low overhead</td></tr>
+          <tr><td><strong>LL/SC (ARM)</strong></td><td>STREX fails if ANY write occurred since LDREX — naturally catches A→B→A</td><td>Hardware</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Memory Reclamation -->
+    <div class="nc">
+      <div class="section-badge">MEMORY RECLAMATION</div>
+      <div class="nh">Safe Memory Reclamation</div>
+      <p class="text-gray-700 mb-3">Removing a node is easy. <strong>Freeing it safely is hard</strong> — another thread may still be reading it.</p>
+
+      <p class="font-semibold text-violet-700 mb-1">Hazard Pointers</p>
+      <div class="ncode">// Each thread publishes which node it's currently reading
+// Deleter checks all hazard pointers before freeing
+
+Thread A:  hp[A] = node;       // announce "I'm reading node"
+           use(node);
+           hp[A] = nullptr;    // done with node
+
+Thread B:  retired.add(node);  // wants to free node
+           for each hp in all_hazard_pointers:
+               if hp == node: skip  // Thread A still using it
+           // safe to free only when no hazard pointer references it</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Epoch-Based Reclamation (EBR)</p>
+      <div class="ncode">// Track time using global epochs (0, 1, 2, ...)
+// When all threads advance past epoch N, nodes retired in epoch N are safe to free
+
+Thread:  enter_epoch(current_epoch);
+         use(node);
+         exit_epoch();
+
+Garbage Collector:
+         if all_threads.epoch > retired_epoch:
+             free(node);   // safe — no thread can see epoch N nodes anymore
+
+// Much lower overhead than hazard pointers
+// Used in: crossbeam-epoch (Rust), Folly, many lock-free libraries</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Read-Copy-Update (RCU) — Linux Kernel</p>
+      <div class="ncode">// Writers create new version, atomically swap pointer, then wait for readers
+// Readers: always see consistent version, NEVER block
+
+Reader:                       Writer:
+rcu_read_lock();              new_val = copy(old_val);
+ptr = rcu_dereference(p);     modify(new_val);
+use(ptr);                     rcu_assign_pointer(p, new_val);
+rcu_read_unlock();            synchronize_rcu();  // wait for readers
+                              free(old_val);
+
+// Linux uses RCU for: routing tables, network stacks, task lists
+// Readers have ZERO overhead — no lock, no atomic, just a read barrier</div>
+    </div>
+
+    <!-- Performance -->
+    <div class="nc">
+      <div class="section-badge">PERFORMANCE</div>
+      <div class="nh">Performance Comparison</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Metric</th><th>Lock-Based</th><th>Lock-Free</th><th>Wait-Free</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Throughput</strong></td><td>Medium</td><td>High</td><td>High</td></tr>
+          <tr><td><strong>Latency</strong></td><td>Variable (OS scheduling)</td><td>Low avg, spikes on retry</td><td>Predictable bounded</td></tr>
+          <tr><td><strong>Context Switches</strong></td><td>High (blocked threads)</td><td>None</td><td>None</td></tr>
+          <tr><td><strong>Deadlocks</strong></td><td>Possible</td><td>No</td><td>No</td></tr>
+          <tr><td><strong>Complexity</strong></td><td>Low</td><td>High</td><td>Very High</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip"><strong>Key numbers (10M increments, 16 threads):</strong> <code>synchronized { count++ }</code> ≈ 800ms &nbsp;|&nbsp; <code>AtomicLong.incrementAndGet()</code> ≈ 400ms &nbsp;|&nbsp; <code>LongAdder.increment()</code> ≈ 80ms (10× faster)</div>
+    </div>
+
+    <!-- Real-World -->
+    <div class="nc">
+      <div class="section-badge">REAL-WORLD EXAMPLES</div>
+      <div class="nh">Where Lock-Free Is Used in Production</div>
+      <table class="nt">
+        <thead><tr><th>System</th><th>What</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Linux Kernel</strong></td><td>RCU, per-CPU variables, lock-free lists</td><td>Millions of concurrent reads — locks would serialize everything</td></tr>
+          <tr><td><strong>Java JDK</strong></td><td><code>ConcurrentLinkedQueue</code>, <code>AtomicInteger</code>, <code>LongAdder</code></td><td>High-throughput concurrent data structures without lock overhead</td></tr>
+          <tr><td><strong>Go Runtime</strong></td><td>Scheduler, work-stealing, GC</td><td>Atomic state transitions for goroutine scheduling</td></tr>
+          <tr><td><strong>Databases (OCC)</strong></td><td>Optimistic Concurrency Control</td><td>Read → Modify → CAS version → commit or retry — no row locks</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>Producer metadata updates</td><td>Atomic reference swaps avoid global locks for metadata refresh</td></tr>
+          <tr><td><strong>Disruptor (LMAX)</strong></td><td>Ring buffer with sequence numbers</td><td>Wait-free producer/consumer — millions of events/sec on single thread</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION FAILURES</div>
+      <div class="nh">Common Failure Modes</div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">High CPU Usage — CAS Retry Storms</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Many threads hammering the same atomic under heavy contention — CAS loops spin 100% CPU without progress. <strong>Fix:</strong> Shard the data, use per-thread counters, exponential backoff, or switch to <code>LongAdder</code>.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Memory Corruption — ABA Problem</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Pointer reuse without version tracking. CAS succeeds on a recycled pointer that now points to different data. <strong>Fix:</strong> Tagged pointers or hazard pointers.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Memory Leak — Epoch Never Advances</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> A stalled thread holds an epoch reference, preventing garbage collection of retired nodes. <strong>Fix:</strong> Detect stalled threads, timeout and force quiescent states.</p>
+      </div>
+      <div class="nc-warn">
+        <div class="nh-warn">Cache-Line Bouncing</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Many threads CAS the same 64-byte cache line repeatedly — triggers MESI RFO broadcast storms. <strong>Fix:</strong> Partition ownership, reduce shared writes, use per-core data with periodic aggregation.</p>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Level</th><th>Question Asked</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Junior</strong></td><td>"Can we remove the mutex?"</td></tr>
+          <tr><td><strong>Senior</strong></td><td>"Can CAS replace this lock? I know lock-free eliminates blocking and deadlock risks."</td></tr>
+          <tr><td><strong>Staff</strong></td><td>"Is contention actually limiting scalability? Is lock-free complexity justified? Will CAS retries create cache-line bouncing? Is ABA handled safely? Which memory reclamation strategy fits this workload? Is wait-free required for deterministic latency? Can per-thread sharding eliminate contention instead? Would RCU provide better read scalability?"</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Staff Engineer Decision Framework</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Scenario</th><th>Recommended Approach</th></tr></thead>
+        <tbody>
+          <tr><td>Low contention, simple logic</td><td>Mutex — simplest, lowest complexity</td></tr>
+          <tr><td>High-throughput queue</td><td>Lock-Free Queue (Michael-Scott / Disruptor)</td></tr>
+          <tr><td>Real-time / latency-critical</td><td>Wait-Free (bounded steps, no starvation)</td></tr>
+          <tr><td>Read-mostly / kernel data</td><td>RCU — zero-cost reads, deferred writes</td></tr>
+          <tr><td>Shared counter under contention</td><td>LongAdder / Per-Core Counters</td></tr>
+          <tr><td>Concurrent cache</td><td>Lock-Free Map (ConcurrentHashMap segments)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Production Readiness Checklist</div>
+      <ul class="dot-ul mt-2">
+        <li>Measure actual lock contention <strong>before</strong> going lock-free</li>
+        <li>Verify atomic operations are supported on all target architectures</li>
+        <li>Choose the correct memory ordering (don't default to seq_cst everywhere)</li>
+        <li>Handle the ABA problem — use stamped references or hazard pointers</li>
+        <li>Select a safe memory reclamation strategy (EBR, hazard pointers, or RCU)</li>
+        <li>Benchmark under realistic high-contention load</li>
+        <li>Monitor CAS retry counts in production (metric: retry rate)</li>
+        <li>Minimize shared cache-line updates — pad structs to 64 bytes</li>
+        <li>Stress test with 2×, 4×, 8× expected CPU core count</li>
+        <li>Prefer simpler locking unless scalability <em>truly</em> requires lock-free</li>
+      </ul>
+
+      <div class="nq mt-3">"Lock-free algorithms eliminate blocking by replacing mutexes with atomic CPU instructions, ensuring that at least one thread always makes progress. Wait-free algorithms provide the strongest guarantee: every thread completes in bounded steps. Correct lock-free code requires proper memory ordering, safe memory reclamation, and protection against the ABA problem."</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">What to Remember</div>
+      <ul class="dot-ul">
+        <li><strong>Lock-free algorithms eliminate blocking</strong> by replacing mutexes with atomic CPU instructions such as CAS — at least one thread always makes progress, improving throughput and reducing context-switch overhead.</li>
+        <li><strong>Wait-free algorithms provide the strongest progress guarantee</strong> — every thread completes within a bounded number of steps, ideal for real-time and latency-critical systems where starvation is unacceptable.</li>
+        <li>Correct lock-free implementations require more than atomic instructions — they depend on <strong>proper memory ordering, safe memory reclamation, and protection against the ABA problem</strong>.</li>
+        <li>Modern systems use <strong>Hazard Pointers, Epoch-Based Reclamation (EBR), and Read-Copy-Update (RCU)</strong> to safely reclaim memory without blocking concurrent readers or writers.</li>
+        <li>Staff Engineers choose between locks, lock-free, and wait-free designs by balancing <strong>complexity, scalability, fairness, latency requirements, contention levels, cache behavior, and maintainability</strong> — always measuring contention before introducing advanced non-blocking algorithms.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════════════ ORIGINAL NOTES TAB ═══════════════════ -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — DEFINITIONS &amp; GUARANTEES</div>
+      <div class="nh">Progress Guarantee Taxonomy</div>
+
+      <div class="ncode">// 4 Progress Guarantee Levels (weakest → strongest):
+
+1. BLOCKING (Lock-based)
+   - Thread may wait indefinitely (OS sleep/wake)
+   - Deadlock possible if lock ordering violated
+   - Priority inversion possible
+   - Use when: simple logic, low contention, code clarity matters
+
+2. OBSTRUCTION-FREE
+   - Thread progresses when it runs alone (no contention)
+   - May livelock under concurrent access
+   - Rarely used in practice
+
+3. LOCK-FREE
+   - System-wide: at least one thread always completes
+   - CAS retry loops: fast-path succeeds, others retry
+   - No deadlock, no blocking, but starvation theoretically possible
+   - Use when: high throughput, concurrent queues/stacks
+
+4. WAIT-FREE
+   - Per-thread: every thread completes in bounded steps
+   - No retries, no starvation, deterministic latency
+   - Much harder to implement
+   - Use when: real-time systems, strict latency SLAs</div>
+
+      <hr class="border-violet-100 my-4"/>
+
+      <div class="nh">Atomic Operations Reference</div>
+      <div class="ncode">// CAS — Compare-And-Swap (most important)
+// x86: LOCK CMPXCHG | ARM: LDREX/STREX loop
+bool CAS(T* addr, T expected, T desired) {
+    if (*addr == expected) { *addr = desired; return true; }
+    return false;
+}
+
+// FAA — Fetch-And-Add (atomic increment)
+// x86: LOCK XADD | ARM: LDADD (ARMv8.1)
+T FAA(T* addr, T delta) {
+    T old = *addr;
+    *addr += delta;
+    return old;
+}
+
+// LL/SC — Load-Linked / Store-Conditional (ARM native)
+// LDREX = load + tag address
+// STREX = store only if no other write since LDREX
+// Naturally avoids ABA: any write (even A→B→A) causes STREX failure
+
+// x86 vs ARM:
+// x86 CAS is single instruction  → simpler but ABA vulnerable
+// ARM LL/SC is loop              → naturally ABA-safe</div>
+
+      <hr class="border-violet-100 my-4"/>
+
+      <div class="nh">Lock-Free Queue — Michael-Scott Algorithm</div>
+      <div class="ncode">// Both head and tail are atomic pointers
+// Enqueue: CAS on tail
+// Dequeue: CAS on head
+// Multiple producers AND consumers can operate simultaneously
+
+struct Node { T data; atomic&lt;Node*&gt; next{nullptr}; };
+atomic&lt;Node*&gt; head{new Node{}};  // sentinel
+atomic&lt;Node*&gt; tail{head.load()};
+
+void enqueue(T val) {
+    Node* n = new Node{val};
+    Node* last;
+    do {
+        last = tail.load(acquire);
+        Node* next = last->next.load(acquire);
+        if (next != nullptr) {  // tail is behind — advance it
+            tail.CAS(last, next, release, relaxed);
+            continue;
+        }
+    } while (!last->next.CAS(nullptr, n, release, relaxed));
+    tail.CAS(last, n, release, relaxed);  // advance tail
+}
+
+T dequeue() {
+    Node *head_node, *next;
+    do {
+        head_node = head.load(acquire);
+        next = head_node->next.load(acquire);
+        if (!next) return EMPTY;
+    } while (!head.CAS(head_node, next, release, relaxed));
+    T val = next->data;
+    // reclaim head_node safely (hazard pointer or EBR)
+    return val;
+}</div>
+
+      <hr class="border-violet-100 my-4"/>
+
+      <div class="nh">Memory Reclamation — Full Reference</div>
+      <div class="ncode">// HAZARD POINTERS
+// Per-thread pointer array. Thread announces which nodes it reads.
+// Deleter scans all hazard pointers before freeing.
+// Cost: O(N*P) scan per retirement (N=nodes, P=threads)
+
+// EPOCH-BASED RECLAMATION (EBR)
+// Global epoch counter (0, 1, 2...)
+// Thread enters epoch → reads freely → exits epoch
+// When all threads exit epoch N, all nodes retired in N are freed
+// Cost: very low — just atomic epoch read/write
+// Limitation: stalled threads block reclamation
+
+// READ-COPY-UPDATE (RCU)
+// Read path: rcu_read_lock() → rcu_dereference() → rcu_read_unlock()
+// Write path: copy, modify, rcu_assign_pointer(), synchronize_rcu()
+// synchronize_rcu() waits until all current RCU readers complete
+// Readers: ZERO overhead (just read barrier on some archs)
+// Used in Linux kernel for: routing tables, task lists, network stack
+
+// GARBAGE COLLECTION (managed languages)
+// Java/Go: GC handles reclamation — lock-free structures safe by default
+// Tradeoff: GC pauses, higher memory usage
+// ConcurrentLinkedQueue in Java uses GC for reclamation</div>
+
+      <hr class="border-violet-100 my-4"/>
+
+      <div class="nh">ABA Problem — Detailed</div>
+      <div class="ncode">// THE PROBLEM:
+// Stack: A → B → C
+// Thread 1: reads head=A, about to CAS A→B
+// Thread 2: pops A, pops B, pushes A back → Stack: A → C
+// Thread 1: CAS(head, A, B) → SUCCEEDS (head==A)
+//           head = B (freed!) → use-after-free → CRASH
+
+// SOLUTION 1: Stamped Reference (Java: AtomicStampedReference)
+struct StampedPtr { Node* ptr; int stamp; };
+atomic&lt;StampedPtr&gt; head;
+
+void push(Node* n) {
+    StampedPtr old_head;
+    do {
+        old_head = head.load(acquire);
+        n->next = old_head.ptr;
+    } while (!head.CAS(old_head, {n, old_head.stamp + 1}));
+}
+// Thread 2 pushes A with stamp=2
+// Thread 1's CAS on (A, stamp=1) FAILS correctly ✅
+
+// SOLUTION 2: 128-bit CAS (x86_64 CMPXCHG16B)
+// Pack (pointer 64-bit + counter 64-bit) → CAS atomically
+// Eliminates ABA: counter always increases
+
+// SOLUTION 3: LL/SC (ARM)
+// Any write to address between LDREX and STREX fails STREX
+// A→B→A triggers failure even though value looks same</div>
+
+      <div class="nq mt-3">"Lock-free and wait-free algorithms are the most powerful tools for concurrent scalability — and the most dangerous to implement incorrectly. Every Staff Engineer needs to know not just how CAS works, but how ABA corrupts state, how memory reclamation fails, and how cache-line bouncing turns a 'lock-free' design into something slower than a mutex."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- ═══════════════════ VISUAL GUIDE TAB ═══════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <img src="images/foundation/l1/OS/d5407d70-c65d-460e-ad48-9c28ea40157b.png" class="w-full rounded-lg shadow-md" alt="Lock-Free and Wait-Free Algorithms Visual Guide"/>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

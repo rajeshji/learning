@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Thread Pools, Work-Stealing &amp; Task Scheduling — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.93rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Thread Pools, Work-Stealing &amp; Task Scheduling</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Thread Pools, Work-Stealing &amp; Task Scheduling</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Concurrency &amp; Performance</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Why Care -->
+    <div class="nc">
+      <div class="section-badge">WHY IT MATTERS</div>
+      <div class="nh">Why Should a Staff Engineer Care?</div>
+      <p class="text-gray-700 mb-3">Modern systems rarely create <strong>one thread per request</strong> — thread creation and destruction are expensive. Instead, production systems rely on:</p>
+      <ul class="dot-ul mb-3">
+        <li><strong>Thread Pools</strong> → Reuse worker threads</li>
+        <li><strong>Task Scheduling</strong> → Decide which task runs next</li>
+        <li><strong>Work-Stealing</strong> → Keep all CPU cores busy</li>
+      </ul>
+      <p class="text-gray-700 mb-2">These mechanisms directly impact throughput, P99 latency, CPU utilization, memory consumption, scalability, and fairness.</p>
+      <div class="ntip">Creating an OS thread involves stack allocation, kernel scheduler registration, context initialization, and cleanup — <strong>tens to hundreds of microseconds</strong> per creation. Thread pools amortize this cost across many tasks.</div>
+    </div>
+
+    <!-- Thread Pool -->
+    <div class="nc">
+      <div class="section-badge">THREAD POOLS</div>
+      <div class="nh">1. What is a Thread Pool?</div>
+      <p class="text-gray-700 mb-3">A fixed or dynamically managed set of reusable worker threads. Instead of create → run → destroy per task, tasks are submitted to a queue and picked up by idle workers.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <p class="font-semibold text-red-700 mb-1">❌ Without Pool</p>
+          <div class="ncode" style="font-size:0.84rem;">Request → Create Thread → Run → Destroy
+Request → Create Thread → Run → Destroy
+(expensive per task)</div>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-1">✅ With Pool</p>
+          <div class="ncode" style="font-size:0.84rem;">Request → Task Queue → Worker Thread
+                        → Execute → Return to Pool
+(threads reused)</div>
+        </div>
+      </div>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Parameter</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Core Threads</td><td>Minimum always-running workers</td></tr>
+          <tr><td>Maximum Threads</td><td>Upper concurrency limit</td></tr>
+          <tr><td>Queue Size</td><td>Number of waiting tasks (always bound this!)</td></tr>
+          <tr><td>Keep-Alive Time</td><td>Time before idle threads terminate (30–60 s)</td></tr>
+          <tr><td>Rejection Policy</td><td>What happens when pool is full</td></tr>
+        </tbody>
+      </table>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Rejection Policy</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td>Abort</td><td>Reject new task with exception</td></tr>
+          <tr><td>Caller Runs</td><td>Calling thread executes task (natural backpressure)</td></tr>
+          <tr><td>Discard</td><td>Drop task silently</td></tr>
+          <tr><td>Discard Oldest</td><td>Remove oldest queued task</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Pool Sizing Formula</p>
+      <div class="ncode">CPU-bound:   Threads ≈ CPU cores  (e.g., 8 cores → 8–10 threads)
+
+I/O-bound:   Threads ≈ Cores × (1 + Wait Time / Compute Time)
+  Example: 8 cores, Wait=90ms, CPU=10ms → 8 × (1 + 9) = 80 threads
+
+(Based on Little's Law: Pool Size = RPS × Avg Task Duration)</div>
+    </div>
+
+    <!-- Task Scheduling -->
+    <div class="nc">
+      <div class="section-badge">TASK SCHEDULING</div>
+      <div class="nh">2. Task Scheduling</div>
+      <p class="text-gray-700 mb-3">Scheduling determines which task runs next, on which thread, and for how long.</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Strategy</th><th>How It Works</th><th>Trade-off</th></tr></thead>
+        <tbody>
+          <tr><td><strong>FIFO</strong></td><td>First submitted, first executed</td><td>Simple but HOL blocking risk</td></tr>
+          <tr><td><strong>Priority</strong></td><td>Higher priority runs first</td><td>Good for latency-sensitive tasks; may starve low-priority work</td></tr>
+          <tr><td><strong>Round Robin</strong></td><td>Each task gets a time slice</td><td>Fair; used by OS schedulers</td></tr>
+          <tr><td><strong>Shortest Job First</strong></td><td>Prefer tasks expected to finish quickly</td><td>Minimizes avg wait; requires duration estimates</td></tr>
+        </tbody>
+      </table>
+      <p class="text-gray-700 mb-2"><strong>Practical scheduling goals:</strong> Fairness · High CPU utilization · Low latency · High throughput · Minimal starvation</p>
+    </div>
+
+    <!-- Work-Stealing -->
+    <div class="nc">
+      <div class="section-badge">WORK-STEALING</div>
+      <div class="nh">3. Work-Stealing</div>
+      <p class="text-gray-700 mb-3"><strong>Problem:</strong> Thread 1 has 100 tasks, Thread 2 is idle. Thread 2 sits wasted. <strong>Solution:</strong> Thread 2 steals half of Thread 1's queue.</p>
+      <div class="ncode">Each worker has its OWN local deque (double-ended queue):
+  Worker 1: [A, B, C, D, E, F]   (pushes/pops from tail)
+  Worker 2: []                    (idle)
+
+  Worker 2 steals from Worker 1's HEAD:
+  Worker 1: [A, B, C]
+  Worker 2: [D, E, F]
+
+Local work: tail-end (no contention)
+Stealing:   head-end (minimal contention)</div>
+
+      <table class="nt mt-3 mb-4">
+        <thead><tr><th>Feature</th><th>Central Queue</th><th>Work-Stealing (per-worker deque)</th></tr></thead>
+        <tbody>
+          <tr><td>Queue Contention</td><td>High (all workers compete)</td><td>Low (each owns its queue)</td></tr>
+          <tr><td>Load Balancing</td><td>Static</td><td>Dynamic</td></tr>
+          <tr><td>Scalability</td><td>Moderate</td><td>Excellent</td></tr>
+          <tr><td>Complexity</td><td>Low</td><td>Higher</td></tr>
+        </tbody>
+      </table>
+
+      <p class="text-gray-700 mb-2"><strong>Where Work-Stealing is Used:</strong></p>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <span class="nkw"><span>Java ForkJoinPool</span></span>
+        <span class="nkw"><span>Go Runtime</span></span>
+        <span class="nkw"><span>Intel TBB</span></span>
+        <span class="nkw"><span>.NET TPL</span></span>
+        <span class="nkw"><span>Rayon (Rust)</span></span>
+        <span class="nkw"><span>Cilk</span></span>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-2">Java ForkJoinPool — Canonical Work-Stealing Implementation</p>
+      <div class="ncode">Task
+  → fork() → Subtask A + Subtask B
+  → Workers pick up subtasks
+  → Idle worker steals from busy worker
+  → join() → Merge results
+
+Ideal for: recursive divide-and-conquer (parallel merge sort, tree traversal)</div>
+    </div>
+
+    <!-- Failure Modes -->
+    <div class="nc">
+      <div class="section-badge">FAILURE MODES</div>
+      <div class="nh">Common Production Failure Modes</div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Thread Pool Exhaustion</div>
+        <div class="ncode" style="font-size:0.85rem;">32 threads in pool
+1000 blocking tasks submitted
+→ All 32 occupied, waiting on I/O
+→ Queue grows unbounded
+→ High latency / OOM</div>
+        <p class="text-gray-700 text-sm mt-1"><strong>Fix:</strong> Use bounded queues, separate pools for blocking vs non-blocking work, or async I/O.</p>
+      </div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Thread Pool Deadlock</div>
+        <p class="text-gray-700 text-sm">Worker submits a child task and blocks waiting for it, but all pool threads are blocked → child task can never start.</p>
+        <p class="text-gray-700 text-sm"><strong>Fix:</strong> Avoid blocking waits inside pool tasks; use ForkJoinPool.managedBlock(); use separate pools for dependent tasks.</p>
+      </div>
+
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Queue Explosion</div>
+        <p class="text-gray-700 text-sm">Unbounded queue grows → high memory usage, long tail latency, OOM.<br/><strong>Fix:</strong> Always use bounded queues with an appropriate rejection policy.</p>
+      </div>
+
+      <div class="nc-warn">
+        <div class="nh-warn">Lock Contention / Starvation</div>
+        <p class="text-gray-700 text-sm">Too many threads competing for shared locks → CPU drops. Low-priority tasks never execute.<br/><strong>Fix:</strong> Reduce shared state, lock-free data structures, partitioned work, aging in priority queues.</p>
+      </div>
+    </div>
+
+    <!-- Thread Pool vs Async -->
+    <div class="nc">
+      <div class="section-badge">COMPARISON</div>
+      <div class="nh">Thread Pool vs Async Event Loop vs Hybrid</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Feature</th><th>Thread Pool</th><th>Async Event Loop</th></tr></thead>
+        <tbody>
+          <tr><td>Blocking I/O</td><td>Supported</td><td>Avoided (must use non-blocking)</td></tr>
+          <tr><td>CPU Parallelism</td><td>✅ Yes (multi-core)</td><td>❌ No (alone)</td></tr>
+          <tr><td>Memory</td><td>Higher (stacks)</td><td>Lower (coroutine frames)</td></tr>
+          <tr><td>Millions of Connections</td><td>Difficult</td><td>Excellent</td></tr>
+          <tr><td>Best For</td><td>CPU-bound work, blocking calls</td><td>I/O-bound, high concurrency</td></tr>
+        </tbody>
+      </table>
+      <p class="font-semibold text-violet-700 mb-2">Hybrid Architecture (Industry Standard)</p>
+      <div class="ncode">Client → Async Event Loop (network I/O)
+              ↓
+         Is it CPU-heavy or blocking?
+         ├── No  → Process inline, respond
+         └── Yes → Worker Thread Pool
+                     ↓
+                   Execute (DB, CPU)
+                     ↓
+                   Return to Event Loop
+                     ↓
+                   Respond
+
+Examples: Netty, Kafka, NGINX, Envoy, Node.js workers</div>
+    </div>
+
+    <!-- Observability -->
+    <div class="nc">
+      <div class="section-badge">OBSERVABILITY</div>
+      <div class="nh">Metrics &amp; System Design Applications</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">Key Metrics to Monitor</p>
+          <table class="nt">
+            <thead><tr><th>Metric</th><th>Indicates</th></tr></thead>
+            <tbody>
+              <tr><td>Active Threads</td><td>Pool utilization</td></tr>
+              <tr><td>Queue Depth</td><td>Backlog / saturation</td></tr>
+              <tr><td>Task Wait Time</td><td>Scheduling delay</td></tr>
+              <tr><td>Rejected Tasks</td><td>Pool exhaustion</td></tr>
+              <tr><td>Context Switches</td><td>Scheduler overhead</td></tr>
+              <tr><td>CPU Utilization</td><td>Core efficiency</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="font-semibold text-violet-700 mb-2">System Design Applications</p>
+          <table class="nt">
+            <thead><tr><th>System</th><th>Strategy</th></tr></thead>
+            <tbody>
+              <tr><td>Java ExecutorService</td><td>Thread Pool</td></tr>
+              <tr><td>ForkJoinPool</td><td>Work-Stealing</td></tr>
+              <tr><td>Go Runtime</td><td>M:N + Work-Stealing</td></tr>
+              <tr><td>Kafka</td><td>Network threads + I/O threads</td></tr>
+              <tr><td>Netty</td><td>Event Loop + Worker Pool</td></tr>
+              <tr><td>Redis</td><td>Single-threaded event loop</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workload Guide -->
+    <div class="nc">
+      <div class="section-badge">DECISION GUIDE</div>
+      <div class="nh">Choosing the Right Strategy</div>
+      <table class="nt">
+        <thead><tr><th>Workload</th><th>Recommendation</th></tr></thead>
+        <tbody>
+          <tr><td>CPU-bound computation</td><td>Fixed Thread Pool (≈ CPU cores)</td></tr>
+          <tr><td>Recursive parallel algorithms</td><td>ForkJoinPool (work-stealing)</td></tr>
+          <tr><td>REST APIs / HTTP</td><td>Async Event Loop + Thread Pool for blocking</td></tr>
+          <tr><td>High-connection chat server</td><td>Async Event Loop</td></tr>
+          <tr><td>Image / video processing</td><td>ForkJoinPool or Thread Pool</td></tr>
+          <tr><td>Kafka / Netty / Search</td><td>Hybrid (event loop + worker pool)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Interview Questions -->
+    <div class="nc">
+      <div class="section-badge">INTERVIEW PREP</div>
+      <div class="nh">Common Interview Questions</div>
+      <p class="font-semibold text-violet-700 mb-1">Fundamentals</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700 mb-3" start="1">
+        <li>Why use a thread pool instead of creating threads on demand?</li>
+        <li>How do you size a thread pool (CPU-bound vs I/O-bound)?</li>
+        <li>What happens when a thread pool becomes exhausted?</li>
+        <li>Why are unbounded queues dangerous?</li>
+        <li>What is the difference between a task and a thread?</li>
+      </ol>
+      <p class="font-semibold text-violet-700 mb-1">Work-Stealing</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700 mb-3" start="6">
+        <li>What problem does work-stealing solve?</li>
+        <li>How does Java ForkJoinPool implement work-stealing?</li>
+        <li>Why does each worker have its own deque instead of a shared queue?</li>
+        <li>What workloads benefit most from work-stealing?</li>
+      </ol>
+      <p class="font-semibold text-violet-700 mb-1">Staff-Level Design</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700" start="10">
+        <li>Design a task scheduler for 1 million jobs/day.</li>
+        <li>Design a CPU-intensive image processing pipeline.</li>
+        <li>How would you isolate blocking tasks in a microservice?</li>
+        <li>How would you prevent queue explosion?</li>
+        <li>Explain why Netty/Kafka combines event loops with thread pools.</li>
+        <li>How would you monitor thread pool health in production?</li>
+      </ol>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt">
+        <thead><tr><th>Level</th><th>Thinking Pattern</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Junior</strong></td>
+            <td>"I'll create a new thread for each request so they don't block each other."</td>
+          </tr>
+          <tr>
+            <td><strong>Senior</strong></td>
+            <td>"I'll use a thread pool with 2× CPU cores for CPU-bound work, and a larger pool for I/O-bound tasks. I'll set bounded queues with Caller-Runs rejection."</td>
+          </tr>
+          <tr>
+            <td><strong>Staff</strong></td>
+            <td>"I segment workloads: I/O-bound requests go to an async event loop (one per core); CPU-bound tasks offload to a ForkJoinPool or bounded ExecutorService sized by Little's Law. Blocking calls (legacy DB drivers, file I/O) go to a dedicated blocking thread pool, isolated from the non-blocking pool to prevent contamination. I instrument queue depth, task wait time, and rejected task rate as pool health signals, and set alerts before P99 degrades. For recursive parallelism I use ForkJoinPool. I validate sizing under load (not just unit tests) and tune based on profiled wait/compute ratios."</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ntip">
+        <strong>Key Takeaways:</strong>
+        <ul class="dot-ul mt-2">
+          <li><strong>Thread pools</strong> eliminate per-request thread creation cost, providing controlled concurrency and predictable resource usage.</li>
+          <li><strong>Task scheduling</strong> (FIFO, priority, round-robin, SJF) directly controls fairness, latency, and throughput — choose based on workload characteristics.</li>
+          <li><strong>Work-stealing</strong> maximizes CPU utilization by dynamically rebalancing across idle workers — ideal for recursive and irregular parallel workloads.</li>
+          <li>Production systems combine event-driven I/O, thread pools, and work-stealing schedulers to handle both I/O-bound and CPU-bound work efficiently.</li>
+          <li>In interviews: discuss pool sizing (Little's Law), starvation prevention, deadlock avoidance, queue bounding, observability, and the hybrid event-loop + thread-pool architecture pattern.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ORIGINAL NOTES TAB -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <!-- PART 1: Thread Pools, Work-Stealing, Task Scheduling -->
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — PART 1</div>
+      <div class="nh">Thread Pools, Work-Stealing &amp; Task Scheduling — Core Concepts</div>
+      <p class="text-gray-700 mb-3">This is a <strong>core concurrency concept</strong> that staff engineers must master for designing <strong>high-performance systems</strong>.</p>
+      <ul class="dot-ul mb-2">
+        <li><span class="nkw"><span>Thread Pools</span></span></li>
+        <li><span class="nkw"><span>Work-Stealing</span></span></li>
+        <li><span class="nkw"><span>Task Scheduling</span></span></li>
+      </ul>
+      <p class="text-gray-600 text-sm">— including how they work internally, trade-offs, and <strong>when you apply each</strong> in <strong>system design interviews</strong>.</p>
+    </div>
+
+    <!-- Thread Pools -->
+    <div class="nc">
+      <div class="section-badge">SECTION 1</div>
+      <div class="nh">Thread Pools — Concept, Internals, and Trade-offs</div>
+      <div style="overflow-x:auto;">
+        <table class="nt" style="min-width:600px;">
+          <thead><tr><th>Aspect</th><th>Explanation</th><th>Staff-level Insight</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Definition</strong></td>
+              <td>A <strong>thread pool</strong> is a group of pre-created threads that execute tasks from a shared <strong>queue</strong> instead of creating/destroying threads per request.</td>
+              <td>Avoids thread creation cost, stabilizes resource usage, improves throughput under load.</td>
+            </tr>
+            <tr>
+              <td><strong>Why needed</strong></td>
+              <td><strong>Thread creation</strong> is expensive (stack allocation, kernel resources, context switch). Pools reuse threads → faster, predictable.</td>
+              <td>Ideal when you handle <strong>many short-lived or frequent tasks</strong> (like HTTP requests, DB operations).</td>
+            </tr>
+            <tr>
+              <td><strong>Core Components</strong></td>
+              <td><strong>Task Queue</strong> (FIFO or priority) · <strong>Worker Threads</strong> (poll for tasks) · <strong>Dispatcher</strong> (submits new work) · <strong>Rejection Policy</strong> (when full).</td>
+              <td>Common in Java (<code>ThreadPoolExecutor</code>), C++, Go runtime, Python <code>ThreadPoolExecutor</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Execution Flow</strong></td>
+              <td>1️⃣ Client submits task → added to queue. 2️⃣ Idle worker thread dequeues task. 3️⃣ Executes task → repeats. 4️⃣ If no threads idle, task waits (or rejected).</td>
+              <td>Threads often block on queue pops; helps control concurrency.</td>
+            </tr>
+            <tr>
+              <td><strong>Key Parameters</strong></td>
+              <td><strong>Core pool size</strong> · <strong>Max pool size</strong> · <strong>Queue capacity</strong> · <strong>Keep-alive time</strong> · <strong>Rejection policy</strong></td>
+              <td>Tuning these determines <strong>throughput vs latency</strong> trade-off.</td>
+            </tr>
+            <tr>
+              <td><strong>Advantages</strong></td>
+              <td>Reuse threads (low overhead) · Bounded concurrency (prevents resource exhaustion) · Task queuing smooths bursts.</td>
+              <td>Thread pools are a <strong>backpressure mechanism</strong>.</td>
+            </tr>
+            <tr>
+              <td><strong>Drawbacks</strong></td>
+              <td>Tasks may block, causing <strong>thread starvation</strong>. Need careful sizing to balance throughput vs latency. Shared queues → contention.</td>
+              <td>Over-saturated pools lead to queue delays → cascading latency.</td>
+            </tr>
+            <tr>
+              <td><strong>Used in System Design</strong></td>
+              <td>Web servers, database connection handlers, microservice RPC handlers, worker daemons.</td>
+              <td>In interviews, mention pools to "bound concurrency and manage resource utilization gracefully."</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Work-Stealing -->
+    <div class="nc">
+      <div class="section-badge">SECTION 2</div>
+      <div class="nh">Work-Stealing — Concept, Motivation, and Implementation</div>
+      <div style="overflow-x:auto;">
+        <table class="nt" style="min-width:600px;">
+          <thead><tr><th>Aspect</th><th>Explanation</th><th>Staff-level Insight</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Definition</strong></td>
+              <td>A <strong>load balancing technique</strong> where each worker thread has its own <strong>local queue</strong>, and <strong>idle threads steal tasks</strong> from others' queues.</td>
+              <td>Minimizes lock contention and improves CPU utilization.</td>
+            </tr>
+            <tr>
+              <td><strong>Why Needed</strong></td>
+              <td>Central queue causes contention under high concurrency. Some threads may idle while others overloaded.</td>
+              <td>Solves <strong>"hot queue" bottleneck</strong> problem in multi-core task execution.</td>
+            </tr>
+            <tr>
+              <td><strong>How It Works</strong></td>
+              <td>Each thread maintains a <strong>double-ended queue (deque)</strong>. When a thread spawns subtasks, it pushes them on its deque. When idle, it <strong>steals</strong> tasks from the tail of another's deque. Local deque access (head) is lock-free; stealing uses minimal locking.</td>
+              <td>Efficient for <strong>fine-grained parallelism</strong> — used in fork-join frameworks, async runtimes, parallel stream processing.</td>
+            </tr>
+            <tr>
+              <td><strong>Example Frameworks</strong></td>
+              <td>Java <strong>ForkJoinPool</strong> · Cilk / <strong>TBB</strong> (Intel Threading Building Blocks) · <strong>Go runtime scheduler</strong> (M:N model) · <strong>Rust Tokio</strong> scheduler (work-stealing for async tasks).</td>
+              <td>Go's scheduler uses work-stealing to balance goroutines across P (processors).</td>
+            </tr>
+            <tr>
+              <td><strong>Performance Benefits</strong></td>
+              <td>Low lock contention (local queues) · Better <strong>cache locality</strong> · Dynamic load balancing across threads</td>
+              <td>Keeps all cores busy even when workload is uneven.</td>
+            </tr>
+            <tr>
+              <td><strong>Drawbacks</strong></td>
+              <td>More complex runtime implementation · Occasional imbalance under bursty load · Overhead for stealing logic</td>
+              <td>Worth complexity for high concurrency / recursive parallelism.</td>
+            </tr>
+            <tr>
+              <td><strong>Use Case Scenarios</strong></td>
+              <td><strong>Recursive parallel tasks</strong> (e.g., quicksort, matrix multiplication) · <strong>Task DAGs</strong> (e.g., dataflow pipelines) · <strong>Async runtimes</strong> (event loops + worker threads).</td>
+              <td>Mention this if you design systems with parallel execution frameworks (search index building, rendering pipelines, ML preprocessing).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Task Scheduling -->
+    <div class="nc">
+      <div class="section-badge">SECTION 3</div>
+      <div class="nh">Task Scheduling — Concept and Strategies</div>
+      <div style="overflow-x:auto;">
+        <table class="nt" style="min-width:600px;">
+          <thead><tr><th>Aspect</th><th>Explanation</th><th>Staff-level Insight</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Definition</strong></td>
+              <td>Deciding <strong>which task runs next</strong> and <strong>on which thread/core</strong>, given limited resources.</td>
+              <td>Core of thread pool or OS scheduler design.</td>
+            </tr>
+            <tr>
+              <td><strong>Goal</strong></td>
+              <td>Maximize throughput, minimize latency, avoid starvation, maintain fairness.</td>
+              <td>At staff level, you discuss <em>tuning scheduling policy</em> for system SLAs.</td>
+            </tr>
+            <tr>
+              <td><strong>Common Strategies</strong></td>
+              <td><strong>FIFO / Round-Robin</strong> – simple queue order · <strong>Priority-based</strong> – latency-sensitive tasks first · <strong>Work-stealing</strong> – load balancing · <strong>Deadline-based</strong> – schedule before time limit · <strong>Fair scheduling</strong> – equal CPU share</td>
+              <td>Combination often used in production schedulers.</td>
+            </tr>
+            <tr>
+              <td><strong>OS-level Scheduling</strong></td>
+              <td>Kernel decides which thread runs next (preemptive). E.g., Linux <strong>CFS (Completely Fair Scheduler)</strong>.</td>
+              <td>Thread pools typically rely on user-space scheduling policies over OS threads.</td>
+            </tr>
+            <tr>
+              <td><strong>Runtime-level Scheduling</strong></td>
+              <td>Runtimes (JVM, Go, Python async) do <em>user-level scheduling</em> — mapping user tasks/goroutines to kernel threads.</td>
+              <td>Important to mention <strong>"M:N scheduling"</strong> models.</td>
+            </tr>
+            <tr>
+              <td><strong>Scheduling Metrics</strong></td>
+              <td><strong>Latency</strong> (response time) · <strong>Throughput</strong> (tasks/sec) · <strong>Fairness</strong> (no starvation) · <strong>Utilization</strong> (CPU busy %)</td>
+              <td>Trade-offs depend on SLA: interactive (latency) vs batch (throughput).</td>
+            </tr>
+            <tr>
+              <td><strong>Advanced Schedulers</strong></td>
+              <td><strong>Fair Queuing</strong> (weighted round robin) · <strong>Deadline Scheduling</strong> (EDF) · <strong>Task Affinity</strong> (keep on same core for cache locality)</td>
+              <td>Java's Loom + ForkJoinPool uses task affinity + work-stealing.</td>
+            </tr>
+            <tr>
+              <td><strong>Trade-offs</strong></td>
+              <td>Fine-grained scheduling adds overhead. Too coarse → poor load balancing.</td>
+              <td>Staff-level tuning balances scheduling granularity vs context-switch cost.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Combined Example -->
+    <div class="nc">
+      <div class="section-badge">SECTION 4</div>
+      <div class="nh">Combined Example — How They Work Together</div>
+      <p class="text-gray-700 mb-3">Designing a <strong>web server</strong> (e.g., in Java, Go, or Rust):</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Component</th><th>How It Uses These Concepts</th><th>Reasoning</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Connection Handler</strong></td><td>Uses <strong>thread pool</strong> (fixed or elastic) to handle requests.</td><td>Reuses threads, bounds concurrency.</td></tr>
+          <tr><td><strong>CPU-heavy Work</strong></td><td>Uses <strong>work-stealing</strong> pool (ForkJoinPool) to parallelize sub-tasks.</td><td>Balances computation load across cores.</td></tr>
+          <tr><td><strong>Async I/O Handling</strong></td><td>Uses <strong>event loop</strong> + <strong>task scheduler</strong> to queue read/write events.</td><td>Cooperative scheduling for non-blocking I/O.</td></tr>
+          <tr><td><strong>Scheduler Policy</strong></td><td>Often <strong>FIFO</strong> for tasks, with <strong>priority queues</strong> for latency-sensitive ops.</td><td>Keeps tail latency predictable.</td></tr>
+          <tr><td><strong>End Result</strong></td><td>Efficient, low-latency, high-throughput service with stable resource usage.</td><td>Combines strengths of all three mechanisms.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-world Implementations -->
+    <div class="nc">
+      <div class="section-badge">SECTION 5</div>
+      <div class="nh">Real-world Implementations</div>
+      <div style="overflow-x:auto;">
+        <table class="nt" style="min-width:600px;">
+          <thead><tr><th>System / Language</th><th>Model Used</th><th>Scheduler Type</th><th>Details / Staff Takeaway</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Java ThreadPoolExecutor</strong></td><td>Fixed/cached thread pool</td><td>FIFO queue</td><td>Configurable size, rejection, priority.</td></tr>
+            <tr><td><strong>Java ForkJoinPool</strong></td><td>Work-stealing pool</td><td>Local deques per thread</td><td>Used by <code>parallelStream()</code>, <code>CompletableFuture</code>.</td></tr>
+            <tr><td><strong>Go Runtime (Goroutines)</strong></td><td>M:N lightweight threads</td><td>Work-stealing + global run queue</td><td>Auto-balances goroutines across cores (G–M–P model).</td></tr>
+            <tr><td><strong>Rust Tokio Runtime</strong></td><td>Async event loop + work-stealing</td><td>Priority-aware scheduler</td><td>Combines async I/O and multithreading.</td></tr>
+            <tr><td><strong>C++ TBB</strong></td><td>Work-stealing</td><td>DAG-based task scheduling</td><td>Used in HPC and ML workloads.</td></tr>
+            <tr><td><strong>Python concurrent.futures</strong></td><td>Thread/ProcessPoolExecutor</td><td>FIFO queue</td><td>Simpler API; GIL limits parallelism in threads.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Design Decision Matrix -->
+    <div class="nc">
+      <div class="section-badge">SECTION 6</div>
+      <div class="nh">When to Use Each — Design-Level Decision Matrix</div>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Best Fit</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Handling many small independent tasks (e.g., HTTP requests)</td><td><strong>Thread Pool</strong></td><td>Reuse threads, limit concurrency, reduce overhead.</td></tr>
+          <tr><td>Recursive or dynamic parallelism (divide-and-conquer tasks)</td><td><strong>Work-Stealing</strong></td><td>Efficient load balancing and cache locality.</td></tr>
+          <tr><td>Real-time systems or latency-sensitive scheduling</td><td><strong>Priority/Deadline Task Scheduling</strong></td><td>Predictable latency, controlled preemption.</td></tr>
+          <tr><td>Asynchronous event-driven servers</td><td><strong>Event Loop + Task Scheduler</strong></td><td>Cooperative scheduling and event multiplexing.</td></tr>
+          <tr><td>Multi-tenant workloads</td><td><strong>Fair or Weighted Scheduling</strong></td><td>Ensures isolation and fairness.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Interview Talking Points -->
+    <div class="nc">
+      <div class="section-badge">SECTION 7</div>
+      <div class="nh">Common Interview Talking Points (Staff-Level)</div>
+      <table class="nt">
+        <thead><tr><th>Question</th><th>Strong Staff-Level Answer</th></tr></thead>
+        <tbody>
+          <tr><td>"Why use a thread pool?"</td><td>"To <strong>amortize thread creation overhead</strong>, cap concurrency, and provide <strong>backpressure</strong> — critical for system stability under burst traffic."</td></tr>
+          <tr><td>"What's work-stealing?"</td><td>"A <strong>load-balancing mechanism</strong> where idle workers steal tasks from others' queues — minimizes contention and maximizes CPU utilization."</td></tr>
+          <tr><td>"How does task scheduling impact latency?"</td><td>"Scheduling policy determines fairness and response times; priority-based scheduling can favor <strong>latency-critical requests</strong> over batch jobs."</td></tr>
+          <tr><td>"How would you tune thread pool size?"</td><td>"Empirically balance <code>#CPU cores × (1 + wait_time / service_time)</code> for throughput, or separate pools for blocking vs compute tasks."</td></tr>
+          <tr><td>"What happens if all threads are busy with blocking tasks?"</td><td>"<strong>Thread starvation</strong> — I'd isolate blocking tasks in a dedicated pool or use async I/O to avoid thread blocking."</td></tr>
+        </tbody>
+      </table>
+      <div class="nq mt-3">"Thread pools bound concurrency and reuse threads efficiently; work-stealing ensures even load distribution across cores; and task scheduling policies control execution order, latency, and fairness — together forming the backbone of efficient, scalable multithreaded or async systems."</div>
+    </div>
+
+    <!-- OS-Level Deep Dive -->
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — PART 2</div>
+      <div class="nh">How It Works in Depth — OS Level for Staff Interview</div>
+      <p class="text-gray-700 mb-3">Let's dig <strong>deep at the OS level</strong> — how thread pools, work-stealing, and task scheduling are implemented and behave from the <strong>kernel → runtime → user-facing API</strong> layers.</p>
+    </div>
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 1</div>
+      <div class="nh">Big Picture — Layers and Where Things Live</div>
+      <ul class="dot-ul mb-3">
+        <li><strong>User space runtime / library</strong>: thread-pool implementation, per-worker deques, task queues, work-stealing logic, high-level APIs (<code>ThreadPoolExecutor</code>, <code>ForkJoinPool</code>, <code>Goroutine scheduler</code>, Tokio).</li>
+        <li><strong>OS kernel</strong>: kernel threads (scheduling, runqueues), <code>futex</code> system call for parking/unparking, <code>clone</code>/<code>pthread_create</code> for thread creation, CPU scheduler (runqueue per CPU, load balancing, priorities).</li>
+        <li><strong>Hardware</strong>: caches, cores, NUMA nodes — strongly influence locality and stealing cost.</li>
+      </ul>
+      <div class="ntip">In interviews, clearly separate <strong>user-runtime behavior</strong> (work-stealing deques, task submit/steal) from <strong>kernel effects</strong> (context switch, scheduling, futex wakeups).</div>
+    </div>
+
+    <!-- Thread Pools OS Level -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 2</div>
+      <div class="nh">Thread Pools — How They Work at OS Level</div>
+      <p class="font-semibold text-violet-700 mb-2">Concrete flow for a typical thread-pool (1:1 worker threads mapped to kernel threads):</p>
+
+      <p class="font-semibold text-gray-700 mb-1">1. Creation</p>
+      <ul class="dot-ul mb-3">
+        <li>Application calls <code>pthread_create()</code> / <code>clone()</code> → kernel creates a <strong>thread control block (TCB)</strong>, sets up a stack (via <code>mmap</code> or heap), registers, scheduling metadata, thread-local storage (TLS).</li>
+        <li>Threads are <strong>kernel-schedulable entities</strong> with a PID/TID entry in the kernel.</li>
+      </ul>
+
+      <p class="font-semibold text-gray-700 mb-1">2. Task submission</p>
+      <ul class="dot-ul mb-3">
+        <li>Client enqueues a <code>Task</code> object into the pool's <strong>task queue</strong>. Implementation choices: global queue with mutex/condvar (simple), or multiple queues (per-worker) to reduce contention.</li>
+      </ul>
+
+      <p class="font-semibold text-gray-700 mb-1">3. Worker loop</p>
+      <div class="ncode">while (!shutdown) {
+  task = queue.pop();
+  if (!task) park_thread();  // futex / pthread_cond_wait
+  else run(task);
+}</div>
+      <p class="text-gray-700 mb-3 mt-2"><strong>Park/unpark</strong> uses <code>futex</code> or <code>pthread_cond_wait</code>. When queue empty, worker parks (enters kernel sleep) until signaled.</p>
+
+      <p class="font-semibold text-gray-700 mb-1">4. Blocking &amp; wake-up</p>
+      <ul class="dot-ul mb-3">
+        <li>When new tasks arrive, submitter uses <code>futex</code> wake or <code>pthread_cond_signal</code> to wake a parked thread.</li>
+        <li><strong>futex path</strong>: fast path does userspace atomic update and avoids syscalls; slow path invokes kernel to block/wake.</li>
+      </ul>
+
+      <p class="font-semibold text-gray-700 mb-1">5. Thread lifecycle and sizing</p>
+      <ul class="dot-ul mb-3">
+        <li>Pools may have <code>core_size</code>, <code>max_size</code>, <code>keep_alive</code>: when work surges and queue longer than threshold, pool may spawn extra threads via <code>pthread_create()</code>.</li>
+        <li>Idle threads beyond core size are terminated after keep-alive timeout (freeing stack memory via <code>munmap</code>/free).</li>
+      </ul>
+
+      <p class="font-semibold text-violet-700 mb-2">OS-level costs to highlight</p>
+      <ul class="dot-ul">
+        <li><code>pthread_create()</code> is expensive (alloc stack, set TCB, syscall). <strong>Pools amortize that cost.</strong></li>
+        <li><strong>Context switch</strong> between threads involves kernel scheduling, register saving, TLB/cache effects — expensive relative to coroutine yields.</li>
+        <li><strong>Futex</strong> wakeups are cheap relative to full syscalls but still involve kernel involvement when blocking.</li>
+      </ul>
+    </div>
+
+    <!-- Synchronization Primitives -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 3</div>
+      <div class="nh">Synchronization Primitives Used by Pools (Kernel Interaction)</div>
+      <ul class="dot-ul mb-3">
+        <li><strong>Mutexes / condition variables</strong>: typically implemented over <code>futex</code>. Fast uncontended path stays in user-space; contested path goes to kernel.</li>
+        <li><strong>Lock-free queues</strong>: use atomic <strong>CAS</strong>, memory fences (<code>CMPXCHG</code>, <code>mfence</code>) to coordinate producers/consumers and avoid kernel involvement. But on contention CAS loops still create CPU cache-line traffic.</li>
+        <li><strong>Semaphores</strong>: can be used to limit concurrency; typically also implemented using futex or kernel semaphores.</li>
+      </ul>
+      <p class="font-semibold text-violet-700 mb-1">Key OS-level effects:</p>
+      <ul class="dot-ul">
+        <li><strong>Cache-line bouncing</strong> on shared queue heads/tails causes scalability problems.</li>
+        <li><strong>False sharing</strong>: worker metadata collocated in same cache line causes cross-core invalidations — significant on many-core systems.</li>
+      </ul>
+    </div>
+
+    <!-- Work-Stealing OS Level -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 4</div>
+      <div class="nh">Work-Stealing — Runtime &amp; OS-Level Interaction</div>
+      <p class="text-gray-700 mb-3">Work-stealing is generally implemented <strong>in user-space</strong> by runtimes (ForkJoinPool, Cilk, Go scheduler). The kernel only sees resulting kernel threads being scheduled; the stealing logic is done with atomics and minimal kernel interaction.</p>
+
+      <p class="font-semibold text-violet-700 mb-1">Chase–Lev deque (classic lock-free algorithm) — typical pattern:</p>
+      <ul class="dot-ul mb-3">
+        <li>Each worker has a <strong>double-ended queue (deque)</strong>: local push/pop from one end (fast, single-writer), steals happen from the opposite end by other threads.</li>
+        <li>Local worker operations are usually <strong>lock-free and single-writer</strong> (no synchronization with other stealers). Stealers use atomic CAS on the tail pointer.</li>
+        <li>Memory ordering: implementors use <strong>acquire/release fences</strong> so stolen tasks see fully-initialized memory.</li>
+      </ul>
+
+      <p class="font-semibold text-violet-700 mb-1">Algorithmic steps (simplified):</p>
+      <div class="ncode">Worker push(task) at head       → no locks
+Worker pop()   from head        → fast path, returns task
+Stealer steal() reads tail      → CAS increments tail to claim task
+                                → memory fence ensures safe access</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">OS-level implications</p>
+      <ul class="dot-ul mb-3">
+        <li>Most operations are <strong>user-space atomics → no syscalls</strong>. That minimizes kernel transitions and scales well.</li>
+        <li>When no local tasks remain, workers park via <strong>futex</strong>. Stealing reduces park/unpark frequency — which reduces kernel syscalls.</li>
+      </ul>
+
+      <p class="font-semibold text-violet-700 mb-1">Performance considerations</p>
+      <ul class="dot-ul mb-3">
+        <li><strong>Cache locality</strong>: local pushes/pops hit same cache lines → good locality. Stealing accesses other thread's deque (cache miss) — expensive but amortized.</li>
+        <li><strong>NUMA</strong>: stealing across NUMA nodes increases memory latency. Advanced schedulers implement NUMA-aware stealing (prefer local-steal first, cross-node steal less frequently).</li>
+        <li><strong>Steal granularity / batching</strong>: some systems steal multiple tasks at once to reduce contention and amortize cost.</li>
+      </ul>
+
+      <p class="font-semibold text-violet-700 mb-1">Edge cases &amp; correctness</p>
+      <ul class="dot-ul">
+        <li><strong>ABA problems</strong>: solutions include version tagging or hazard pointers to prevent incorrect steals.</li>
+        <li><strong>Memory reclamation</strong>: if tasks are deallocated, must ensure no concurrent access — use safe reclamation (epoch-based, hazard pointers).</li>
+      </ul>
+    </div>
+
+    <!-- Task Scheduling OS Level -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 5</div>
+      <div class="nh">Task Scheduling — OS Scheduler &amp; Runtime Scheduler Interactions</div>
+      <p class="font-semibold text-violet-700 mb-2">Two scheduling layers:</p>
+
+      <p class="font-semibold text-gray-700 mb-1">A. Kernel CPU Scheduler (e.g., Linux CFS)</p>
+      <ul class="dot-ul mb-3">
+        <li>Maintains <strong>runqueues (per-CPU)</strong>, load-balances threads across CPUs. Uses timeslices, preemption, priority classes.</li>
+        <li>Preemptive scheduling: thread runs until timeslice expires or it blocks.</li>
+        <li>Real-time policies (<code>SCHED_FIFO</code>, <code>SCHED_RR</code>) vs normal fairness (CFS).</li>
+        <li>Mechanisms: tick interrupts or tickless timer, load balancing thread, CPU affinity, and priority boosts on wakeup.</li>
+      </ul>
+
+      <p class="font-semibold text-gray-700 mb-1">B. User-level Runtime Scheduler</p>
+      <ul class="dot-ul mb-3">
+        <li>Maps tasks (goroutines, small tasks) onto a pool of kernel threads.</li>
+        <li><strong>Go</strong>: M (machine) are kernel threads; P are processors (logical scheduling contexts); G are goroutines. Scheduler does work-stealing across P.</li>
+        <li><strong>Java ForkJoin</strong>: worker threads each with deque; when idle they steal.</li>
+        <li><strong>Async runtimes</strong>: event loop threads with a task queue and executor threads.</li>
+      </ul>
+
+      <p class="font-semibold text-violet-700 mb-1">How they interact</p>
+      <ul class="dot-ul">
+        <li>Runtime decides which kernel thread executes which task; the kernel decides when that kernel thread runs on CPU.</li>
+        <li><strong>Blocking syscalls</strong> on a kernel thread block it in the kernel scheduler — the runtime must detect blocking and compensate (e.g., create new kernel thread or use non-blocking APIs).</li>
+        <li><strong>Scheduler hand-off optimization</strong>: when one thread unparks another, kernel may schedule the woken thread on the same CPU to improve locality and reduce cache pollution.</li>
+      </ul>
+    </div>
+
+    <!-- Futex -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 6</div>
+      <div class="nh">Parking/Unparking and Futex Behavior</div>
+      <ul class="dot-ul mb-3">
+        <li><strong>Fast path</strong>: user acquires/releases lock without syscalls using atomics.</li>
+        <li><strong>Slow path</strong>: if contended, runtime uses <code>futex</code> syscall to sleep the thread in kernel. Kernel keeps wait queues keyed by memory address.</li>
+        <li><code>futex_wait(addr, expected_val)</code> puts thread to sleep if <code>addr == expected_val</code>.</li>
+        <li><code>futex_wake(addr, n)</code> wakes up <code>n</code> waiters.</li>
+      </ul>
+      <div class="ntip"><strong>Interview point:</strong> many threads repeatedly trying to acquire a lock cause <strong>thundering herd</strong> and many futex wakeups → heavy kernel overhead.</div>
+    </div>
+
+    <!-- Priority Inversion -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 7</div>
+      <div class="nh">Preemption / Fairness / Priority Inversion &amp; Mitigation</div>
+      <ul class="dot-ul">
+        <li><strong>Preemption</strong>: kernel preempts running threads; user-level runtimes must make no assumptions about running to completion.</li>
+        <li><strong>Priority inversion</strong>: low-priority thread holding resource blocks high-priority thread. OS can apply <strong>priority inheritance</strong> to avoid long inversion.</li>
+        <li><strong>Fairness</strong>: user-level schedulers should avoid starvation; make stealing/backoff policies fair.</li>
+      </ul>
+    </div>
+
+    <!-- NUMA -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 8</div>
+      <div class="nh">NUMA / Cache-Awareness (Advanced, Staff-Level)</div>
+      <ul class="dot-ul">
+        <li>On <strong>NUMA machines</strong>, memory access latency varies by node. Placing tasks and data on the same NUMA node greatly improves throughput.</li>
+        <li><strong>Work-stealing</strong> often prefers local deques or local nodes first, then gradually steals from remote nodes.</li>
+        <li><strong>Cache affinity</strong>: keep tasks on same core to benefit from hot data in caches; thread-pin (CPU affinity) can reduce migration overhead.</li>
+      </ul>
+    </div>
+
+    <!-- Faults -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 9</div>
+      <div class="nh">Faults, Blocking, and Recovery Strategies</div>
+      <ul class="dot-ul">
+        <li><strong>Blocking tasks</strong>: if a worker blocks on I/O, the kernel will deschedule that thread. Good pool design isolates blocking ops to a <strong>separate pool</strong> to prevent starving compute workers.</li>
+        <li><strong>Thread crashes (segfault)</strong>: kernel kills thread/process; pool must handle incomplete tasks and possibly restart worker threads.</li>
+        <li><strong>Hung tasks</strong>: use watchdog (timeout + kill thread or interrupt) or run blocking tasks in isolated processes for isolation.</li>
+      </ul>
+    </div>
+
+    <!-- Numbers -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 10</div>
+      <div class="nh">Concrete Numbers &amp; Heuristics (for Interview Answers)</div>
+      <ul class="dot-ul mb-3">
+        <li><strong>Thread stack</strong>: typically <strong>512KB–2MB</strong> per thread; a 1MB stack × 10k threads → ~10GB virtual memory — expensive.</li>
+        <li><strong>Context switch cost</strong>: <strong>tens to hundreds of microseconds</strong> depending on workload (cache/TLB misses), while coroutine yields are &lt;1–2 microseconds.</li>
+        <li><strong>Pool sizing heuristic</strong>: <code>pool_size ≈ #cores × (1 + wait_time / service_time)</code> (Little's Law style) — for CPU-bound <code>wait_time≈0</code> so pool ≈ cores; for blocking-heavy, scale up.</li>
+      </ul>
+    </div>
+
+    <!-- Whiteboard Plan -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 11</div>
+      <div class="nh">Whiteboard Plan — Explain This in an Interview (Step-by-Step)</div>
+      <ol class="list-decimal pl-5 space-y-2 text-gray-700">
+        <li><strong>Draw 3 layers</strong>: (A) User runtime (pools/deques), (B) Kernel (TCB, runqueues, scheduler), (C) Hardware (cores/NUMA).</li>
+        <li><strong>Show task submit flow</strong>: App → submit to pool → enqueue (global or local) → worker dequeues or parks. If no work: worker parks (futex → kernel sleep). Submit wakes via <code>futex_wake</code>.</li>
+        <li><strong>Show work-stealing</strong>: Per-worker deque diagram: local push/pop (fast), remote steal (CAS on tail). Mark where cache misses + cross-core traffic occur.</li>
+        <li><strong>Scheduler interaction</strong>: Kernel runqueue per CPU → runtime's kernel threads scheduled by CFS (or RT). Show preemption &amp; wakeup: on wake, scheduler may run thread immediately.</li>
+        <li><strong>Failure modes / tuning</strong>: Blocking tasks → starved pool → solution: separate blocking pool. NUMA: show local vs remote steal and recommend affinity.</li>
+        <li><strong>Finish with heuristics</strong>: pool sizing formula, when to use stealing, what to measure (latency, throughput, context switch rate, futex calls, CPU utilization).</li>
+      </ol>
+    </div>
+
+    <!-- Soundbite -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 12</div>
+      <div class="nh">Sample Soundbite for Interviews (Concise)</div>
+      <div class="nq">"Thread pools create and reuse <strong>kernel threads</strong> to amortize thread-creation cost; they use <strong>futex/condvar</strong> to park/unpark idle threads. Work-stealing uses <strong>per-worker deques</strong> with lock-free push/pop and <strong>CAS-based steals</strong> to reduce contention and keep cores busy; it's implemented mostly in user space with atomics, while the kernel only sees the scheduling of the worker kernel threads. The OS scheduler (<strong>runqueues, preemption, priority</strong>) and hardware (<strong>cache/NUMA</strong>) crucially affect latency and throughput, so production designs combine user-level stealing with <strong>NUMA-aware placement</strong>, dedicated pools for blocking ops, and careful tuning based on metrics like <strong>futex wakeups</strong> and <strong>context-switch rates</strong>."</div>
+    </div>
+
+    <!-- Quick Checklist -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS — 13</div>
+      <div class="nh">Quick Checklist — Things to Mention to Score Well</div>
+      <ul class="dot-ul">
+        <li><span class="nkw"><span>clone()</span></span> / <span class="nkw"><span>pthread_create()</span></span> cost, stack allocation.</li>
+        <li><span class="nkw"><span>futex</span></span> fast path vs kernel slow path.</li>
+        <li>Lock-free deque (<span class="nkw"><span>Chase–Lev</span></span>), <span class="nkw"><span>CAS</span></span>, memory fences, ABA mitigation.</li>
+        <li>Runqueue per CPU, load balancing, preemption (<span class="nkw"><span>CFS</span></span> basics).</li>
+        <li><span class="nkw"><span>NUMA affinity</span></span>, cache locality, and why stealing costs vary.</li>
+        <li>Park/unpark and <span class="nkw"><span>wake locality</span></span> optimizations.</li>
+        <li>Practical mitigations: <strong>separate blocking pool</strong>, batching steals, keep-alive, bounded queues, backpressure.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/87ebf243-555a-4301-be1d-456fbc8c95c8.png"
+           alt="Thread Pools, Work-Stealing and Task Scheduling Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TCP Handshake, Congestion Control & Retransmissions — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">TCP Handshake, Congestion Control & Retransmissions</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">TCP Handshake, Congestion Control & Retransmissions</h1>
+      <p class="text-xs text-gray-400 mt-0.5">How TCP establishes connections, adapts to network conditions, and recovers from packet loss</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">Every HTTP request, gRPC call, database query, and Kafka connection relies on TCP. TCP continuously adapts to network conditions to maximize throughput while ensuring reliable delivery. Understanding it explains why requests are slow, why throughput drops, and why HTTP/3 moved away from TCP.</p>
+      <div class="ncode">Client                  Network                  Server
+  │                        │                        │
+  │──── SYN ──────────────▶│                        │
+  │◀─── SYN + ACK ─────────│                        │
+  │──── ACK ──────────────▶│  Connection Established│
+  │                        │                        │
+  │──── Data Packets ─────────────────────────────▶ │
+  │◀─── ACKs ──────────────────────────────────────│
+  │                        │                        │
+  │  Packet Loss?          │                        │
+  │    ↓ Dup ACKs / Timeout│                        │
+  │    ↓ Retransmission    │                        │
+  │    ↓ cwnd adjusted     │                        │</div>
+      <div class="nkw mt-3">
+        <span>3-Way Handshake</span>
+        <span>cwnd</span>
+        <span>Slow Start</span>
+        <span>Fast Retransmit</span>
+        <span>SACK</span>
+        <span>BBR</span>
+        <span>RTT / RTO</span>
+        <span>Flow Control</span>
+      </div>
+    </div>
+
+    <!-- Three-Way Handshake -->
+    <div class="nc">
+      <p class="nh">TCP Three-Way Handshake</p>
+      <p class="text-sm text-gray-600 mb-2">Before any data flows, both sides synchronize sequence numbers and negotiate options:</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1 text-center text-xs">
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="font-bold text-violet-700 mb-1">Step 1 — SYN</p>
+          <p class="font-mono text-violet-800 text-xs bg-violet-100 rounded px-2 py-1 mb-1">SYN, Seq=X</p>
+          <p class="text-gray-500">Client requests connection and proposes Initial Sequence Number</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="font-bold text-violet-700 mb-1">Step 2 — SYN+ACK</p>
+          <p class="font-mono text-violet-800 text-xs bg-violet-100 rounded px-2 py-1 mb-1">SYN, ACK=X+1, Seq=Y</p>
+          <p class="text-gray-500">Server accepts, sends its own sequence number</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="font-bold text-violet-700 mb-1">Step 3 — ACK</p>
+          <p class="font-mono text-violet-800 text-xs bg-violet-100 rounded px-2 py-1 mb-1">ACK=Y+1</p>
+          <p class="text-gray-500">Client confirms. Connection ESTABLISHED.</p>
+        </div>
+      </div>
+      <table class="nt mt-3">
+        <thead><tr><th>Purpose</th><th>Why It Matters</th></tr></thead>
+        <tbody>
+          <tr><td>Synchronize sequence numbers</td><td>Enables reliable, ordered delivery</td></tr>
+          <tr><td>Verify both endpoints alive</td><td>Avoid sending into dead connections</td></tr>
+          <tr><td>Negotiate TCP options</td><td>MSS, Window Scaling, SACK support</td></tr>
+          <tr><td>Initialize flow control</td><td>Prevent receiver buffer overflow</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">The handshake costs 1 RTT before any data. At 100ms RTT, every new TCP connection adds 100ms overhead. This is why connection pooling and Keep-Alive matter so much in production.</p>
+    </div>
+
+    <!-- Connection Lifecycle -->
+    <div class="nc">
+      <p class="nh">TCP Connection Lifecycle</p>
+      <div class="ncode">LISTEN → SYN_RECEIVED → ESTABLISHED → FIN_WAIT → TIME_WAIT → CLOSED
+
+Staff Engineer concerns:
+  TIME_WAIT  → Too many short-lived connections; sockets linger ~60s
+  CLOSE_WAIT → App not calling close(); resource leak
+  SYN_RCVD   → SYN flood attack; check backlog and syn cookies
+  ESTABLISHED (too many) → Connection pool too large or leak</div>
+      <div class="ncode mt-2"># Check socket states
+ss -s
+ss -ti   # include TCP internals (RTT, cwnd)</div>
+    </div>
+
+    <!-- Congestion Control -->
+    <div class="nc">
+      <p class="nh">Congestion Control — How TCP Finds Its Speed</p>
+      <p class="nq">TCP continuously asks: <strong>"How fast can I send without congesting the network?"</strong> The answer is the <strong>Congestion Window (cwnd)</strong> — the max amount of unacknowledged data allowed in flight.</p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Slow Start</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">cwnd starts at 1 MSS
+RTT 1: send 1 → ACK → cwnd=2
+RTT 2: send 2 → ACK → cwnd=4
+RTT 3: send 4 → ACK → cwnd=8
+RTT 4: send 8 → ACK → cwnd=16
+→ Exponential growth until ssthresh</div>
+          <p class="text-xs text-gray-500 mt-1">Probes network capacity quickly without assuming anything.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Congestion Avoidance</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Once cwnd ≥ ssthresh:
+cwnd = cwnd + 1 per RTT
+(linear, not exponential)
+
+cwnd: 16 → 17 → 18 → 19…
+→ Probes for more bandwidth
+   without risking a flood</div>
+          <p class="text-xs text-gray-500 mt-1">Grows carefully after reaching threshold.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Packet Loss & Recovery -->
+    <div class="nc">
+      <p class="nh">Packet Loss — Fast Retransmit & Fast Recovery</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Detection via Duplicate ACKs</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Sent:     1 2 3 4 5 6
+Received: 1 2 3 _ 5 6
+
+Receiver sends:
+  ACK 4  ← "still waiting for 4"
+  ACK 4  ← duplicate
+  ACK 4  ← duplicate (3rd!)
+  ↓
+Fast Retransmit: resend 4 immediately
+(no waiting for timeout)</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Fast Recovery (not slow start)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Before loss: cwnd = 32
+  ↓
+3 dup ACKs detected
+  ↓
+ssthresh = cwnd / 2 = 16
+cwnd = ssthresh = 16
+  ↓
+Resume Congestion Avoidance
+(not Slow Start!)
+17 → 18 → 19…</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Timeout-based Retransmission</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Send packet
+  ↓
+Wait RTO (retransmission timeout)
+  ↓
+No ACK received
+  ↓
+Retransmit + reset to Slow Start
+cwnd = 1 MSS (harsh!)</div>
+          <p class="text-xs text-gray-500 mt-1">Worst case — indicates severe loss or network failure.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">Selective ACK (SACK)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Received: 1 2 3 _ 5 6 7
+
+SACK: "I have 1-3 and 5-7,
+       missing only: 4"
+  ↓
+Retransmit only packet 4
+(not 4,5,6,7 like without SACK)</div>
+          <p class="text-xs text-gray-500 mt-1">Far more efficient than go-back-N.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACK Types -->
+    <div class="nc">
+      <p class="nh">ACK Types</p>
+      <table class="nt">
+        <thead><tr><th>ACK Type</th><th>Meaning</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>Normal ACK</td><td>All packets received up to N</td><td>Advance cwnd normally</td></tr>
+          <tr><td>Duplicate ACK</td><td>Gap detected — still waiting for N</td><td>3rd dup → Fast Retransmit</td></tr>
+          <tr><td>Selective ACK (SACK)</td><td>Receiver reports exactly which segments it has</td><td>Retransmit only the gaps</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Congestion Algorithms -->
+    <div class="nc">
+      <p class="nh">Modern Congestion Algorithms</p>
+      <table class="nt">
+        <thead><tr><th>Algorithm</th><th>Detection Mechanism</th><th>Used In</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Reno</strong></td><td>Packet loss = congestion signal</td><td>Legacy systems</td></tr>
+          <tr><td><strong>Cubic</strong></td><td>Cubic growth function after loss</td><td>Linux default</td></tr>
+          <tr><td><strong>BBR</strong></td><td>Models bottleneck bandwidth + RTT (not loss)</td><td>Google, YouTube, GCP, Cloudflare</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode mt-2">BBR (Bottleneck Bandwidth + RTT):
+  Traditional: packet loss = congestion → reduce cwnd
+  BBR:         measure actual bandwidth + RTT directly
+               → higher throughput
+               → lower latency
+               → reduces bufferbloat
+               → works better on lossy networks (mobile, satellite)</div>
+      <div class="ncode mt-2"># Check/set congestion algorithm on Linux
+sysctl net.ipv4.tcp_congestion_control
+sysctl -w net.ipv4.tcp_congestion_control=bbr</div>
+    </div>
+
+    <!-- Flow Control vs Congestion Control -->
+    <div class="nc">
+      <p class="nh">Flow Control vs Congestion Control</p>
+      <table class="nt">
+        <thead><tr><th>Aspect</th><th>Flow Control</th><th>Congestion Control</th></tr></thead>
+        <tbody>
+          <tr><td>Protects</td><td>Receiver buffer</td><td>The network</td></tr>
+          <tr><td>Window used</td><td>Receiver Window (rwnd)</td><td>Congestion Window (cwnd)</td></tr>
+          <tr><td>Who decides?</td><td>Receiver</td><td>Network conditions</td></tr>
+          <tr><td>Problem prevented</td><td>Buffer overflow at receiver</td><td>Network congestion collapse</td></tr>
+          <tr><td>Signal</td><td>rwnd advertised in ACK</td><td>Packet loss / RTT changes</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Actual sending rate = <strong>min(cwnd, rwnd)</strong>. Both windows constrain sending simultaneously.</p>
+    </div>
+
+    <!-- RTT & RTO -->
+    <div class="nc">
+      <p class="nh">RTT & Retransmission Timeout (RTO)</p>
+      <div class="ncode">TCP measures RTT continuously:
+  Send packet at T1
+  Receive ACK at T2
+  RTT = T2 - T1 (smoothed SRTT)
+
+RTO (Retransmission Timeout):
+  RTO = SRTT + 4 × RTTVAR   (RFC 6298)
+  Min RTO = 200ms (Linux default)
+
+If no ACK before RTO expires:
+  → Retransmit packet
+  → cwnd = 1 MSS (Slow Start!)
+  → RTO doubles (exponential backoff)</div>
+      <p class="ntip">Fast Retransmit (3 dup ACKs) is much better than timeout-based retransmit because it doesn't reset cwnd to 1. Always monitor retransmission counts — high timeout retransmits indicate severe network problems.</p>
+    </div>
+
+    <!-- Production Debugging -->
+    <div class="nc">
+      <p class="nh">Production Debugging</p>
+      <table class="nt">
+        <thead><tr><th>Symptom</th><th>Likely Cause</th><th>Tool</th></tr></thead>
+        <tbody>
+          <tr><td>High P99 latency</td><td>TCP retransmissions (timeout)</td><td><code>ss -ti</code>, <code>netstat -s</code></td></tr>
+          <tr><td>Low throughput</td><td>Small cwnd or packet loss</td><td><code>ss -ti</code>, <code>iperf3</code></td></tr>
+          <tr><td>Frequent timeouts</td><td>High RTT or network issues</td><td><code>ping</code>, <code>traceroute</code></td></tr>
+          <tr><td>Many duplicate ACKs</td><td>Packet loss</td><td><code>tcpdump</code>, Wireshark</td></tr>
+          <tr><td>Thousands of TIME_WAIT</td><td>Too many short-lived connections</td><td><code>ss -s</code></td></tr>
+          <tr><td>CLOSE_WAIT sockets</td><td>App not closing connections</td><td><code>ss -tp</code>, app logs</td></tr>
+        </tbody>
+      </table>
+      <div class="ncode mt-2"># Show TCP internals: RTT, cwnd, state
+ss -ti
+
+# Retransmission stats
+netstat -s | grep -i retransmit
+
+# Monitor live TCP flows
+watch -n1 'ss -ti | grep -A1 ESTAB'</div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">What are the 3 handshake steps?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Why are we seeing retransmissions?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is cwnd too small for our RTT and bandwidth?</li>
+            <li>Are we creating too many short-lived connections?</li>
+            <li>Is timeout retransmit or fast retransmit dominating?</li>
+            <li>Should we enable BBR instead of Cubic?</li>
+            <li>Is connection pooling correctly sized?</li>
+            <li>Is tail latency driven by retransmissions?</li>
+            <li>Should we move to HTTP/3 (QUIC) for mobile clients?</li>
+            <li>Is TCP Fast Open reducing handshake cost worth it?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design Implications -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Design Implications</p>
+      <table class="nt">
+        <thead><tr><th>Problem</th><th>Best Practice</th></tr></thead>
+        <tbody>
+          <tr><td>Handshake overhead (1 RTT cost)</td><td>Connection pooling + HTTP Keep-Alive</td></tr>
+          <tr><td>High latency</td><td>TCP Fast Open (data with SYN)</td></tr>
+          <tr><td>Packet loss on retransmit</td><td>Enable SACK; use BBR congestion control</td></tr>
+          <tr><td>Tail latency spikes</td><td>Reduce retransmissions; tune buffers; optimize RTT</td></tr>
+          <tr><td>Too many TIME_WAIT</td><td>Reuse connections; tune <code>tcp_tw_reuse</code></td></tr>
+          <tr><td>Mobile / high-latency</td><td>HTTP/3 over QUIC (no TCP HoL blocking)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modern Enhancements -->
+    <div class="nc">
+      <p class="nh">Modern TCP Enhancements</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Benefit</th></tr></thead>
+        <tbody>
+          <tr><td>TCP Fast Open</td><td>Send data with SYN — eliminates 1 RTT on repeat connections</td></tr>
+          <tr><td>SACK</td><td>Retransmit only missing segments (not entire window)</td></tr>
+          <tr><td>Window Scaling</td><td>Supports high-bandwidth high-latency links (&gt;64KB window)</td></tr>
+          <tr><td>BBR</td><td>Maximizes throughput while keeping RTT low; less bufferbloat</td></tr>
+          <tr><td>HTTP/3 (QUIC)</td><td>Eliminates TCP HoL blocking; 0-RTT resume; per-stream reliability</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">TCP Three-Way Handshake:
+  SYN → SYN+ACK → ACK = 1 RTT cost before any data
+  Synchronizes ISN, negotiates MSS, Window Scale, SACK
+
+Congestion Control (cwnd):
+  Slow Start:          exponential growth (cwnd doubles per RTT)
+  Congestion Avoidance: linear growth after ssthresh
+  Fast Retransmit:     3 dup ACKs → retransmit immediately
+  Fast Recovery:       halve cwnd (not reset to 1)
+  Timeout:             cwnd = 1, Slow Start → very expensive
+
+Retransmission types:
+  Fast (3 dup ACKs)  → minimal throughput impact
+  Timeout (RTO)      → severe throughput collapse + doubled RTO
+
+SACK = retransmit only gaps (most efficient)
+
+Flow Control  = protect receiver  (rwnd)
+Congestion    = protect network   (cwnd)
+Sending rate  = min(cwnd, rwnd)
+
+BBR vs Cubic:
+  Cubic: loss = congestion signal
+  BBR:   model bandwidth + RTT → higher throughput, less bufferbloat
+
+Production metrics to watch:
+  Retransmit rate (netstat -s)
+  cwnd, RTT (ss -ti)
+  TIME_WAIT count (ss -s)
+  Connection setup latency</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/a28a301a-6c21-4ed5-829a-727abb113c24.png"
+        alt="TCP Handshake Congestion Control Retransmissions visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Partitioning / Sharding Failure Scenarios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#a16207; border-bottom-color:#a16207; }
+    .tab-btn:hover:not(.active) { color:#78350f; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc   { background:#fefce8; border:1px solid #fde047; border-radius:1rem;
+            padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh   { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+            text-transform:uppercase; color:#a16207; margin-bottom:.6rem; }
+    .ncode{ background:#1c1001; color:#fde047; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; }
+
+    .it-wrap { overflow-x:auto; border-radius:1rem; border:1px solid #fde047; margin-bottom:1.5rem; }
+    .it { width:100%; border-collapse:collapse; font-size:.73rem; min-width:960px; }
+    .it th { background:#78350f; color:#fde68a; font-weight:700; font-size:.62rem;
+             text-transform:uppercase; letter-spacing:.06em;
+             padding:.45rem .7rem; text-align:left; white-space:nowrap; }
+    .it td { padding:.42rem .7rem; border-top:1px solid #fef9c3;
+             color:#374151; vertical-align:top; line-height:1.5; }
+    .it tr:hover td { background:#fefce8; }
+    .it td:first-child { font-weight:700; color:#1e293b; font-size:.74rem; }
+    .casc  { color:#991b1b; font-size:.71rem; }
+    .troff { color:#1d4ed8; font-size:.71rem; }
+    .cat-hdr td { background:#a16207; color:#fff; font-weight:800; font-size:.7rem;
+                  text-transform:uppercase; letter-spacing:.08em;
+                  padding:.4rem .7rem; border-top:none; }
+    .badge-crit { background:#fee2e2; color:#991b1b; font-size:.6rem; font-weight:700;
+                  border-radius:999px; padding:.1em .5em; margin-left:.3rem; }
+
+    .ct { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .ct th { background:#78350f; color:#fde68a; font-weight:700; font-size:.63rem;
+             text-transform:uppercase; letter-spacing:.06em; padding:.4rem .7rem; text-align:left; }
+    .ct td { padding:.4rem .7rem; border-top:1px solid #fef9c3; color:#374151; vertical-align:top; }
+    .ct td:first-child { font-weight:700; color:#1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="failures.html"
+       class="flex items-center gap-1.5 text-yellow-700 hover:text-yellow-900 font-semibold
+              bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="failures.html" class="text-gray-400 hover:text-gray-600">Failure Types</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-yellow-800 font-semibold">Partitioning / Sharding Failure Scenarios</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Partitioning / Sharding Failure Scenarios</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Staff-level · 8 categories · 39 scenarios · detect / mitigate / prevent / cascading / trade-off</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('table',this)">Failure Table</button>
+    <button class="tab-btn"        onclick="switchTab('staff',this)">Staff Insights</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-table" class="tab-pane active pb-16">
+    <div class="nc mb-4">
+      <p class="nh">Why Sharding Failures Are Hard to Diagnose</p>
+      <div class="ncode">Sharding enables: horizontal scale + distributed storage + distributed processing
+But introduces: hotspots | uneven load | routing complexity | rebalancing | metadata consistency
+
+8 root failure classes:
+  availability | hot partition | routing | rebalancing
+  cross-shard coordination | consistency | scaling | data placement</div>
+    </div>
+
+    <div class="it-wrap">
+      <table class="it">
+        <thead>
+          <tr>
+            <th>Failure Scenario</th>
+            <th>When It Occurs</th>
+            <th>How To Detect</th>
+            <th>How To Mitigate</th>
+            <th>How To Prevent</th>
+            <th>Cascading Failure Risk</th>
+            <th>Trade-off</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="cat-hdr"><td colspan="7">1 — Partition Availability Failures</td></tr>
+          <tr>
+            <td>Shard Node Crash<span class="badge-crit">Must Know</span></td>
+            <td>Hardware/software failure on the node hosting one or more shards</td>
+            <td>Partition unavailable alerts, health check failure for that shard</td>
+            <td>Failover to replica of the shard, reroute traffic</td>
+            <td>Replicated shards (RF >= 3), multi-AZ shard placement</td>
+            <td class="casc">Partial data unavailability — all keys on that shard unreachable</td>
+            <td class="troff">Replication multiplies storage cost and write amplification</td>
+          </tr>
+          <tr>
+            <td>Entire Shard Unavailable</td>
+            <td>AZ/DC outage — all replicas of a shard in same AZ fail together</td>
+            <td>Partition read/write failures for a key range, error spike</td>
+            <td>Route to replica in surviving AZ</td>
+            <td>Spread replicas across at least 3 AZs per shard</td>
+            <td class="casc">Partial service outage — affected key range fully unavailable</td>
+            <td class="troff">Cross-AZ replication adds inter-zone latency and egress cost</td>
+          </tr>
+          <tr>
+            <td>Partition Leader Failure<span class="badge-crit">Must Know</span></td>
+            <td>Shard leader node crashes — that shard loses write authority</td>
+            <td>Leader unavailable for partition, write requests failing</td>
+            <td>Trigger leader re-election from ISR replicas</td>
+            <td>Multi-replica partitions, unclean leader election = off</td>
+            <td class="casc">Temporary write outage for that shard's key range — election latency</td>
+            <td class="troff">Faster election reduces outage but risks false elections on transient issues</td>
+          </tr>
+          <tr>
+            <td>Partition Startup Failure</td>
+            <td>Corrupted shard WAL or snapshot — shard cannot start</td>
+            <td>Restart loop, shard recovery error in logs</td>
+            <td>Restore from last clean snapshot, rebuild from replica</td>
+            <td>WAL checksums, snapshot integrity validation</td>
+            <td class="casc">Reduced cluster capacity — fewer shards online means uneven load on rest</td>
+            <td class="troff">Rebuild from replica adds IO load on the healthy replicas</td>
+          </tr>
+          <tr>
+            <td>Partition Network Isolation</td>
+            <td>Network partition — shard node cannot communicate with cluster</td>
+            <td>Missing shard heartbeats, partition unreachable from coordinator</td>
+            <td>Fence isolated partition, reroute to healthy replicas</td>
+            <td>Multi-network paths, redundant links between shards and coordinator</td>
+            <td class="casc">Data inconsistency if isolated shard continues accepting writes</td>
+            <td class="troff">Fencing isolated shards reduces write availability during partition</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">2 — Hot Partition and Uneven Distribution Failures</td></tr>
+          <tr>
+            <td>Hot Partition<span class="badge-crit">Must Know</span></td>
+            <td>Skewed key distribution — majority of traffic routes to one shard</td>
+            <td>One shard at 100% CPU/IO while others are idle</td>
+            <td>Split hot shard, add local cache in front of hot partition</td>
+            <td>Better shard key design, virtual partitions, random suffix for hot keys</td>
+            <td class="casc">Single shard collapse → all traffic for that key range fails</td>
+            <td class="troff">Random suffix breaks key ordering and complicates range queries</td>
+          </tr>
+          <tr>
+            <td>Hot Key Problem<span class="badge-crit">Must Know</span></td>
+            <td>Single key (viral content, popular user) gets millions of requests</td>
+            <td>One key dominates read/write metrics, shard CPU pegged</td>
+            <td>Replicate hot key to multiple shards, serve from local process cache</td>
+            <td>Local in-process cache, CDN for read-heavy hot keys</td>
+            <td class="casc">CPU/memory saturation on hot shard — shard crash → full miss cascade</td>
+            <td class="troff">Hot key replication increases invalidation complexity on write</td>
+          </tr>
+          <tr>
+            <td>Skewed Hash Distribution</td>
+            <td>Poor hashing function — keys cluster on subset of shards</td>
+            <td>Uneven shard utilisation metrics, some shards consistently hot</td>
+            <td>Rehash with better function, virtual node rebalancing</td>
+            <td>Consistent hashing with many virtual nodes, test key distribution</td>
+            <td class="casc">Uneven scaling — adding shards does not help overloaded subset</td>
+            <td class="troff">Rehashing requires data migration — expensive and disruptive</td>
+          </tr>
+          <tr>
+            <td>Write Hotspot (Sequential Keys)</td>
+            <td>Time-series or auto-increment keys — all new writes hit same shard</td>
+            <td>Write-heavy shard at capacity, others idle</td>
+            <td>Range splitting on hot write shard</td>
+            <td>Randomised/hashed IDs, avoid sequential keys as shard keys</td>
+            <td class="casc">Disk/CPU bottleneck on write shard — new writes begin failing</td>
+            <td class="troff">Randomised IDs lose range-query locality — scans become slower</td>
+          </tr>
+          <tr>
+            <td>Celebrity / Fan-out Problem</td>
+            <td>Millions access same entity — all reads funnel to one shard</td>
+            <td>Read amplification spike, single shard saturated</td>
+            <td>Fanout-on-read, multi-layer caching (L1 process + L2 distributed)</td>
+            <td>Tiered caching, CDN for top-N entities, precomputed aggregates</td>
+            <td class="casc">Hotspot shard overloads and crashes — all celebrity-tier reads fail</td>
+            <td class="troff">Fanout-on-read adds read latency; caching adds consistency complexity</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">3 — Routing and Partition Lookup Failures</td></tr>
+          <tr>
+            <td>Metadata Service Failure<span class="badge-crit">Must Know</span></td>
+            <td>Coordinator / ZooKeeper / etcd / KRaft down — routing lookups fail</td>
+            <td>All routing lookup failures, cluster effectively inaccessible</td>
+            <td>Use cached routing table, operate in degraded-but-functional mode</td>
+            <td>HA metadata service (3-node ensemble), client-side routing cache</td>
+            <td class="casc">Entire cluster inaccessible — all shards unreachable without routing table</td>
+            <td class="troff">Client-side cached routing may be stale after shard changes</td>
+          </tr>
+          <tr>
+            <td>Stale Partition Mapping<span class="badge-crit">Must Know</span></td>
+            <td>Routing table not updated after rebalance — requests go to old shard</td>
+            <td>Missing or wrong data returned, requests routed to wrong node</td>
+            <td>Retry with refreshed routing metadata from coordinator</td>
+            <td>Faster metadata propagation, versioned routing table with client refresh</td>
+            <td class="casc">Increased request failures — misrouted requests hit wrong shard</td>
+            <td class="troff">Frequent metadata refresh adds overhead; cached routing reduces it</td>
+          </tr>
+          <tr>
+            <td>Incorrect Shard Routing</td>
+            <td>Routing rule misconfigured — wrong key range mapped to wrong shard</td>
+            <td>Missing/wrong data from requests, data not found where expected</td>
+            <td>Rollback routing config, manual key range correction</td>
+            <td>Routing config validation, canary routing before full rollout</td>
+            <td class="casc">Requests fail or return wrong data for affected key ranges</td>
+            <td class="troff">Canary routing slows config rollout velocity</td>
+          </tr>
+          <tr>
+            <td>Partition Discovery Failure</td>
+            <td>Nodes cannot locate shard assignments — registry unavailable or stale</td>
+            <td>Missing partition errors, shard not found responses</td>
+            <td>Fallback lookup to secondary registry, rebuild discovery state</td>
+            <td>Replicated service registry, client-side shard address caching</td>
+            <td class="casc">Partial cluster outage — some shard ranges become unreachable</td>
+            <td class="troff">Redundant registry adds infra cost and consistency management</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">4 — Rebalancing and Resharding Failures</td></tr>
+          <tr>
+            <td>Shard Rebalancing Storm<span class="badge-crit">Must Know</span></td>
+            <td>Many nodes join/leave simultaneously — massive data movement triggered</td>
+            <td>Network/disk IO spike across cluster during rebalance</td>
+            <td>Throttle rebalance bandwidth, pause low-priority rebalance</td>
+            <td>Gradual rebalance with rate limiting, virtual nodes to reduce migration scope</td>
+            <td class="casc">Live traffic degradation — rebalance consumes IO needed for user requests</td>
+            <td class="troff">Throttling extends rebalance window — longer inconsistency period</td>
+          </tr>
+          <tr>
+            <td>Failed Resharding<span class="badge-crit">Must Know</span></td>
+            <td>Migration interrupted mid-flight — some data moved, some not</td>
+            <td>Partial data movement, routing errors for migrated key range</td>
+            <td>Resume migration from checkpoint, or rollback to pre-migration state</td>
+            <td>Online migration tooling with checkpointing, dual-write during migration</td>
+            <td class="casc">Data inconsistency — keys split across old and new shards with wrong routing</td>
+            <td class="troff">Dual-write during migration doubles write load and adds coordination</td>
+          </tr>
+          <tr>
+            <td>Dual Write Conflict During Migration</td>
+            <td>Writes arrive during resharding — both old and new shard accept the write</td>
+            <td>Conflicting values in old vs new shard after migration completes</td>
+            <td>Sync reconciliation after migration, atomic cutover</td>
+            <td>Pause writes during cutover (brief), or use CRDT for conflict resolution</td>
+            <td class="casc">Silent data corruption — wrong value silently wins after shard cutover</td>
+            <td class="troff">Write pause during cutover causes brief unavailability</td>
+          </tr>
+          <tr>
+            <td>Partition Split Failure</td>
+            <td>Hot shard split interrupted — partial key range moved to new shard</td>
+            <td>Missing key ranges, routing errors for keys near split boundary</td>
+            <td>Retry split from checkpoint, rollback if not feasible</td>
+            <td>Automated split testing in staging, idempotent split operations</td>
+            <td class="casc">Partial unavailability — keys near split boundary inaccessible</td>
+            <td class="troff">Online shard splitting is complex and requires careful coordination</td>
+          </tr>
+          <tr>
+            <td>Partition Merge Failure</td>
+            <td>Merging underutilised shards — merge interrupted or produces inconsistent metadata</td>
+            <td>Metadata inconsistency, routing confusion for merged key range</td>
+            <td>Rollback merge, restore original shard boundaries</td>
+            <td>Safe merge orchestration with rollback plan, dry-run validation</td>
+            <td class="casc">Routing confusion — some keys in merged range become temporarily lost</td>
+            <td class="troff">Conservative merge scheduling slows cluster right-sizing</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">5 — Cross-Shard Query and Transaction Failures</td></tr>
+          <tr>
+            <td>Cross-Shard Query Explosion<span class="badge-crit">Must Know</span></td>
+            <td>Query spans many shards — fan-out to all shards simultaneously</td>
+            <td>Latency spike, all shards hit simultaneously for one query</td>
+            <td>Cache aggregated results, limit fan-out with query routing</td>
+            <td>Query-aware sharding design, precomputed aggregates, denormalisation</td>
+            <td class="casc">Massive cluster load — scatter-gather query overwhelms all shards</td>
+            <td class="troff">Denormalisation duplicates data and complicates write paths</td>
+          </tr>
+          <tr>
+            <td>Distributed Transaction Failure<span class="badge-crit">Must Know</span></td>
+            <td>Multi-shard transaction — one shard commits, another fails or times out</td>
+            <td>Inconsistent state across shards, partial commit detected</td>
+            <td>Saga compensation — run compensating actions on committed shards</td>
+            <td>Minimise cross-shard transactions, outbox pattern, idempotent operations</td>
+            <td class="casc">Cross-shard inconsistency — one entity partially updated globally</td>
+            <td class="troff">Saga complexity grows rapidly with number of shards involved</td>
+          </tr>
+          <tr>
+            <td>Scatter-Gather Timeout</td>
+            <td>One slow/unreachable shard delays the entire scatter-gather query</td>
+            <td>Partial query failures, query times out waiting for straggler shard</td>
+            <td>Partial results with fallback, timeout straggler with best-effort</td>
+            <td>Better partitioning to reduce fan-out, straggler mitigation (hedged requests)</td>
+            <td class="casc">User-visible latency spike — slow shard blocks entire query result</td>
+            <td class="troff">Hedged requests double load on shards to speed up stragglers</td>
+          </tr>
+          <tr>
+            <td>Global Secondary Index Failure</td>
+            <td>Cross-shard index has async replication lag — index out of sync with data</td>
+            <td>Missing query results, index returns stale or incorrect shard references</td>
+            <td>Rebuild index from authoritative shard data</td>
+            <td>Async index maintenance with bounded staleness SLA, eventual consistency</td>
+            <td class="casc">Incorrect query responses — users cannot find data that exists</td>
+            <td class="troff">Synchronous index maintenance adds write latency to every indexed write</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">6 — Consistency and Replication Failures Across Shards</td></tr>
+          <tr>
+            <td>Cross-Shard Inconsistency</td>
+            <td>Async replication lag between shards — global state temporarily diverged</td>
+            <td>Data mismatch in cross-shard reconciliation job</td>
+            <td>Reconciliation job, read from authoritative shard</td>
+            <td>Stronger consistency guarantees on cross-shard operations</td>
+            <td class="casc">Incorrect global state — users see partial or conflicting data</td>
+            <td class="troff">Strong consistency across shards reduces write throughput dramatically</td>
+          </tr>
+          <tr>
+            <td>Replica Lag Per Shard</td>
+            <td>Slow follower replica within a shard — reads routed to lagging replica</td>
+            <td>Per-shard lag metrics, stale reads from that shard's replica</td>
+            <td>Route reads to shard leader, set bounded staleness</td>
+            <td>Faster replication, sync replication on shard-critical paths</td>
+            <td class="casc">Stale reads for that shard's key range — wrong data served</td>
+            <td class="troff">Reading from shard leader removes read scalability from replicas</td>
+          </tr>
+          <tr>
+            <td>Split Brain on a Shard<span class="badge-crit">Must Know</span></td>
+            <td>Network partition within a shard — both replicas think they are leader</td>
+            <td>Conflicting writes accepted, version mismatch on shard</td>
+            <td>Fence minority shard replica using fencing tokens</td>
+            <td>Consensus protocol (Raft) per shard, unclean leader election = off</td>
+            <td class="casc">Silent data corruption within that shard — conflicting writes accepted</td>
+            <td class="troff">Disabling unclean leader election reduces availability during partition</td>
+          </tr>
+          <tr>
+            <td>Out-of-Order Shard Updates</td>
+            <td>Async processing of events across shards — updates arrive out of causal order</td>
+            <td>Version mismatch, logically impossible state detected on read</td>
+            <td>Replay events in correct order, buffer and reorder before applying</td>
+            <td>Ordered event streams per shard key, vector clocks for causality</td>
+            <td class="casc">Invalid state — subsequent operations build on corrupted shard state</td>
+            <td class="troff">Strict ordering per shard reduces cross-shard processing parallelism</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">7 — Scaling and Capacity Failures</td></tr>
+          <tr>
+            <td>Shard Capacity Exhaustion<span class="badge-crit">Must Know</span></td>
+            <td>Shard storage fills up — disk full on shard node</td>
+            <td>Disk usage alerts, shard refuses new writes</td>
+            <td>Emergency shard split, expand volume, archive old data</td>
+            <td>Predictive scaling, disk monitoring with headroom alerts, auto-split</td>
+            <td class="casc">Writes fail for that shard's key range — partial service outage</td>
+            <td class="troff">Auto-split adds complexity; more shards increase metadata overhead</td>
+          </tr>
+          <tr>
+            <td>Partition Count Explosion</td>
+            <td>Too many small shards — metadata overhead becomes bottleneck</td>
+            <td>Metadata lookup latency spike, coordinator CPU high</td>
+            <td>Merge underutilised partitions, right-size shard count</td>
+            <td>Better initial shard sizing, merge policy for small shards</td>
+            <td class="casc">Coordinator overload — metadata latency cascades to all shard lookups</td>
+            <td class="troff">Larger shards are harder to rebalance; too many shards overwhelm metadata</td>
+          </tr>
+          <tr>
+            <td>Metadata Scalability Bottleneck</td>
+            <td>Cluster has too many shards — metadata service becomes the bottleneck</td>
+            <td>Metadata lookup latency increase, coordinator saturation</td>
+            <td>Distributed/hierarchical metadata, cache routing tables on client</td>
+            <td>Hierarchical metadata design from the start, limit total shard count</td>
+            <td class="casc">Cluster instability — every request pays metadata latency overhead</td>
+            <td class="troff">Distributed metadata adds consistency management complexity</td>
+          </tr>
+          <tr>
+            <td>Autoscaling Lag</td>
+            <td>Traffic grows faster than shards can be added and rebalanced</td>
+            <td>Sustained shard saturation, autoscaling event lag metric</td>
+            <td>Manual scale-up, pre-warm new shards before traffic arrives</td>
+            <td>Predictive autoscaling, capacity buffers, fast pre-provisioned shard pool</td>
+            <td class="casc">Overloaded shards cascade — existing shards fail under sustained overload</td>
+            <td class="troff">Pre-provisioned shard pool wastes resources during low traffic</td>
+          </tr>
+
+          <tr class="cat-hdr"><td colspan="7">8 — Data Placement and Locality Failures</td></tr>
+          <tr>
+            <td>Poor Data Locality</td>
+            <td>Related data placed on different shards — every query requires cross-shard join</td>
+            <td>High cross-shard traffic, consistently slow queries for related entities</td>
+            <td>Co-locate related data on same shard, denormalise for locality</td>
+            <td>Domain-aware partitioning — group entities that are accessed together</td>
+            <td class="casc">Increased cross-shard latency for every query involving related data</td>
+            <td class="troff">Co-location requires careful schema design and limits flexibility later</td>
+          </tr>
+          <tr>
+            <td>Tenant Co-location Problem</td>
+            <td>Multiple heavy tenants placed on same shard — noisy neighbour effect</td>
+            <td>Uneven shard load, one tenant's traffic degrades another's performance</td>
+            <td>Migrate heavy tenant to isolated shard</td>
+            <td>Tenant-aware partitioning, isolate top-N tenants by usage</td>
+            <td class="casc">Noisy neighbour overloads shard — all co-located tenants impacted</td>
+            <td class="troff">Tenant isolation increases shard count and operational overhead</td>
+          </tr>
+          <tr>
+            <td>Geo-Shard Misplacement</td>
+            <td>Users routed to geographically distant shard — not their local region</td>
+            <td>High regional latency, users in region X hitting shard in region Y</td>
+            <td>Geo-routing fix, migrate data to correct regional shard</td>
+            <td>Geo-aware sharding — place shard data close to primary user base</td>
+            <td class="casc">Poor UX at scale — all affected users experience high latency</td>
+            <td class="troff">Geo-aware sharding requires data residency planning and migration tooling</td>
+          </tr>
+          <tr>
+            <td>Shard Affinity Loss</td>
+            <td>Requests for same key routed to different shards inconsistently</td>
+            <td>Cache miss spike, inconsistent reads for same key</td>
+            <td>Sticky routing, force consistent hash routing</td>
+            <td>Deterministic consistent hashing, stable routing layer</td>
+            <td class="casc">Reduced cache efficiency — every request potentially misses local cache</td>
+            <td class="troff">Strict affinity reduces load balancing flexibility</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">10 Must-Know Sharding Failures for Interviews</p>
+      <div class="ncode"> 1. Hot partition         → better shard key + virtual nodes + local cache + split
+ 2. Hot key problem       → replicate key + process cache + CDN
+ 3. Rebalancing storm     → throttle + gradual + virtual nodes reduce migration scope
+ 4. Metadata service fail → HA coordinator + client-side routing cache
+ 5. Cross-shard query     → query-aware sharding + denormalise + precompute aggregates
+ 6. Distributed tx fail   → saga + minimise cross-shard + outbox pattern
+ 7. Split brain shard     → consensus per shard + fencing + unclean election off
+ 8. Stale partition map   → versioned routing table + fast propagation + retry refresh
+ 9. Shard capacity        → predictive scaling + auto-split + disk monitoring
+10. Skewed hash dist.     → consistent hashing + many virtual nodes + test distribution</div>
+    </div>
+
+    <p class="text-xs text-gray-400 mt-2 mb-8">Related:
+      <a href="replication-failures-table.html" class="text-lime-700 font-semibold hover:underline">Replication Failures</a> &nbsp;|&nbsp;
+      <a href="distributed-failures-table.html" class="text-indigo-600 font-semibold hover:underline">Distributed Failures</a> &nbsp;|&nbsp;
+      <a href="database-failures-table.html" class="text-rose-600 font-semibold hover:underline">Database Failures</a>
+    </p>
+
+  </div><!-- /tab-table -->
+
+  <!-- TAB 2 -->
+  <div id="tab-staff" class="tab-pane pb-16">
+
+    <div class="nc">
+      <p class="nh">Staff-Level Sharding Thinking — 9 Questions to Ask Always</p>
+      <div class="ncode">1. Traffic uneven?           → hot partition: better key + virtual nodes + cache
+2. One shard hotspot?        → hot key: replicate + process cache + CDN
+3. Rebalancing overload?     → throttle + gradual + virtual nodes limit migration
+4. Metadata bottleneck?      → HA coordinator + client cache + hierarchical metadata
+5. Cross-shard queries?      → query-aware sharding + denormalise + precompute
+6. Routing stale?            → versioned routing + fast propagation + retry refresh
+7. Shard split brain?        → consensus per shard + fencing + no unclean election
+8. Adding shards destabilise? → gradual + virtual nodes + pre-warm before traffic
+9. Cross-shard tx fail?      → saga + minimise cross-shard + idempotent operations</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Common Sharding Cascading Failure Patterns</p>
+      <table class="ct mt-1">
+        <thead><tr><th>Root Sharding Failure</th><th>Cascading Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Hot partition</td><td>Shard saturates → crashes → all traffic to that key range fails</td></tr>
+          <tr><td>Rebalancing storm</td><td>IO saturated → live request latency degrades cluster-wide</td></tr>
+          <tr><td>Metadata service fails</td><td>All routing lookups fail → entire cluster inaccessible</td></tr>
+          <tr><td>Cross-shard query explosion</td><td>All shards hit simultaneously → cluster-wide latency spike</td></tr>
+          <tr><td>Replica lag per shard</td><td>Stale reads for that key range → wrong business decisions</td></tr>
+          <tr><td>Split brain on shard</td><td>Conflicting writes accepted → silent corruption on that shard</td></tr>
+          <tr><td>Shard capacity exhaustion</td><td>Writes fail for key range → partial service outage</td></tr>
+          <tr><td>Stale routing</td><td>Misrouted requests → errors + retry amplification</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Shard Key Selection — The Most Consequential Design Decision</p>
+      <div class="ncode">A bad shard key causes EVERY failure in this table.
+
+Good shard key properties:
+  high cardinality   → spreads data evenly
+  uniform access     → avoids hotspots
+  query locality     → related data on same shard
+  immutable          → never changes (re-keying is catastrophic)
+  write distribution → avoids sequential write hotspot
+
+Common bad shard keys:
+  timestamp/auto-increment → sequential write hotspot
+  user country             → uneven (US >> others)
+  boolean field            → only 2 shards possible
+  celebrity user ID        → hot key problem
+
+Best shard keys:
+  hash(user_id) + virtual nodes → uniform, immutable, high cardinality
+  composite key (region + hash) → geo-aware + even distribution</div>
+    </div>
+
+    <div class="nc">
+      <p class="nh">Final Mental Model — All Sharding Failures Reduce to 4 Problems</p>
+      <div class="ncode">1. Uneven distribution   → hot partition + hot key + skewed hash
+2. Routing failure       → stale mapping + metadata down + discovery fail
+3. Rebalancing problem   → storm + failed resharding + dual write during migration
+4. Cross-shard problem   → query explosion + distributed tx + scatter-gather timeout
+
+Most dangerous combo: hot partition + rebalancing storm
+  overloaded shard triggers rebalance → rebalance saturates IO
+  → live traffic degrades → more shards overload → cascade</div>
+    </div>
+
+    <div class="rounded-2xl p-5" style="background:#1c1001;border:1px solid #78350f;">
+      <p class="text-xs font-bold text-yellow-300 uppercase tracking-widest mb-3">Principal Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-yellow-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-yellow-200">Even Load?</p>
+          <p class="text-xs text-yellow-400 mt-0.5">Good key + virtual nodes</p>
+        </div>
+        <div class="bg-yellow-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-yellow-200">Routing Safe?</p>
+          <p class="text-xs text-yellow-400 mt-0.5">HA metadata + client cache</p>
+        </div>
+        <div class="bg-yellow-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-yellow-200">Rebalance Safe?</p>
+          <p class="text-xs text-yellow-400 mt-0.5">Throttle + gradual + vnodes</p>
+        </div>
+        <div class="bg-yellow-900 bg-opacity-60 rounded-xl p-3">
+          <p class="text-xs font-bold text-yellow-200">Cross-Shard?</p>
+          <p class="text-xs text-yellow-400 mt-0.5">Denormalise + saga + precompute</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-staff -->
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

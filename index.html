@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learning Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+
+    .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 16px 40px rgba(0,0,0,0.10); }
+
+    /* view switching */
+    .view { transition: opacity 0.18s ease; }
+    .view.hidden { display: none; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-8">
+
+  <!-- ╔══════════════════════════════════════════════════════╗
+       ║  VIEW: MAIN — 3 category cards                      ║
+       ╚══════════════════════════════════════════════════════╝ -->
+  <div id="view-main" class="view max-w-5xl w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <!-- ── CARD 1 · CONCEPTS ─────────────────────────────── -->
+    <div class="card bg-white rounded-2xl shadow-md p-6 flex flex-col gap-5">
+
+      <div class="flex items-start gap-3">
+        <div class="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13
+                 C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13
+                 C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13
+                 C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-violet-700 font-bold text-xl leading-tight">1. Concepts</h2>
+          <p class="text-gray-400 text-sm mt-0.5">Understand core building blocks</p>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </div>
+
+      <div class="rounded-2xl bg-violet-50 overflow-hidden" style="height:190px">
+        <svg viewBox="0 0 300 160" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+          <circle cx="62"  cy="85"  r="58" fill="#ede9fe" opacity="0.8"/>
+          <circle cx="252" cy="42"  r="36" fill="#ddd6fe" opacity="0.6"/>
+          <circle cx="238" cy="138" r="24" fill="#ede9fe" opacity="0.5"/>
+          <rect x="12" y="32" width="88" height="60" rx="9" fill="#6d28d9"/>
+          <line x1="27" y1="50" x2="88" y2="50" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="27" y1="63" x2="88" y2="63" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="27" y1="76" x2="70" y2="76" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="101" y1="62" x2="140" y2="62" stroke="#7c3aed" stroke-width="2"/>
+          <polygon points="140,57 150,62 140,67" fill="#7c3aed"/>
+          <rect x="152" y="12" width="88" height="60" rx="9" fill="#7c3aed"/>
+          <text x="196" y="50" text-anchor="middle" fill="white" font-size="22" font-family="monospace" font-weight="bold">&lt;/&gt;</text>
+          <rect x="125" y="92" width="15" height="15" rx="1" fill="#a78bfa" transform="rotate(45 133 100)"/>
+          <line x1="56"  y1="94" x2="106" y2="122" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <line x1="194" y1="73" x2="162" y2="112" stroke="#7c3aed" stroke-width="1.5"/>
+          <ellipse cx="140" cy="145" rx="33" ry="11" fill="#7c3aed"/>
+          <rect    x="107"  y="123" width="66" height="22" fill="#7c3aed"/>
+          <ellipse cx="140" cy="123" rx="33" ry="11" fill="#8b5cf6"/>
+        </svg>
+      </div>
+
+      <ul class="space-y-3">
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Detailed explanations</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Diagrams &amp; visualizations</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Real world examples</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Interview tips</span>
+        </li>
+      </ul>
+
+      <button onclick="showConcepts()"
+              class="w-full bg-violet-50 hover:bg-violet-100 text-violet-600 font-semibold
+                     py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm cursor-pointer">
+        Explore Concepts
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ── CARD 2 · FAILURES ──────────────────────────────── -->
+    <div class="card bg-white rounded-2xl shadow-md p-6 flex flex-col gap-5">
+
+      <div class="flex items-start gap-3">
+        <div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94
+                 a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-red-600 font-bold text-xl leading-tight">2. Failures</h2>
+          <p class="text-gray-400 text-sm mt-0.5">Learn from real world failures</p>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </div>
+
+      <div class="rounded-2xl bg-red-50 overflow-hidden" style="height:190px">
+        <svg viewBox="0 0 300 160" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+          <circle cx="80"  cy="78"  r="62" fill="#fee2e2" opacity="0.65"/>
+          <circle cx="242" cy="112" r="34" fill="#fecaca" opacity="0.55"/>
+          <rect x="10" y="18" width="190" height="120" rx="10" fill="white" stroke="#fca5a5" stroke-width="2"/>
+          <circle cx="28" cy="33" r="5" fill="#fca5a5"/>
+          <circle cx="46" cy="33" r="5" fill="#fca5a5"/>
+          <circle cx="64" cy="33" r="5" fill="#fca5a5"/>
+          <line x1="28" y1="54" x2="92" y2="54" stroke="#fca5a5" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="28" y1="65" x2="78" y2="65" stroke="#fca5a5" stroke-width="2.5" stroke-linecap="round"/>
+          <polygon points="104,44 148,124 60,124" fill="#ef4444"/>
+          <rect x="100" y="84" width="8" height="22" rx="2" fill="white"/>
+          <circle cx="104" cy="115" r="4" fill="white"/>
+          <circle cx="162" cy="64" r="6" fill="#fca5a5"/>
+          <line   x1="156" y1="64" x2="120" y2="64" stroke="#fca5a5" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <circle cx="162" cy="83"  r="6" fill="#f87171"/>
+          <circle cx="162" cy="102" r="6" fill="#fca5a5"/>
+          <line x1="200" y1="82"  x2="228" y2="82"  stroke="#f87171" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <line x1="200" y1="108" x2="228" y2="128" stroke="#f87171" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <ellipse cx="254" cy="145" rx="27" ry="9"  fill="#f87171"/>
+          <rect    x="227"  y="126" width="54" height="19" fill="#f87171"/>
+          <ellipse cx="254" cy="126" rx="27" ry="9"  fill="#fca5a5"/>
+        </svg>
+      </div>
+
+      <ul class="space-y-3">
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Common failure scenarios</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Root cause analysis</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Detection &amp; monitoring</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Prevention strategies</span>
+        </li>
+      </ul>
+
+      <a href="failures.html"
+         class="w-full bg-red-50 hover:bg-red-100 text-red-500 font-semibold
+                py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm cursor-pointer">
+        Explore Failures
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- ── CARD 3 · TRADEOFFS ─────────────────────────────── -->
+    <div class="card bg-white rounded-2xl shadow-md p-6 flex flex-col gap-5">
+
+      <div class="flex items-start gap-3">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 3v1m0 0l-3 7m3-7l3 7M5 10a7 7 0 0014 0M3 20h18M12 4v16"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-blue-700 font-bold text-xl leading-tight">3. Tradeoffs</h2>
+          <p class="text-gray-400 text-sm mt-0.5">Make better design decisions</p>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </div>
+
+      <div class="rounded-2xl bg-blue-50 overflow-hidden" style="height:190px">
+        <svg viewBox="0 0 300 160" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+          <circle cx="82"  cy="52"  r="52" fill="#dbeafe" opacity="0.75"/>
+          <circle cx="228" cy="108" r="46" fill="#bfdbfe" opacity="0.55"/>
+          <polygon points="150,152 130,160 170,160" fill="#93c5fd"/>
+          <line x1="150" y1="152" x2="150" y2="72" stroke="#93c5fd" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="150" cy="72" r="6" fill="#60a5fa"/>
+          <line x1="52" y1="64" x2="248" y2="76" stroke="#60a5fa" stroke-width="4" stroke-linecap="round"/>
+          <line x1="52"  y1="64"  x2="52"  y2="95"  stroke="#93c5fd" stroke-width="2" stroke-dasharray="4,2.5"/>
+          <line x1="248" y1="76"  x2="248" y2="107" stroke="#93c5fd" stroke-width="2" stroke-dasharray="4,2.5"/>
+          <ellipse cx="52"  cy="98"  rx="32" ry="8" fill="#93c5fd"/>
+          <ellipse cx="248" cy="110" rx="32" ry="8" fill="#93c5fd"/>
+          <ellipse cx="40"  cy="77" rx="17" ry="12" fill="#86efac"/>
+          <ellipse cx="52"  cy="72" rx="16" ry="13" fill="#86efac"/>
+          <ellipse cx="64"  cy="77" rx="15" ry="11" fill="#86efac"/>
+          <rect    x="30"   y="77"  width="48" height="14" rx="2" fill="#86efac"/>
+          <circle cx="52" cy="77" r="11" fill="#22c55e"/>
+          <polyline points="46,78 51,83 59,70" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="248" cy="90" r="23" fill="#f59e0b"/>
+          <circle cx="248" cy="90" r="17" fill="#fbbf24"/>
+          <text x="248" y="97" text-anchor="middle" fill="#92400e" font-size="17" font-weight="bold">$</text>
+          <circle cx="112" cy="42" r="5"  fill="#bfdbfe"/>
+          <circle cx="280" cy="48" r="7"  fill="#bfdbfe" opacity="0.6"/>
+          <circle cx="18"  cy="130" r="5" fill="#bfdbfe" opacity="0.5"/>
+        </svg>
+      </div>
+
+      <ul class="space-y-3">
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Deep dive comparisons</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Pros and cons analysis</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">When to use what</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="text-gray-700 font-medium text-sm">Cost &amp; complexity impact</span>
+        </li>
+      </ul>
+
+      <button class="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold
+                     py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
+        Explore Tradeoffs
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </button>
+    </div>
+
+  </div><!-- /view-main -->
+
+
+  <!-- ╔══════════════════════════════════════════════════════╗
+       ║  VIEW: CONCEPTS — Foundation + Design Topics        ║
+       ╚══════════════════════════════════════════════════════╝ -->
+  <div id="view-concepts" class="view hidden max-w-4xl w-full">
+
+    <!-- Back button + breadcrumb -->
+    <div class="mb-7 flex items-center gap-3">
+      <button onclick="showMain()"
+              class="flex items-center gap-2 text-violet-600 hover:text-violet-800 font-semibold text-sm
+                     bg-white px-4 py-2 rounded-xl shadow-sm hover:shadow transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Back
+      </button>
+      <span class="text-gray-400 text-sm">Dashboard</span>
+      <svg class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+      <span class="text-violet-700 font-semibold text-sm">Concepts</span>
+    </div>
+
+    <!-- 2-card grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- ── SUB-CARD A · FOUNDATION ───────────────────────── -->
+      <div class="card bg-white rounded-2xl shadow-md p-6 flex flex-col gap-5">
+
+        <div class="flex items-start gap-3">
+          <div class="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+            <!-- Layers / stack icon -->
+            <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 8h14M5 16h14"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-violet-700 font-bold text-xl leading-tight">Foundation</h2>
+            <p class="text-gray-400 text-sm mt-0.5">Core CS fundamentals</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-400 shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+        <!-- Illustration — layered stack -->
+        <div class="rounded-2xl bg-violet-50 overflow-hidden" style="height:190px">
+          <svg viewBox="0 0 300 160" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <!-- Decorative blobs -->
+            <circle cx="150" cy="80" r="70" fill="#ede9fe" opacity="0.6"/>
+            <circle cx="260" cy="40" r="30" fill="#ddd6fe" opacity="0.4"/>
+
+            <!-- Layer 4 — Application (top, darkest purple) -->
+            <rect x="52" y="26" width="196" height="28" rx="8" fill="#6d28d9"/>
+            <text x="150" y="45" text-anchor="middle" fill="white" font-size="11" font-weight="600" font-family="system-ui">Application</text>
+
+            <!-- Layer 3 — Network -->
+            <rect x="44" y="62" width="212" height="28" rx="8" fill="#7c3aed"/>
+            <text x="150" y="81" text-anchor="middle" fill="white" font-size="11" font-weight="600" font-family="system-ui">Network</text>
+
+            <!-- Layer 2 — OS / Runtime -->
+            <rect x="36" y="98" width="228" height="28" rx="8" fill="#8b5cf6"/>
+            <text x="150" y="117" text-anchor="middle" fill="white" font-size="11" font-weight="600" font-family="system-ui">Operating System</text>
+
+            <!-- Layer 1 — Hardware (bottom, lightest) -->
+            <rect x="28" y="134" width="244" height="20" rx="8" fill="#a78bfa"/>
+            <text x="150" y="149" text-anchor="middle" fill="white" font-size="11" font-weight="600" font-family="system-ui">Hardware</text>
+
+            <!-- Left bracket accent -->
+            <line x1="22" y1="26" x2="22" y2="154" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="22" y1="26"  x2="32" y2="26"  stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="22" y1="154" x2="32" y2="154" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <ul class="space-y-3">
+          <li class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="text-gray-700 font-medium text-sm">Data structures &amp; algorithms</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="text-gray-700 font-medium text-sm">Networking fundamentals</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="text-gray-700 font-medium text-sm">Operating system concepts</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="text-gray-700 font-medium text-sm">Database fundamentals</span>
+          </li>
+        </ul>
+
+        <a href="foundation.html"
+           class="w-full bg-violet-50 hover:bg-violet-100 text-violet-600 font-semibold
+                  py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
+          Explore Foundation
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </a>
+      </div>
+
+      <!-- ── SUB-CARD B · DESIGN TOPICS ────────────────────── -->
+      <div class="card bg-white rounded-2xl shadow-md p-6 flex flex-col gap-5">
+
+        <div class="flex items-start gap-3">
+          <div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+            <!-- Cog / architecture icon -->
+            <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066
+                   c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572
+                   c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573
+                   c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065
+                   c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066
+                   c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572
+                   c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573
+                   c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-indigo-700 font-bold text-xl leading-tight">Design Topics</h2>
+            <p class="text-gray-400 text-sm mt-0.5">Patterns &amp; system architecture</p>
+          </div>
+          <svg class="w-5 h-5 text-gray-400 shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+        <!-- Illustration — connected service nodes -->
+        <div class="rounded-2xl bg-indigo-50 overflow-hidden" style="height:190px">
+          <svg viewBox="0 0 300 160" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <!-- Background blobs -->
+            <circle cx="150" cy="80"  r="68" fill="#e0e7ff" opacity="0.65"/>
+            <circle cx="38"  cy="140" r="28" fill="#c7d2fe" opacity="0.45"/>
+            <circle cx="272" cy="30"  r="26" fill="#c7d2fe" opacity="0.40"/>
+
+            <!-- Connecting lines (draw first, nodes on top) -->
+            <line x1="80"  y1="55"  x2="150" y2="55"  stroke="#6366f1" stroke-width="2" stroke-dasharray="5,3"/>
+            <line x1="150" y1="55"  x2="220" y2="55"  stroke="#6366f1" stroke-width="2" stroke-dasharray="5,3"/>
+            <line x1="80"  y1="55"  x2="80"  y2="115" stroke="#6366f1" stroke-width="2" stroke-dasharray="5,3"/>
+            <line x1="220" y1="55"  x2="220" y2="115" stroke="#6366f1" stroke-width="2" stroke-dasharray="5,3"/>
+            <line x1="80"  y1="115" x2="150" y2="115" stroke="#6366f1" stroke-width="2" stroke-dasharray="5,3"/>
+            <line x1="150" y1="115" x2="220" y2="115" stroke="#6366f1" stroke-width="2" stroke-dasharray="5,3"/>
+            <line x1="150" y1="55"  x2="150" y2="115" stroke="#818cf8" stroke-width="2.5"/>
+
+            <!-- Arrow heads -->
+            <polygon points="147,108 150,118 153,108" fill="#6366f1"/>
+            <polygon points="213,52  220,42  227,52"  fill="#6366f1"/>
+
+            <!-- Nodes -->
+            <!-- Top-left: API Gateway -->
+            <rect x="56"  y="35" width="48" height="38" rx="8" fill="#4f46e5"/>
+            <text x="80"  y="51" text-anchor="middle" fill="white" font-size="7.5" font-weight="700" font-family="system-ui">API</text>
+            <text x="80"  y="63" text-anchor="middle" fill="#c7d2fe" font-size="7" font-family="system-ui">Gateway</text>
+
+            <!-- Top-center: Load Balancer -->
+            <rect x="126" y="35" width="48" height="38" rx="8" fill="#6366f1"/>
+            <text x="150" y="51" text-anchor="middle" fill="white" font-size="7.5" font-weight="700" font-family="system-ui">Load</text>
+            <text x="150" y="63" text-anchor="middle" fill="#c7d2fe" font-size="7" font-family="system-ui">Balancer</text>
+
+            <!-- Top-right: Auth Service -->
+            <rect x="196" y="35" width="48" height="38" rx="8" fill="#4338ca"/>
+            <text x="220" y="51" text-anchor="middle" fill="white" font-size="7.5" font-weight="700" font-family="system-ui">Auth</text>
+            <text x="220" y="63" text-anchor="middle" fill="#c7d2fe" font-size="7" font-family="system-ui">Service</text>
+
+            <!-- Bottom-left: DB -->
+            <rect x="56"  y="96" width="48" height="38" rx="8" fill="#7c3aed"/>
+            <text x="80"  y="112" text-anchor="middle" fill="white" font-size="7.5" font-weight="700" font-family="system-ui">Cache</text>
+            <text x="80"  y="124" text-anchor="middle" fill="#ddd6fe" font-size="7" font-family="system-ui">Redis</text>
+
+            <!-- Bottom-center: Events -->
+            <rect x="126" y="96" width="48" height="38" rx="8" fill="#6366f1"/>
+            <text x="150" y="112" text-anchor="middle" fill="white" font-size="7.5" font-weight="700" font-family="system-ui">Event</text>
+            <text x="150" y="124" text-anchor="middle" fill="#c7d2fe" font-size="7" font-family="system-ui">Bus</text>
+
+            <!-- Bottom-right: DB -->
+            <rect x="196" y="96" width="48" height="38" rx="8" fill="#4338ca"/>
+            <text x="220" y="112" text-anchor="middle" fill="white" font-size="7.5" font-weight="700" font-family="system-ui">DB</text>
+            <text x="220" y="124" text-anchor="middle" fill="#c7d2fe" font-size="7" font-family="system-ui">Postgres</text>
+          </svg>
+        </div>
+
+        <ul class="space-y-3">
+          <li class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="text-gray-700 font-medium text-sm">Scalability principles</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="text-gray-700 font-medium text-sm">Architecture patterns (SOLID, CQRS)</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="text-gray-700 font-medium text-sm">CAP theorem &amp; consistency</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="text-gray-700 font-medium text-sm">Resilience &amp; circuit breakers</span>
+          </li>
+        </ul>
+
+        <button class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold
+                       py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
+          Explore Design Topics
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </button>
+      </div>
+
+    </div><!-- /2-card grid -->
+  </div><!-- /view-concepts -->
+
+
+  <script>
+    function showConcepts() {
+      document.getElementById('view-main').classList.add('hidden');
+      document.getElementById('view-concepts').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showMain() {
+      document.getElementById('view-concepts').classList.add('hidden');
+      document.getElementById('view-main').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

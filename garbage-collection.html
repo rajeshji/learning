@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Garbage Collection — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    /* tabs */
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* content cards */
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d95; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    /* warn card */
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Garbage Collection</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Garbage Collection</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Generational, Concurrent, Stop-the-World — Staff Engineer level</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 1 — TEXT NOTES
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="text-sm text-gray-600 mb-2">Modern applications create millions of short-lived objects per second (request objects, DTOs, buffers). Without automatic memory reclamation, applications would run out of RAM. <strong>Garbage Collection (GC)</strong> reclaims unused objects automatically.</p>
+      <div class="ncode">Application
+↓
+Object Allocation → Heap
+↓
+Garbage Collector
+↓
+Unused Objects Removed
+↓
+Memory Reused</div>
+    </div>
+
+    <!-- Why GC Exists -->
+    <div class="nc">
+      <p class="nh">Why GC Exists</p>
+      <p class="text-sm text-gray-600 mb-2">Manual memory management in C/C++ (<code>malloc()</code>/<code>free()</code>) causes memory leaks, double-free, dangling pointers, and segfaults. Managed runtimes (Java, Go, .NET) reclaim memory automatically.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-green-700 mb-1">Benefits</p>
+          <ul class="dot-ul">
+            <li>Simpler programming model</li>
+            <li>Safer memory management</li>
+            <li>Better reliability</li>
+          </ul>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-orange-700 mb-1">Trade-offs</p>
+          <ul class="dot-ul">
+            <li>Additional CPU usage</li>
+            <li>Occasional pauses (STW)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Object Lifecycle + Reachability -->
+    <div class="nc">
+      <p class="nh">Object Lifecycle &amp; Reachability</p>
+      <p class="text-sm text-gray-600 mb-2">GC determines alive objects by tracing from <strong>GC Roots</strong> (thread stacks, static vars, CPU registers, JNI refs). Objects disconnected from all roots become garbage.</p>
+      <div class="ncode">GC Roots → Object A → Object B → Object C
+                              Object D (no reference) → GARBAGE</div>
+    </div>
+
+    <!-- Mark-Sweep-Compact -->
+    <div class="nc">
+      <p class="nh">Basic GC Cycle: Mark → Sweep → Compact</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-3 text-center">
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">1. Mark</p>
+          <p class="text-xs text-gray-600">Find all reachable objects</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-3 text-center">
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">2. Sweep</p>
+          <p class="text-xs text-gray-600">Remove unreachable objects</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-3 text-center">
+          <p class="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">3. Compact</p>
+          <p class="text-xs text-gray-600">Move live objects together → no fragmentation</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generational GC -->
+    <div class="nc">
+      <p class="nh">Generational GC</p>
+      <p class="nq">Research finding: <strong>most objects die young.</strong> GC divides the heap into generations to avoid scanning it entirely every time.</p>
+      <div class="ncode">Young Generation
+├── Eden          ← new objects land here
+├── Survivor 0
+└── Survivor 1
+
+Old Generation   ← long-lived objects promoted here
+
+Metaspace        ← class metadata</div>
+      <div class="ncode mt-3">New Object
+↓ allocated in Eden
+Survives Minor GC (x times)
+↓ promoted to
+Old Generation</div>
+    </div>
+
+    <!-- Minor / Major / Full GC -->
+    <div class="nc">
+      <p class="nh">Minor GC vs Major GC vs Full GC</p>
+      <table class="nt">
+        <thead><tr><th>Type</th><th>Scope</th><th>Frequency</th><th>Pause</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Minor GC</strong></td><td>Young Generation only</td><td>Frequent</td><td class="text-green-600 font-medium">Small</td></tr>
+          <tr><td><strong>Major GC</strong></td><td>Old Generation</td><td>Infrequent</td><td class="text-orange-600 font-medium">Longer</td></tr>
+          <tr><td><strong>Full GC</strong></td><td>Entire heap</td><td>Rare</td><td class="text-red-600 font-medium">Most expensive</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Stop-the-World -->
+    <div class="nc">
+      <p class="nh">Stop-the-World (STW)</p>
+      <p class="text-sm text-gray-600 mb-2">Some GC phases must pause <strong>all application threads</strong> to maintain heap consistency. During STW: no requests processed, no logic executes, latency spikes.</p>
+      <div class="ncode">App threads: Running Running Running
+↓
+STOP-THE-WORLD
+↓
+GC runs exclusively
+↓
+App threads resume</div>
+      <p class="ntip">STW is the primary cause of <strong>P95/P99 latency spikes</strong> in Java/JVM production services.</p>
+    </div>
+
+    <!-- Concurrent GC -->
+    <div class="nc">
+      <p class="nh">Concurrent GC</p>
+      <p class="text-sm text-gray-600 mb-2">Modern collectors do most work <strong>alongside</strong> the running application, with only tiny STW pauses.</p>
+      <div class="ncode">Application Running
+↓ (concurrently)
+Concurrent Marking
+Concurrent Cleanup
+↓
+Short pause (~1–5 ms)
+↓
+Continue Running</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-green-700 mb-1">Benefits</p>
+          <p class="text-sm text-green-800">Lower latency · Better responsiveness</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-2">
+          <p class="text-xs font-bold text-orange-700 mb-1">Trade-off</p>
+          <p class="text-sm text-orange-800">Higher CPU usage for GC threads</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- GC Collectors -->
+    <div class="nc">
+      <p class="nh">Popular GC Collectors</p>
+      <table class="nt">
+        <thead><tr><th>Collector</th><th>Pause Time</th><th>Best For</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Serial GC</strong></td><td class="text-red-600">High</td><td>Small applications</td></tr>
+          <tr><td><strong>Parallel GC</strong></td><td class="text-orange-600">Medium</td><td>Batch workloads</td></tr>
+          <tr><td><strong>CMS</strong></td><td class="text-yellow-600">Low</td><td>Legacy low-latency systems</td></tr>
+          <tr><td><strong>G1 GC</strong></td><td class="text-green-600">Low</td><td>General production workloads</td></tr>
+          <tr><td><strong>ZGC</strong></td><td class="text-green-700 font-bold">Very Low (~1–2 ms)</td><td>Large heaps &amp; real-time systems</td></tr>
+          <tr><td><strong>Shenandoah</strong></td><td class="text-green-700 font-bold">Very Low</td><td>Low-latency microservices</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- G1 / ZGC / Shenandoah -->
+    <div class="nc">
+      <p class="nh">G1, ZGC &amp; Shenandoah</p>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-bold text-violet-700">G1 GC (Default in modern JVMs)</p>
+          <p class="text-xs text-gray-600">Divides heap into regions. Collects "Garbage-First" — highest garbage regions first. Concurrent marking + predictable pauses. Good balance of throughput &amp; latency.</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">ZGC</p>
+          <p class="text-xs text-gray-600">Almost entirely concurrent. Concurrent mark + relocate. Pause ≈ 1–2 ms regardless of heap size. Best for trading platforms, payments, large heaps (&gt;32 GB).</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-violet-700">Shenandoah</p>
+          <p class="text-xs text-gray-600">Concurrent compaction. Pause time stays nearly constant regardless of heap size. Best for low-latency microservices.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Throughput vs Latency -->
+    <div class="nc">
+      <p class="nh">Throughput vs Latency Trade-off</p>
+      <table class="nt">
+        <thead><tr><th>Strategy</th><th>Throughput</th><th>Latency</th></tr></thead>
+        <tbody>
+          <tr><td>Parallel GC</td><td class="text-green-600 font-medium">Highest</td><td class="text-red-600">Poor</td></tr>
+          <tr><td>G1</td><td>Balanced</td><td class="text-green-600">Good</td></tr>
+          <tr><td>ZGC</td><td>Slightly lower</td><td class="text-green-700 font-bold">Excellent</td></tr>
+          <tr><td>Shenandoah</td><td>Good</td><td class="text-green-700 font-bold">Excellent</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">Concurrent collectors trade a small amount of throughput for significantly lower tail latency.</p>
+    </div>
+
+    <!-- How GC Affects Latency -->
+    <div class="nc">
+      <p class="nh">How GC Affects Latency</p>
+      <div class="ncode">Incoming Requests
+↓
+GC Pause (STW)
+↓
+Request Queue Builds Up
+↓
+Latency Spike (P95/P99 increases)
+↓
+Requests Resume After GC</div>
+      <p class="text-sm text-gray-600 mt-2">Average latency may look fine while tail latency is terrible. Always monitor P99.</p>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <p class="nh">Real-World Examples</p>
+      <table class="nt">
+        <thead><tr><th>System</th><th>GC Behavior</th><th>Key Concern</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Spring Boot API</strong></td><td>High alloc rate → frequent Minor GCs</td><td>Poor object reuse increases GC frequency</td></tr>
+          <tr><td><strong>Elasticsearch</strong></td><td>Large heap + G1 GC</td><td>Predictable search latency via concurrent marking</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>Long-lived buffers → Old Gen grows</td><td>Reuse buffers to reduce Major GCs</td></tr>
+          <tr><td><strong>Go services</strong></td><td>Concurrent GC, tiny pauses</td><td>Excellent for cloud-native latency targets</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">Why is memory increasing?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Is GC running too often?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>What is the object allocation rate?</li>
+            <li>How many objects survive Minor GC?</li>
+            <li>Is promotion causing Major GCs?</li>
+            <li>Are STW pauses violating SLA?</li>
+            <li>Should object pooling reduce allocation?</li>
+            <li>Should workload use G1 or ZGC?</li>
+            <li>Is horizontal scaling cheaper than bigger heap?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc-warn">
+      <p class="nh-warn">Production Failure Scenarios</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-bold text-orange-800">Frequent Minor GC</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> High object allocation rate &nbsp;·&nbsp; <strong>Fix:</strong> Reduce temporary object creation</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Long Full GC</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Old Generation exhausted &nbsp;·&nbsp; <strong>Fix:</strong> Increase heap or reduce long-lived objects</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High P99 Latency</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Stop-the-World pauses &nbsp;·&nbsp; <strong>Fix:</strong> Switch to G1, ZGC, or Shenandoah</p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-orange-800">High CPU Usage</p>
+          <p class="text-xs text-gray-600 mt-0.5"><strong>Cause:</strong> Concurrent GC threads consuming CPU &nbsp;·&nbsp; <strong>Fix:</strong> Balance heap size and GC configuration</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decision Framework -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Decision Framework</p>
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Recommended GC</th></tr></thead>
+        <tbody>
+          <tr><td>Small utility application</td><td>Serial GC</td></tr>
+          <tr><td>Batch processing</td><td>Parallel GC</td></tr>
+          <tr><td>General production service</td><td>G1 GC</td></tr>
+          <tr><td>Large JVM heap (&gt;32 GB)</td><td>ZGC</td></tr>
+          <tr><td>Low-latency microservices</td><td>Shenandoah</td></tr>
+          <tr><td>Cloud-native Go services</td><td>Go Concurrent GC</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- GC Comparison -->
+    <div class="nc">
+      <p class="nh">GC Algorithm Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>Generational</th><th>Concurrent</th><th>STW Only</th></tr></thead>
+        <tbody>
+          <tr><td>Focus</td><td>Young vs Old objects</td><td>Background collection</td><td>Simplicity</td></tr>
+          <tr><td>Pause Time</td><td>Medium</td><td class="text-green-600 font-medium">Very Low</td><td class="text-red-600">High</td></tr>
+          <tr><td>CPU Usage</td><td>Medium</td><td class="text-orange-600">Higher</td><td>Low</td></tr>
+          <tr><td>Throughput</td><td>High</td><td>Slightly Lower</td><td>High</td></tr>
+          <tr><td>Best For</td><td>Most production</td><td>Low-latency systems</td><td>Small apps</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Checklist -->
+    <div class="nc">
+      <p class="nh">Production Debugging Checklist</p>
+      <ul class="space-y-1">
+        <li class="text-sm text-gray-700">✅ Monitor GC pause times (GC logs, JVM flags)</li>
+        <li class="text-sm text-gray-700">✅ Measure Minor vs Major GC frequency</li>
+        <li class="text-sm text-gray-700">✅ Check object allocation rate</li>
+        <li class="text-sm text-gray-700">✅ Monitor promotion rate to Old Generation</li>
+        <li class="text-sm text-gray-700">✅ Inspect heap after GC (heap dump if needed)</li>
+        <li class="text-sm text-gray-700">✅ Correlate GC pauses with P95/P99 latency</li>
+        <li class="text-sm text-gray-700">✅ Tune heap size before changing collectors</li>
+        <li class="text-sm text-gray-700">✅ Consider object pooling or off-heap storage</li>
+      </ul>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">Generational GC
+• Most objects die young → scan young gen frequently.
+• Eden → Survivor → Old Generation on survival.
+• Minor GC: fast &amp; frequent. Full GC: expensive &amp; rare.
+
+Stop-the-World
+• All threads pause for certain GC phases.
+• Primary cause of P95/P99 latency spikes.
+
+Concurrent GC (G1 / ZGC / Shenandoah)
+• Most work done alongside running app.
+• STW pause ≈ 1–5 ms. Trade: higher CPU.
+
+Staff focus
+• Allocation rate, promotion rate, heap sizing,
+  GC algorithm choice, STW pause duration,
+  object pooling, and P99 latency correlation.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ════════════════════════════════════════════════════
+       TAB 2 — VISUAL GUIDE
+  ═════════════════════════════════════════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/c4e76d1e-693a-4be6-a81b-0dd7f46715b9.png"
+        alt="Garbage Collection visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

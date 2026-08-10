@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Parallelism vs Concurrency vs Distribution — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Parallelism vs Concurrency vs Distribution</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Parallelism vs Concurrency vs Distribution</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — System Design, OS &amp; Distributed Systems Mental Model</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- ═══════════════════ TEXT TAB ═══════════════════ -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">THE BIG PICTURE</div>
+      <div class="nh">🌍 Three Concepts, Three Different Problems</div>
+      <p class="text-gray-700 mb-3">Modern software systems use all three concepts together. Each solves a fundamentally different problem:</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div style="background:#ede9fe;border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">🔀</div>
+          <div class="font-bold text-violet-700 text-lg mb-1">Concurrency</div>
+          <div style="background:#7c3aed;color:#fff;border-radius:20px;padding:2px 12px;font-size:0.8rem;font-weight:700;display:inline-block;margin-bottom:8px;">Responsiveness</div>
+          <p class="text-gray-600 text-sm">Handle many logical tasks, making progress even on a single core</p>
+        </div>
+        <div style="background:#ede9fe;border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">⚡</div>
+          <div class="font-bold text-violet-700 text-lg mb-1">Parallelism</div>
+          <div style="background:#7c3aed;color:#fff;border-radius:20px;padding:2px 12px;font-size:0.8rem;font-weight:700;display:inline-block;margin-bottom:8px;">Performance</div>
+          <p class="text-gray-600 text-sm">Execute many tasks truly simultaneously using multiple CPU cores</p>
+        </div>
+        <div style="background:#ede9fe;border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">🌐</div>
+          <div class="font-bold text-violet-700 text-lg mb-1">Distribution</div>
+          <div style="background:#7c3aed;color:#fff;border-radius:20px;padding:2px 12px;font-size:0.8rem;font-weight:700;display:inline-block;margin-bottom:8px;">Scalability</div>
+          <p class="text-gray-600 text-sm">Scale beyond one machine using a network of coordinated nodes</p>
+        </div>
+      </div>
+      <div class="ntip"><strong>Rob Pike:</strong> "Concurrency is about dealing with lots of things at once. Parallelism is about doing lots of things at once." Distribution adds: <em>"on lots of machines at once."</em></div>
+    </div>
+
+    <!-- Concurrency -->
+    <div class="nc">
+      <div class="section-badge">CONCURRENCY</div>
+      <div class="nh">1️⃣ Concurrency — Structure for Responsiveness</div>
+      <p class="text-gray-700 mb-3">Concurrency is the ability for <strong>multiple logical tasks to make progress</strong> during the same time period. Tasks don't necessarily execute simultaneously — they simply overlap. A single CPU core can be concurrent through context switching and async I/O.</p>
+      <div class="ncode">// Node.js: Single thread, event loop, thousands of concurrent connections
+// At any moment only ONE request runs, but all 10,000 are "in progress"
+
+Time → ──────────────────────────────────────────────────────────────────
+  Request A: ████ (DB query sent)          ████ (response sent)
+  Request B:      ████ (cache lookup)  ████ (response)
+  Request C:           ████ (API call)      ████
+  (Thread never blocks — I/O handled by OS async; event loop dispatches)
+
+// Concurrent ≠ Parallel. All may run on a SINGLE core via interleaving.</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Technologies &amp; Use Cases</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-sm font-semibold text-gray-600 mb-1">Technologies</p>
+          <ul class="dot-ul text-sm">
+            <li>Threads (context-switched)</li>
+            <li>Coroutines / async-await</li>
+            <li>Event loops (Node.js, asyncio)</li>
+            <li>Actor model (Erlang, Akka)</li>
+            <li>Green threads (Go goroutines)</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-gray-600 mb-1">Best For</p>
+          <ul class="dot-ul text-sm">
+            <li>Web servers handling 10k+ connections</li>
+            <li>Chat and messaging systems</li>
+            <li>API gateways</li>
+            <li>Network applications (I/O-bound)</li>
+            <li>Streaming data pipelines</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parallelism -->
+    <div class="nc">
+      <div class="section-badge">PARALLELISM</div>
+      <div class="nh">2️⃣ Parallelism — Simultaneous Execution for Performance</div>
+      <p class="text-gray-700 mb-3">Parallelism means <strong>multiple tasks actually execute simultaneously</strong> at the same instant. Requires multiple CPU cores, GPUs, or multiple processors. It reduces wall-clock time for CPU-intensive work.</p>
+      <div class="ncode">// Video encoding — parallelism across 8 CPU cores
+Time → ──────────────────────────────────────────────
+  Core 1: ████████████ (frames 1-100)
+  Core 2: ████████████ (frames 101-200)
+  Core 3: ████████████ (frames 201-300)
+  Core 4: ████████████ (frames 301-400)
+  ...all running SIMULTANEOUSLY at the same clock cycle
+
+// Fork/Join pattern (Java):
+ForkJoinPool pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
+pool.invoke(new RecursiveSortTask(data));   // splits work across all cores
+
+// Amdahl's Law — theoretical speedup limit:
+Speedup = 1 / (S + (1-S)/N)
+// S = serial fraction, N = # processors
+// If 20% serial → max speedup = 5x no matter how many cores</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Technologies &amp; Use Cases</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-sm font-semibold text-gray-600 mb-1">Technologies</p>
+          <ul class="dot-ul text-sm">
+            <li>Thread pools (ForkJoinPool)</li>
+            <li>OpenMP, MPI</li>
+            <li>GPU computing (CUDA, OpenCL)</li>
+            <li>SIMD (AVX, SSE)</li>
+            <li>Work stealing</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-gray-600 mb-1">Best For</p>
+          <ul class="dot-ul text-sm">
+            <li>Image / video processing</li>
+            <li>AI / ML training and inference</li>
+            <li>Scientific computation</li>
+            <li>Encryption / hashing at scale</li>
+            <li>Data analytics (Spark, MapReduce)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Distribution -->
+    <div class="nc">
+      <div class="section-badge">DISTRIBUTION</div>
+      <div class="nh">3️⃣ Distribution — Scale Beyond One Machine</div>
+      <p class="text-gray-700 mb-3">Distribution spreads work across <strong>multiple machines connected by a network</strong>. Each node has its own CPU, memory, and disk. Network introduces latency, partial failures, and consistency challenges that don't exist on a single machine.</p>
+      <div class="ncode">// Netflix architecture — all three layers:
+Users → CDN (global distribution)
+      → API Gateway (concurrency: 100k+ req/s on one cluster)
+      → Microservices (concurrency + parallelism per service)
+      → Kafka (distributed messaging)
+      → Cassandra (distributed storage, eventual consistency)
+
+// Distribution trade-offs (CAP Theorem):
+// Consistency + Availability + Partition tolerance — pick 2
+// Network partitions are unavoidable → choose: C or A during partition
+// Cassandra: AP (available, partition tolerant, eventually consistent)
+// PostgreSQL: CP (consistent, partition tolerant, may refuse writes)</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Technologies &amp; Use Cases</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-sm font-semibold text-gray-600 mb-1">Technologies</p>
+          <ul class="dot-ul text-sm">
+            <li>Kubernetes (container orchestration)</li>
+            <li>Kafka (distributed messaging)</li>
+            <li>Cassandra, DynamoDB (distributed DB)</li>
+            <li>Redis Cluster, Memcached</li>
+            <li>Microservices architecture</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-gray-600 mb-1">Best For</p>
+          <ul class="dot-ul text-sm">
+            <li>Millions of users (horizontal scaling)</li>
+            <li>High availability (&gt;99.9% uptime)</li>
+            <li>Fault isolation (failure of one node ≠ outage)</li>
+            <li>Geographic replication</li>
+            <li>Data volumes beyond single disk</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="nc">
+      <div class="section-badge">COMPARISON</div>
+      <div class="nh">Side-by-Side Comparison</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Feature</th><th>Concurrency</th><th>Parallelism</th><th>Distribution</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Goal</strong></td><td>Responsiveness</td><td>Performance</td><td>Scalability</td></tr>
+          <tr><td><strong>Simultaneous execution</strong></td><td>Not required</td><td>Yes (required)</td><td>Yes (across nodes)</td></tr>
+          <tr><td><strong>Hardware needed</strong></td><td>One core enough</td><td>Multiple cores / GPUs</td><td>Multiple machines</td></tr>
+          <tr><td><strong>Communication</strong></td><td>Shared memory</td><td>Shared memory / cache</td><td>Network (slow, unreliable)</td></tr>
+          <tr><td><strong>Main cost</strong></td><td>Synchronization overhead</td><td>Cache contention (Amdahl)</td><td>Network latency, consistency</td></tr>
+          <tr><td><strong>Failure scope</strong></td><td>Thread / process</td><td>Machine crash</td><td>Node / partition failure</td></tr>
+          <tr><td><strong>Primary challenge</strong></td><td>Race conditions, deadlocks</td><td>Lock contention, false sharing</td><td>Partial failures, CAP trade-offs</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="nc">
+      <div class="section-badge">REAL-WORLD EXAMPLES</div>
+      <div class="nh">How Production Systems Combine All Three</div>
+      <table class="nt mb-3">
+        <thead><tr><th>System</th><th>Concurrency</th><th>Parallelism</th><th>Distribution</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Node.js API</strong></td><td>✅ Event loop, 10k+ req</td><td>❌ Single thread</td><td>❌ Single machine</td></tr>
+          <tr><td><strong>Video Encoding</strong></td><td>✅ Multiple jobs</td><td>✅ Multi-core per job</td><td>❌ Single machine</td></tr>
+          <tr><td><strong>Netflix</strong></td><td>✅ Microservices</td><td>✅ Worker pools</td><td>✅ Global clusters</td></tr>
+          <tr><td><strong>Apache Spark</strong></td><td>✅ Task scheduling</td><td>✅ In-process JVM threads</td><td>✅ Executor nodes</td></tr>
+          <tr><td><strong>PostgreSQL</strong></td><td>✅ Connection concurrency</td><td>✅ Parallel query (PG 9.6+)</td><td>✅ Replication / Citus</td></tr>
+          <tr><td><strong>Kafka</strong></td><td>✅ Consumer groups</td><td>✅ Multi-threaded I/O</td><td>✅ Broker clusters</td></tr>
+        </tbody>
+      </table>
+
+      <div class="ncode">// System design layer example:
+Internet
+    ↓
+Load Balancer         ← routes across distribution tier
+    ↓
+API Gateway           ← handles 100k+ concurrent requests
+    ↓
+Worker Pool           ← parallel computation (N CPU cores)
+    ↓
+Kafka                 ← distributed message queue
+    ↓
+Database Cluster      ← distributed storage (sharding + replication)
+    ↓
+Global CDN            ← geographic distribution
+
+// Each layer solves a DIFFERENT scaling problem:
+// API Gateway: concurrency (many req, few threads)
+// Worker Pool: parallelism (few tasks, all cores)
+// Database Cluster: distribution (data > one machine)</div>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION FAILURES</div>
+      <div class="nh">Common Failure Modes</div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Thread Explosion — Too Many OS Threads for Concurrency</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Using 10,000 blocking OS threads to handle 10,000 concurrent requests — each uses ~1MB stack → 10GB RAM + OS scheduling overhead. <strong>Fix:</strong> Use coroutines or event loops — handle 10,000 connections on 10–100 threads.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Amdahl's Law Ceiling — Parallelism Doesn't Scale</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Serial bottleneck (even 20% serial code caps speedup at 5× no matter how many cores added). <strong>Fix:</strong> Identify and parallelize or eliminate serial sections; measure before buying more hardware.</p>
+      </div>
+      <div class="nc-warn mb-3">
+        <div class="nh-warn">Premature Distribution — Complexity Without Benefit</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Distributing before a single machine is the bottleneck. Adds network latency, partial failures, and consensus complexity for no gain. <strong>Fix:</strong> Scale up first; distribute only when a single machine cannot handle the load.</p>
+      </div>
+      <div class="nc-warn">
+        <div class="nh-warn">Network Latency Dominating Distributed System</div>
+        <p class="text-gray-700 text-sm"><strong>Cause:</strong> Excessive cross-node communication (chatty microservices, distributed transactions). <strong>Fix:</strong> Data locality, batching, async messaging; co-locate frequently communicating services.</p>
+      </div>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Junior → Senior → Staff Progression</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Level</th><th>Question Asked</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Junior</strong></td><td>"Should I use threads?"</td></tr>
+          <tr><td><strong>Senior</strong></td><td>"Should I use async instead of threads? Are they I/O-bound?"</td></tr>
+          <tr><td><strong>Staff</strong></td><td>"Is the workload CPU-bound or I/O-bound? Can one machine handle it? Where is the bottleneck — CPU, memory, disk, or network? Can work be partitioned independently? Should I scale up (more cores) or scale out (more machines)? Does distribution justify its operational complexity? Can concurrency hide I/O latency while parallelism accelerates computation, and does distribution only come in when a single machine's capacity is the limit?"</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Staff Engineer Decision Framework</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Problem</th><th>Best Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Handle 100K web requests</td><td>Concurrency (async/coroutines)</td><td>I/O-bound — threads would exhaust memory</td></tr>
+          <tr><td>Speed up ML training</td><td>Parallelism (GPU / multi-core)</td><td>CPU/GPU-bound — all cores needed</td></tr>
+          <tr><td>Scale to millions of users</td><td>Distribution (horizontal scale)</td><td>Beyond single machine capacity</td></tr>
+          <tr><td>API gateway</td><td>Concurrency</td><td>High connection count, low compute per req</td></tr>
+          <tr><td>Video processing</td><td>Parallelism</td><td>CPU-bound, embarrassingly parallel</td></tr>
+          <tr><td>Search engine</td><td>Distribution</td><td>Data + query volume exceed single node</td></tr>
+          <tr><td>Kafka broker</td><td>Distribution + Concurrency</td><td>Partitioned storage + async I/O per partition</td></tr>
+          <tr><td>Apache Spark</td><td>All three</td><td>Concurrent scheduling + parallel in-JVM + distributed executors</td></tr>
+        </tbody>
+      </table>
+
+      <div class="nh mt-3">Production Readiness Checklist</div>
+      <ul class="dot-ul mt-2">
+        <li>Identify CPU-bound vs I/O-bound workloads <strong>before</strong> choosing model</li>
+        <li>Measure hardware utilization (CPU, memory, disk, network) to find actual bottleneck</li>
+        <li>Minimize synchronization — lock-free where possible, partition to eliminate sharing</li>
+        <li>Use bounded thread pools — prevent thread explosion</li>
+        <li>Scale horizontally only when a single machine cannot handle the load</li>
+        <li>Monitor network latency and retry rates in distributed tier</li>
+        <li>Partition workloads to reduce contention at every layer</li>
+        <li>Benchmark throughput <em>and</em> tail latency (P99) — averages hide problems</li>
+        <li>Add observability across threads (JFR), services (tracing), and clusters (metrics)</li>
+        <li>Reevaluate architecture as traffic grows — what works at 1× fails at 100×</li>
+      </ul>
+
+      <div class="nq mt-4">"Concurrency is about structuring a system so multiple tasks can make progress without necessarily running at the same time. Parallelism is about executing multiple tasks simultaneously using multiple CPU cores to improve performance. Distribution extends execution across multiple machines to achieve scalability, fault isolation, and availability. Modern production systems combine all three — concurrency for I/O, parallelism for computation, and distribution for horizontal scale."</div>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">What to Remember</div>
+      <ul class="dot-ul">
+        <li><strong>Concurrency</strong> improves <strong>responsiveness</strong> by allowing many logical tasks to make progress — especially for I/O-bound workloads where threads would otherwise sit idle.</li>
+        <li><strong>Parallelism</strong> improves <strong>performance</strong> by executing multiple computations simultaneously on multiple CPU cores — bounded by Amdahl's Law (serial fractions).</li>
+        <li><strong>Distribution</strong> improves <strong>scalability and resilience</strong> by spreading work across multiple machines — but introduces network latency, partial failures, and consistency complexity.</li>
+        <li>Most real-world systems combine all three: <strong>concurrent request handling, parallel computation, and distributed deployment</strong>.</li>
+        <li>Staff Engineers select the appropriate model by analyzing the workload, identifying bottlenecks, and balancing <strong>performance, scalability, complexity, and operational cost</strong>.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ═══════════════════ ORIGINAL NOTES TAB ═══════════════════ -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — DEEP REFERENCE</div>
+      <div class="nh">Concurrency, Parallelism &amp; Distribution — OS &amp; Systems Reference</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Concurrency Models — OS Perspective</p>
+      <div class="ncode">// 3 concurrency models — different tradeoffs:
+
+// 1. OS Threads (1:1 threading)
+//    One OS thread per logical task
+//    Pros: True parallelism, preemptive
+//    Cons: ~1MB stack, expensive context switch (~10µs), max ~10K threads
+Thread t = new Thread(() -> handleRequest());
+t.start();
+
+// 2. Green Threads / Goroutines (M:N threading)
+//    N goroutines mapped to M OS threads
+//    Go runtime parks goroutine on I/O, runs another on same OS thread
+//    Cost: ~2KB initial, cheap context switch (~100ns)
+//    Scale: millions of goroutines on 8 OS threads
+go handleRequest()  // Go
+
+// 3. Event Loop (single-threaded async)
+//    One OS thread, I/O multiplexing via epoll/kqueue
+//    Zero context switch — callbacks dispatched by event loop
+//    Cost: near-zero per request
+//    Limitation: CPU-bound tasks starve all other requests
+asyncio.run(handle_request())  # Python
+
+// Choosing:
+// I/O-bound + 10K+ connections → Event Loop or Goroutines
+// CPU-bound per request        → Threads (real parallelism)
+// Mix                          → Thread pool for CPU + async for I/O</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Parallelism — Amdahl's Law &amp; Patterns</p>
+      <div class="ncode">// Amdahl's Law:
+// Speedup(N) = 1 / (S + (1-S)/N)
+// S = fraction that MUST be serial, N = number of processors
+
+// Example:
+// 5% serial code → S=0.05
+// With 16 cores: Speedup = 1 / (0.05 + 0.95/16) = 1 / (0.05 + 0.059) ≈ 9.1×
+// With 1024 cores: 1 / (0.05 + 0.95/1024) ≈ 19.6× — hitting ceiling of 20×!
+
+// Parallel patterns:
+// 1. Data Parallelism — same operation on different data chunks
+int[] arr = getLargeArray();
+Arrays.stream(arr).parallel().map(x -> transform(x)).sum();
+
+// 2. Task Parallelism — different operations in parallel
+CompletableFuture.allOf(
+    CompletableFuture.runAsync(() -> encodeVideo()),
+    CompletableFuture.runAsync(() -> encodeAudio()),
+    CompletableFuture.runAsync(() -> buildSubtitles())
+).join();
+
+// 3. Pipeline Parallelism — stages in parallel (like CPU pipeline)
+// Stage 1: Read → Stage 2: Transform → Stage 3: Write
+// Each stage runs simultaneously on different data chunks
+
+// 4. Fork/Join — divide and conquer
+class MergeSortTask extends RecursiveTask&lt;int[]&gt; {
+    protected int[] compute() {
+        if (size &lt; THRESHOLD) return sortSequential();
+        MergeSortTask left  = new MergeSortTask(leftHalf);
+        MergeSortTask right = new MergeSortTask(rightHalf);
+        left.fork();              // async submit
+        int[] rightResult = right.compute();  // compute right here
+        int[] leftResult  = left.join();      // wait for left
+        return merge(leftResult, rightResult);
+    }
+}</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Distribution — CAP Theorem &amp; Patterns</p>
+      <div class="ncode">// CAP Theorem: can only guarantee 2 of 3:
+// C = Consistency   — all nodes see same data at same time
+// A = Availability  — every request gets a response
+// P = Partition tolerance — system works despite network splits
+// Network partitions WILL happen → choose C or A during partition
+
+// Common trade-offs:
+// CP: PostgreSQL, ZooKeeper, etcd  → refuse writes during partition (consistent)
+// AP: Cassandra, DynamoDB, CouchDB → accept writes, reconcile later (available)
+
+// Distribution patterns:
+// 1. Sharding — partition data across nodes by key range or hash
+//    Kafka: partition by key hash → same key always same partition
+//    MongoDB: range-based sharding → hotspot risk if range skewed
+
+// 2. Replication — copy data to multiple nodes
+//    Leader-Follower: writes go to leader, reads from followers (async lag)
+//    Multi-Leader:    writes to any node, conflicts resolved later
+//    Leaderless:      Dynamo-style, quorum (W + R > N for consistency)
+
+// 3. Consistent Hashing — minimize resharding when nodes added/removed
+//    Virtual nodes: each physical node = 150 virtual nodes on ring
+//    Adding 1 node: only ~1/N data moves (vs all data in range sharding)
+
+// 4. Two-Phase Commit (2PC) — distributed atomic transactions
+//    Phase 1: Coordinator asks all participants to PREPARE
+//    Phase 2: If all say YES → COMMIT; any NO → ABORT
+//    Problem: Coordinator crash → participants stuck waiting (blocking protocol)
+//    Fix: Use Saga pattern (compensating transactions) or 3PC</div>
+
+      <div class="nq mt-3">"The key insight is that concurrency, parallelism, and distribution solve orthogonal problems. Concurrency structures a program to handle many things. Parallelism speeds execution up. Distribution makes a system larger than any one machine. A Staff Engineer needs to identify which dimension is the current bottleneck and apply the right tool — not layer all three indiscriminately."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- ═══════════════════ VISUAL GUIDE TAB ═══════════════════ -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <img src="images/foundation/l1/OS/8c9b7aae-a24e-477a-8731-3a344c22f698.png" class="w-full rounded-lg shadow-md" alt="Parallelism vs Concurrency vs Distribution Visual Guide"/>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

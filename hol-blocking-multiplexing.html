@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Head-of-Line Blocking & Multiplexing (HTTP/2, QUIC) — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">HOL Blocking & Multiplexing</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Head-of-Line Blocking & Multiplexing (HTTP/2, QUIC)</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Why HTTP/3 was created and how QUIC fixes TCP's biggest networking problem</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">The Big Picture</p>
+      <p class="nq">Modern distributed systems send hundreds of requests over a few connections. <strong>Head-of-Line (HOL) Blocking</strong> is when one lost packet prevents subsequent data from being delivered, even if later packets have already arrived. This is why HTTP/3 (QUIC) was created.</p>
+      <div class="ncode">HTTP/2 (TCP):  Packet loss → ALL streams wait
+HTTP/3 (QUIC): Packet loss → ONLY that stream waits
+
+Multiplexing alone is not enough.
+The transport layer must support independent streams.</div>
+      <div class="nkw mt-3">
+        <span>HOL Blocking</span>
+        <span>Multiplexing</span>
+        <span>HTTP/2 Streams</span>
+        <span>QUIC Streams</span>
+        <span>0-RTT</span>
+        <span>Connection Migration</span>
+        <span>P99 Latency</span>
+      </div>
+    </div>
+
+    <!-- HOL Blocking Explained -->
+    <div class="nc">
+      <p class="nh">What is Head-of-Line Blocking?</p>
+      <p class="text-sm text-gray-600 mb-2">A delayed or lost packet prevents all later data from being delivered — even data that has already arrived.</p>
+      <div class="ncode">Analogy: Highway Traffic Jam
+
+Truck breaks down in lane 1
+  ↓
+All cars behind it STOP
+  ↓
+Lanes 2, 3, 4 are unaffected — but not lane 1
+
+TCP equivalent:
+  Packet 1 ✔
+  Packet 2 ✔
+  Packet 3 ✗ (Lost)
+  Packet 4 ✔ (arrived but NOT delivered)
+  Packet 5 ✔ (arrived but NOT delivered)
+  Packet 6 ✔ (arrived but NOT delivered)
+
+→ TCP delivers in order, so 4/5/6 WAIT for 3 to be retransmitted</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 text-xs">
+        <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+          <p class="font-bold text-red-700 mb-1">Transport-Level HOL (TCP)</p>
+          <p class="text-gray-600">TCP requires strict ordering. One missing byte blocks the entire connection, regardless of how many other streams are waiting.</p>
+          <p class="font-semibold text-red-600 mt-1">This is the HOL problem in system design interviews.</p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+          <p class="font-bold text-violet-700 mb-1">Application-Level HOL (HTTP/1.1)</p>
+          <p class="text-gray-600">HTTP/1.1 pipelining sends multiple requests but requires responses in order. One slow response blocks all others behind it.</p>
+          <p class="font-semibold text-violet-600 mt-1">HTTP/2 multiplexing solved this version.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evolution: HTTP/1.1 → HTTP/2 → HTTP/3 -->
+    <div class="nc">
+      <p class="nh">Evolution of HTTP Multiplexing</p>
+      <div class="space-y-4">
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">HTTP/1.1 — No Multiplexing</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">Browser opens 6 TCP connections (one per parallel request)
+  TCP1: image1.png   TCP2: style.css
+  TCP3: script.js    TCP4: image2.png
+  TCP5: font.woff    TCP6: api/data
+
+Problems:
+  6 TCP handshakes × 1 RTT each
+  6 TLS handshakes × 1–2 RTT each
+  High memory and kernel resource usage</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">HTTP/2 — Multiplexed Streams over One TCP</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">One TCP connection
+  Stream 1: image1.png
+  Stream 2: style.css
+  Stream 3: script.js  (frames interleaved)
+  Stream 4: image2.png
+
+Benefits: one handshake, lower overhead
+PROBLEM: TCP doesn't know about streams!
+  Packet 3 lost → Streams 2, 3, 4 ALL WAIT
+  → Transport-level HOL blocking remains</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-1">HTTP/3 — Multiplexed Streams over QUIC (UDP)</p>
+          <div class="ncode" style="font-size:.74rem;padding:.55rem .8rem">One QUIC connection
+  Stream 1: image1.png  (independent)
+  Stream 2: style.css   (independent)
+  Stream 3: script.js   (independent)
+  Stream 4: image2.png  (independent)
+
+Stream 3 packet lost → Only Stream 3 waits
+Streams 1, 2, 4 continue normally ✔
+
+WHY: QUIC handles ordering per stream, not per connection</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why HTTP/2 still has HOL -->
+    <div class="nc">
+      <p class="nh">Why HTTP/2 Still Has HOL Blocking</p>
+      <p class="text-sm text-gray-600 mb-2">HTTP/2 multiplexes HTTP frames, but TCP only sees bytes — not streams:</p>
+      <div class="ncode">HTTP/2 layer:   [Stream A frame] [Stream B frame] [Stream C frame]
+TCP layer:      [Byte 100] [Byte 101] [Byte 102] [Byte 103] ...
+
+TCP does NOT know:
+  "Byte 102 belongs to Stream B"
+  "Byte 103 belongs to Stream C"
+
+TCP only knows:
+  "Byte 102 is missing → cannot deliver 103+"
+
+Result: ALL streams blocked until byte 102 retransmitted</div>
+      <p class="ntip">This is the fundamental mismatch: HTTP/2's stream abstraction lives above TCP, but TCP's ordering is byte-level and stream-agnostic. QUIC fixes this by implementing streams natively in the transport layer.</p>
+    </div>
+
+    <!-- QUIC Solution -->
+    <div class="nc">
+      <p class="nh">How QUIC Solves HOL Blocking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-bold text-red-700 mb-1">HTTP/2 (TCP) — Packet Loss</p>
+          <div class="ncode" style="font-size:.72rem;padding:.45rem .65rem">Sent:   P1 P2 P3 P4 P5 P6
+Recvd:  P1 P2 __ P4 P5 P6
+
+TCP: "waiting for P3"
+Stream A: ⏸ blocked
+Stream B: ⏸ blocked
+Stream C: ⏸ blocked
+Stream D: ⏸ blocked
+
+→ All 4 streams halt until P3 retransmitted</div>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-700 mb-1">HTTP/3 (QUIC) — Packet Loss</p>
+          <div class="ncode" style="font-size:.72rem;padding:.45rem .65rem">P3 belongs to Stream A only
+
+Stream A: ⏸ waiting for P3 retransmit
+Stream B: ✔ continues normally
+Stream C: ✔ continues normally
+Stream D: ✔ continues normally
+
+→ Only Stream A waits
+→ P99 latency dramatically improved</div>
+        </div>
+      </div>
+      <div class="ncode mt-3">Additional QUIC advantages:
+  0-RTT / 1-RTT connection setup (TLS 1.3 built-in)
+  Connection migration (IP change transparent)
+  User-space implementation (no kernel update needed)</div>
+    </div>
+
+    <!-- Full Comparison Table -->
+    <div class="nc">
+      <p class="nh">HTTP/1.1 vs HTTP/2 vs HTTP/3 Comparison</p>
+      <table class="nt">
+        <thead><tr><th>Feature</th><th>HTTP/1.1</th><th>HTTP/2</th><th>HTTP/3 (QUIC)</th></tr></thead>
+        <tbody>
+          <tr><td>Transport</td><td>TCP</td><td>TCP</td><td>QUIC (UDP)</td></tr>
+          <tr><td>Multiplexing</td><td>❌</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Transport HOL Blocking</td><td>N/A (1 req/conn)</td><td>✅ Yes</td><td>❌ No</td></tr>
+          <tr><td>Stream Independence</td><td>❌</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Handshake</td><td>TCP + TLS separate</td><td>TCP + TLS separate</td><td>Integrated TLS 1.3</td></tr>
+          <tr><td>Connection Migration</td><td>❌</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Packet Loss Impact</td><td>Medium (6 connections)</td><td>High (1 TCP blocks all)</td><td>Low (per-stream only)</td></tr>
+          <tr><td>Mobile Performance</td><td>Poor</td><td>Moderate</td><td>Excellent</td></tr>
+          <tr><td>CPU Usage</td><td>Low</td><td>Low</td><td>Slightly Higher</td></tr>
+          <tr><td>Debugging</td><td>Easy</td><td>Easy</td><td>Harder (encrypted)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Performance Implications -->
+    <div class="nc">
+      <p class="nh">Performance Implications</p>
+      <table class="nt">
+        <thead><tr><th>Metric</th><th>HTTP/2</th><th>HTTP/3 (QUIC)</th></tr></thead>
+        <tbody>
+          <tr><td>Connection setup</td><td>TCP + TLS = 2–3 RTT</td><td>QUIC 0-RTT / 1-RTT (TLS included)</td></tr>
+          <tr><td>Tail latency (P99)</td><td>High on packet loss</td><td>Low (only affected stream delays)</td></tr>
+          <tr><td>Mobile reconnect</td><td>Full TCP reconnect</td><td>Connection ID migration (seamless)</td></tr>
+          <tr><td>Compatibility</td><td>Excellent</td><td>Good (UDP sometimes blocked by firewalls)</td></tr>
+          <tr><td>Observability</td><td>Easier (tcpdump)</td><td>Harder (encrypted QUIC)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Problems -->
+    <div class="nc-warn">
+      <p class="nh-warn">Common Production Problems</p>
+      <div class="space-y-2 mt-1">
+        <div class="flex items-start gap-2">
+          <span class="text-orange-500 font-bold text-xs mt-0.5 shrink-0">→</span>
+          <div><p class="text-xs font-bold text-orange-800">High P99 latency</p><p class="text-xs text-gray-600">HOL blocking on packet loss. Fix: upgrade to HTTP/3.</p></div>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-orange-500 font-bold text-xs mt-0.5 shrink-0">→</span>
+          <div><p class="text-xs font-bold text-orange-800">Many stalled requests</p><p class="text-xs text-gray-600">TCP retransmission blocking all HTTP/2 streams. Monitor with <code>ss -ti</code>.</p></div>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-orange-500 font-bold text-xs mt-0.5 shrink-0">→</span>
+          <div><p class="text-xs font-bold text-orange-800">Mobile reconnect delays</p><p class="text-xs text-gray-600">TCP connection reset on network switch. QUIC connection migration eliminates this.</p></div>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-orange-500 font-bold text-xs mt-0.5 shrink-0">→</span>
+          <div><p class="text-xs font-bold text-orange-800">Slow page loads on lossy networks</p><p class="text-xs text-gray-600">HTTP/2 HOL magnifies impact of packet loss vs HTTP/3.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mitigations -->
+    <div class="nc">
+      <p class="nh">Practical Mitigations</p>
+      <table class="nt">
+        <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td>Transport HOL blocking</td><td>Upgrade to HTTP/3 (QUIC)</td></tr>
+          <tr><td>High handshake latency</td><td>Enable TLS 1.3 + QUIC 0-RTT</td></tr>
+          <tr><td>Packet loss on TCP</td><td>Enable SACK, BBR congestion control</td></tr>
+          <tr><td>Large stalled responses</td><td>Split into smaller independent streams</td></tr>
+          <tr><td>Mobile reconnections</td><td>QUIC connection migration</td></tr>
+          <tr><td>High tail latency</td><td>Monitor retransmissions, RTT, per-stream metrics</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">What is HOL blocking?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">HTTP/3 fixes HOL blocking</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is P99 latency driven by TCP retransmissions?</li>
+            <li>How many streams share each HTTP/2 connection?</li>
+            <li>Are firewalls blocking UDP (and thus QUIC)?</li>
+            <li>Is the packet loss rate high enough to justify HTTP/3?</li>
+            <li>How do we observe per-stream QUIC metrics?</li>
+            <li>Does our CDN support HTTP/3?</li>
+            <li>Is connection migration improving mobile user experience?</li>
+            <li>Should large slow responses be split into independent streams?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Common Interview Questions -->
+    <div class="nc">
+      <p class="nh">Common Interview Questions</p>
+      <ol class="list-decimal pl-4 space-y-1 mt-1">
+        <li class="text-xs text-gray-700">What is Head-of-Line (HOL) Blocking?</li>
+        <li class="text-xs text-gray-700">Why does HTTP/2 still suffer from HOL blocking despite multiplexing?</li>
+        <li class="text-xs text-gray-700">How does HTTP/3 eliminate transport-level HOL blocking?</li>
+        <li class="text-xs text-gray-700">What is multiplexing and why is it beneficial?</li>
+        <li class="text-xs text-gray-700">Why can't TCP deliver later packets before missing ones?</li>
+        <li class="text-xs text-gray-700">How does QUIC improve P99 latency?</li>
+        <li class="text-xs text-gray-700">What are the trade-offs of using QUIC over HTTP/2?</li>
+        <li class="text-xs text-gray-700">Why is QUIC especially valuable for mobile users?</li>
+        <li class="text-xs text-gray-700">When would you still choose HTTP/2 instead of HTTP/3?</li>
+        <li class="text-xs text-gray-700">How would you diagnose HOL blocking in production?</li>
+      </ol>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">HOL Blocking = delayed packet blocks all later delivery
+  Even if packets 4, 5, 6 arrived — they wait for 3.
+
+HTTP/1.1:
+  6 TCP connections (6 handshakes, 6 TLS)
+  No multiplexing → low efficiency
+
+HTTP/2:
+  One TCP connection, multiplexed streams ✔
+  BUT: TCP byte-level ordering blocks all streams on loss ✗
+
+HTTP/3 (QUIC):
+  Built on UDP
+  QUIC implements streams natively at transport level
+  Packet loss → only THAT stream waits ✔
+  0-RTT setup (TLS 1.3 built-in) ✔
+  Connection migration (IP change transparent) ✔
+  No kernel update needed (user-space) ✔
+
+Why TCP can't fix this:
+  TCP sees bytes, not streams
+  Stream awareness lives in HTTP/2 layer ABOVE TCP
+  → TCP can't know which bytes belong to which stream
+
+Tradeoffs of QUIC:
+  ✔ Lower P99 latency
+  ✔ Better mobile experience
+  ✗ Higher CPU (user-space vs kernel TCP)
+  ✗ Harder debugging (encrypted transport)
+  ✗ UDP may be blocked by enterprise firewalls
+
+Real-world: YouTube, Gmail, Cloudflare, Fastly → HTTP/3
+            Internal microservices → often still HTTP/2</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/ba172fa2-11eb-476d-868a-37628c62c491.png"
+        alt="Head-of-Line Blocking and Multiplexing HTTP2 QUIC visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

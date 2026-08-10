@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OSI vs TCP/IP Stack — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.6rem; }
+    .nq  { font-size:.85rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.78rem; color:#5b21b6; background:#ddd6fe;
+           border-radius:.5rem; padding:.5rem .85rem;
+           border-left:3px solid #7c3aed; margin-top:.65rem; line-height:1.6; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:.5rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700;
+             font-size:.65rem; text-transform:uppercase; letter-spacing:.06em;
+             padding:.4rem .75rem; text-align:left; }
+    .nt td { padding:.38rem .75rem; border-top:1px solid #ede9fe;
+             color:#374151; vertical-align:top; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.79rem; border-radius:.65rem; padding:.9rem 1.1rem;
+            white-space:pre; overflow-x:auto; line-height:1.85; margin-top:.5rem; }
+    .nkw { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+    .nkw span { background:#7c3aed; color:#fff; font-size:.68rem; font-weight:600;
+                padding:.22em .7em; border-radius:999px; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li { font-size:.82rem; color:#374151; line-height:1.8; }
+    .dot-ul li::marker { color:#7c3aed; }
+
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa;
+               border-radius:1rem; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+    .nh-warn { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+               text-transform:uppercase; color:#c2410c; margin-bottom:.6rem; }
+
+    .layer-card { border-radius:.75rem; padding:.75rem 1rem; margin-bottom:.5rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html"
+       class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+              bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">OSI vs TCP/IP Stack</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">OSI vs TCP/IP Stack</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Two models, one Internet — understanding where production problems live</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image', this)">Visual Guide</button>
+  </div>
+
+  <!-- TAB 1 — TEXT NOTES -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <p class="nh">Why It Matters</p>
+      <p class="nq">OSI gives you a <strong>mental model for debugging</strong>. TCP/IP is <strong>what actually runs</strong>. A Staff Engineer never says "Layer 4 issue" in isolation — they say: Is TCP retransmitting? Is TLS handshake slow? Is DNS lookup adding 200ms? Understanding both models helps pinpoint <em>where</em> a problem lives.</p>
+      <div class="nkw mt-3">
+        <span>OSI 7 Layers</span>
+        <span>TCP/IP 4 Layers</span>
+        <span>TCP / UDP</span>
+        <span>IP Routing</span>
+        <span>TLS</span>
+        <span>DNS</span>
+        <span>HTTP/2 · gRPC</span>
+        <span>Packet Capture</span>
+      </div>
+    </div>
+
+    <!-- Side-by-side comparison -->
+    <div class="nc">
+      <p class="nh">Layer Mapping</p>
+      <div class="ncode">       OSI MODEL                  TCP/IP MODEL
+
+┌─────────────────────┐    ┌──────────────────────┐
+│ 7. Application      │───▶│                      │
+├─────────────────────┤    │   Application        │
+│ 6. Presentation     │───▶│   (HTTP, DNS, TLS,   │
+├─────────────────────┤    │    gRPC, SMTP…)      │
+│ 5. Session          │───▶│                      │
+├─────────────────────┤    ├──────────────────────┤
+│ 4. Transport        │───▶│   Transport          │
+│                     │    │   (TCP, UDP, QUIC)   │
+├─────────────────────┤    ├──────────────────────┤
+│ 3. Network          │───▶│   Internet           │
+│                     │    │   (IP, ICMP)         │
+├─────────────────────┤    ├──────────────────────┤
+│ 2. Data Link        │───▶│   Network Interface  │
+├─────────────────────┤    │   (Ethernet, ARP,    │
+│ 1. Physical         │───▶│    Wi-Fi)            │
+└─────────────────────┘    └──────────────────────┘
+
+TCP/IP merges layers because real implementations don't
+need strict separation between them.</div>
+    </div>
+
+    <!-- OSI vs TCP/IP comparison table -->
+    <div class="nc">
+      <p class="nh">OSI vs TCP/IP — Key Differences</p>
+      <table class="nt">
+        <thead><tr><th>Aspect</th><th>OSI</th><th>TCP/IP</th></tr></thead>
+        <tbody>
+          <tr><td>Type</td><td>Conceptual model</td><td>Practical implementation</td></tr>
+          <tr><td>Layers</td><td>7</td><td>4</td></tr>
+          <tr><td>Purpose</td><td>Defines responsibilities</td><td>Defines implementation</td></tr>
+          <tr><td>Used Today</td><td>Education & debugging</td><td>Every production network</td></tr>
+          <tr><td>Protocol Specific</td><td>No (protocol-agnostic)</td><td>Yes</td></tr>
+          <tr><td>Real Implementation</td><td>Rarely directly</td><td>Universal (Linux, Windows, macOS)</td></tr>
+        </tbody>
+      </table>
+      <p class="ntip">OSI is the <em>blueprint</em>. TCP/IP is the <em>working engine</em>. Use OSI to think; use TCP/IP to troubleshoot.</p>
+    </div>
+
+    <!-- Layer by Layer -->
+    <div class="nc">
+      <p class="nh">Full Layer Reference</p>
+      <table class="nt">
+        <thead><tr><th>OSI Layer</th><th>TCP/IP</th><th>Responsibility</th><th>Examples</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>L7 Application</strong></td>
+            <td>Application</td>
+            <td>User-facing communication</td>
+            <td>HTTP, HTTPS, DNS, SMTP, FTP, gRPC</td>
+          </tr>
+          <tr>
+            <td><strong>L6 Presentation</strong></td>
+            <td>Application</td>
+            <td>Encryption, compression, serialization</td>
+            <td>TLS, SSL, JSON, Protobuf, gzip</td>
+          </tr>
+          <tr>
+            <td><strong>L5 Session</strong></td>
+            <td>Application</td>
+            <td>Session management, connection reuse</td>
+            <td>WebSockets, RPC, Keep-Alive</td>
+          </tr>
+          <tr>
+            <td><strong>L4 Transport</strong></td>
+            <td>Transport</td>
+            <td>Reliable/unreliable delivery, flow control</td>
+            <td>TCP, UDP, QUIC</td>
+          </tr>
+          <tr>
+            <td><strong>L3 Network</strong></td>
+            <td>Internet</td>
+            <td>Routing, logical addressing</td>
+            <td>IPv4, IPv6, ICMP</td>
+          </tr>
+          <tr>
+            <td><strong>L2 Data Link</strong></td>
+            <td>Network Interface</td>
+            <td>Frames, MAC addressing, error detection</td>
+            <td>Ethernet, Wi-Fi, ARP, VLAN</td>
+          </tr>
+          <tr>
+            <td><strong>L1 Physical</strong></td>
+            <td>Network Interface</td>
+            <td>Electrical/optical bit transmission</td>
+            <td>Copper, Fiber, Radio, Switch ports</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Layer deep dives -->
+    <div class="nc">
+      <p class="nh">Layer Deep Dives — Staff Engineer Concerns</p>
+      <div class="space-y-3 mt-1">
+
+        <div class="layer-card bg-red-50 border border-red-100">
+          <p class="text-xs font-bold text-red-700">L1 Physical</p>
+          <p class="text-xs text-gray-600 mt-0.5">Moves raw bits over physical media (cable, fiber, radio).</p>
+          <p class="text-xs text-violet-700 font-semibold mt-1">Staff concerns: link failures, cable issues, duplex mismatch, CRC errors, speed negotiation</p>
+        </div>
+
+        <div class="layer-card bg-orange-50 border border-orange-100">
+          <p class="text-xs font-bold text-orange-700">L2 Data Link</p>
+          <p class="text-xs text-gray-600 mt-0.5">Transfers frames within a local network. MAC addressing, VLAN tagging, ARP.</p>
+          <p class="text-xs text-violet-700 font-semibold mt-1">Staff concerns: broadcast storms, incorrect VLANs, MTU mismatch, NIC offloading, packet drops</p>
+        </div>
+
+        <div class="layer-card bg-yellow-50 border border-yellow-100">
+          <p class="text-xs font-bold text-yellow-700">L3 Network</p>
+          <p class="text-xs text-gray-600 mt-0.5">Routes packets between networks. IP addressing, subnetting, packet forwarding.</p>
+          <p class="text-xs text-violet-700 font-semibold mt-1">Staff concerns: wrong routing, NAT issues, packet fragmentation, multi-region routing, load balancing</p>
+        </div>
+
+        <div class="layer-card bg-green-50 border border-green-100">
+          <p class="text-xs font-bold text-green-700">L4 Transport</p>
+          <p class="text-xs text-gray-600 mt-0.5">TCP (reliable, ordered), UDP (fast, unreliable), QUIC (UDP-based, multiplexed).</p>
+          <p class="text-xs text-violet-700 font-semibold mt-1">Staff concerns: TCP retransmissions, high RTT, congestion, head-of-line blocking, connection pooling</p>
+        </div>
+
+        <div class="layer-card bg-blue-50 border border-blue-100">
+          <p class="text-xs font-bold text-blue-700">L5 Session</p>
+          <p class="text-xs text-gray-600 mt-0.5">Maintains communication sessions — DB connections, WebSocket sessions, RPC channels.</p>
+          <p class="text-xs text-violet-700 font-semibold mt-1">Staff concerns: sticky sessions, session expiration, idle timeouts, connection reuse</p>
+        </div>
+
+        <div class="layer-card bg-indigo-50 border border-indigo-100">
+          <p class="text-xs font-bold text-indigo-700">L6 Presentation</p>
+          <p class="text-xs text-gray-600 mt-0.5">Encryption (TLS), compression (gzip), serialization (JSON, Protobuf).</p>
+          <p class="text-xs text-violet-700 font-semibold mt-1">Staff concerns: TLS handshake latency, CPU overhead, serialization cost, cert expiry</p>
+        </div>
+
+        <div class="layer-card bg-violet-50 border border-violet-100">
+          <p class="text-xs font-bold text-violet-700">L7 Application</p>
+          <p class="text-xs text-gray-600 mt-0.5">HTTP, HTTPS, DNS, gRPC, SMTP, FTP, MQTT.</p>
+          <p class="text-xs text-violet-700 font-semibold mt-1">Staff concerns: API latency, DNS delays, HTTP/2 multiplexing, REST vs gRPC, HTTP/3 adoption</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-World Request Flow -->
+    <div class="nc">
+      <p class="nh">Real-World Request Flow — https://example.com</p>
+      <div class="ncode">Browser (User)
+  ↓
+L7 Application   → HTTP GET /
+  ↓
+L6 Presentation  → TLS encryption + JSON serialization
+  ↓
+L5 Session       → Keep-Alive / HTTP/2 stream
+  ↓
+L4 Transport     → TCP segment (SYN → SYN-ACK → ACK)
+  ↓
+L3 Network       → IP packet routing across Internet
+  ↓
+L2 Data Link     → Ethernet frame (MAC address hop)
+  ↓
+L1 Physical      → Electrical/optical bits on wire
+  ↓
+Server (reverse on receive)</div>
+      <p class="ntip">Each layer adds a header on the way down (encapsulation) and strips it on the way up (decapsulation). A single user request touches all seven layers twice.</p>
+    </div>
+
+    <!-- Debugging by layer -->
+    <div class="nc">
+      <p class="nh">Production Debugging — Symptom → Layer</p>
+      <table class="nt">
+        <thead><tr><th>Symptom</th><th>Likely Layer</th><th>Tool</th></tr></thead>
+        <tbody>
+          <tr><td>DNS lookup slow</td><td>L7 Application</td><td><code>dig</code>, <code>nslookup</code></td></tr>
+          <tr><td>TLS handshake too long</td><td>L6 Presentation</td><td><code>curl -v</code>, <code>openssl s_client</code></td></tr>
+          <tr><td>DB connections keep closing</td><td>L5 Session</td><td><code>ss -s</code>, app logs</td></tr>
+          <tr><td>TCP retransmissions</td><td>L4 Transport</td><td><code>ss</code>, <code>tcpdump</code></td></tr>
+          <tr><td>Cross-region routing issue</td><td>L3 Network</td><td><code>traceroute</code>, <code>ip route</code></td></tr>
+          <tr><td>MTU mismatch, packet drops</td><td>L2 Data Link</td><td><code>ethtool</code>, <code>ip link</code></td></tr>
+          <tr><td>Cable / switch failure</td><td>L1 Physical</td><td><code>ethtool</code>, hardware check</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Debugging Tools -->
+    <div class="nc">
+      <p class="nh">Essential Debugging Tools</p>
+      <table class="nt">
+        <thead><tr><th>Tool</th><th>Layer</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>curl -v</code></td><td>L7 / L6</td><td>HTTP headers, TLS handshake timing</td></tr>
+          <tr><td><code>dig</code>, <code>nslookup</code></td><td>L7</td><td>DNS resolution debugging</td></tr>
+          <tr><td><code>ping</code></td><td>L3</td><td>Reachability and round-trip latency</td></tr>
+          <tr><td><code>traceroute</code></td><td>L3</td><td>Hop-by-hop routing path</td></tr>
+          <tr><td><code>ss</code>, <code>netstat</code></td><td>L4</td><td>TCP socket states, connection counts</td></tr>
+          <tr><td><code>tcpdump</code></td><td>L3/L4</td><td>Raw packet capture + analysis</td></tr>
+          <tr><td><code>Wireshark</code></td><td>All layers</td><td>Deep packet inspection with GUI</td></tr>
+          <tr><td><code>ethtool</code></td><td>L1/L2</td><td>NIC config, errors, speed negotiation</td></tr>
+          <tr><td><code>ip route</code></td><td>L3</td><td>Routing table inspection</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Staff Thinking -->
+    <div class="nc">
+      <p class="nh">Staff Engineer Thinking</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Junior</p>
+          <p class="text-sm text-gray-500 line-through">What are the 7 OSI layers?</p>
+          <p class="text-xs font-semibold text-orange-400 uppercase tracking-wide mt-2">Senior</p>
+          <p class="text-sm text-gray-500 line-through">Which layer is causing this issue?</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1">Staff asks</p>
+          <ul class="dot-ul">
+            <li>Is latency coming from DNS resolution?</li>
+            <li>Is TLS handshake adding overhead?</li>
+            <li>Are TCP retransmissions spiking?</li>
+            <li>Is routing incorrect between regions?</li>
+            <li>Is MTU mismatch causing fragmentation?</li>
+            <li>Is HTTP/2 multiplexing helping or hurting?</li>
+            <li>Should we migrate to QUIC/HTTP/3?</li>
+            <li>Where in the stack is the actual bottleneck?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Common Interview Questions -->
+    <div class="nc">
+      <p class="nh">Common Interview Questions</p>
+      <ol class="list-decimal pl-4 space-y-1 mt-1">
+        <li class="text-xs text-gray-700">Explain the difference between OSI and TCP/IP models</li>
+        <li class="text-xs text-gray-700">Why does TCP/IP merge multiple OSI layers?</li>
+        <li class="text-xs text-gray-700">What happens when you enter a URL into a browser?</li>
+        <li class="text-xs text-gray-700">Which layer is responsible for encryption?</li>
+        <li class="text-xs text-gray-700">How does TCP ensure reliable delivery?</li>
+        <li class="text-xs text-gray-700">Why is UDP preferred for video streaming?</li>
+        <li class="text-xs text-gray-700">What causes TCP retransmissions?</li>
+        <li class="text-xs text-gray-700">How would you troubleshoot a slow HTTPS request?</li>
+        <li class="text-xs text-gray-700">Where does DNS fit in the networking stack?</li>
+        <li class="text-xs text-gray-700">How do MTU mismatches affect application performance?</li>
+      </ol>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <p class="nh">Key Takeaways</p>
+      <div class="ncode">OSI = 7-layer conceptual blueprint
+TCP/IP = 4-layer practical implementation
+
+Mapping:
+  OSI L7+L6+L5  →  TCP/IP Application  (HTTP, DNS, TLS, gRPC)
+  OSI L4        →  TCP/IP Transport     (TCP, UDP, QUIC)
+  OSI L3        →  TCP/IP Internet      (IP, ICMP)
+  OSI L2+L1     →  TCP/IP Net. Iface.  (Ethernet, ARP, physical)
+
+Staff Engineer mental model:
+  DNS slow?          → L7 (dig, nslookup)
+  TLS latency?       → L6 (curl -v, openssl s_client)
+  Connections drop?  → L5 (ss, app logs)
+  Retransmits?       → L4 (tcpdump, ss)
+  Routing wrong?     → L3 (traceroute, ip route)
+  MTU mismatch?      → L2 (ethtool, ip link)
+  NIC/cable failure? → L1 (ethtool, hardware)
+
+Production failures span multiple layers simultaneously.
+Diagnose by eliminating layers top-down or bottom-up.</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- TAB 2 — VISUAL GUIDE -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img
+        src="images/foundation/l1/OS/84976f76-d9a0-4351-a864-ad3d501a4b33.png"
+        alt="OSI vs TCP/IP Stack visual guide"
+        class="w-full rounded-xl"
+        style="max-width:100%;height:auto;"
+      />
+    </div>
+  </div><!-- /tab-image -->
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Deadlocks, Livelocks &amp; Starvation — Interview Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn { padding:10px 22px; font-weight:600; border-bottom:3px solid transparent; cursor:pointer; color:#6b7280; transition:color .2s; }
+    .tab-btn:hover { color:#4c1d95; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    .nc { background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:20px 24px; margin-bottom:18px; }
+    .nh { color:#7c3aed; font-weight:700; font-size:1.08rem; margin-bottom:8px; }
+    .nq { border-left:4px solid #8b5cf6; background:#ede9fe; border-radius:6px; padding:12px 18px; margin:10px 0; color:#4c1d94; font-style:italic; }
+    .ntip { background:#ddd6fe; border-left:4px solid #7c3aed; border-radius:6px; padding:10px 16px; margin:10px 0; color:#5b21b6; font-size:0.97rem; }
+    .nt { width:100%; border-collapse:collapse; margin:10px 0; font-size:0.96rem; }
+    .nt th { background:#ede9fe; color:#4c1d94; font-weight:700; padding:8px 14px; text-align:left; }
+    .nt td { padding:8px 14px; border-top:1px solid #ede9fe; vertical-align:top; }
+    .nt tr:hover td { background:#faf5ff; }
+    .ncode { background:#1e1b4b; color:#c4b5fd; border-radius:8px; padding:14px 18px; font-family:monospace; font-size:0.91rem; margin:10px 0; white-space:pre; overflow-x:auto; line-height:1.7; }
+    .nkw span { background:#7c3aed; color:#fff; border-radius:4px; padding:1px 7px; font-size:0.85rem; font-weight:700; margin-right:4px; }
+    .dot-ul { list-style:disc; padding-left:22px; }
+    .dot-ul li::marker { color:#7c3aed; }
+    .dot-ul li { margin-bottom:5px; color:#374151; }
+    .nc-warn { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+    .nh-warn { color:#c2410c; font-weight:700; font-size:1.05rem; margin-bottom:6px; }
+    .section-badge { display:inline-block; background:#7c3aed; color:#fff; border-radius:6px; padding:2px 12px; font-size:0.82rem; font-weight:700; margin-bottom:10px; letter-spacing:.04em; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-white border-b border-violet-100 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
+    <a href="index.html" class="text-violet-700 hover:underline font-medium">Dashboard</a>
+    <span class="text-gray-400">›</span>
+    <a href="layer1.html" class="text-violet-700 hover:underline font-medium">Foundation Layer 1</a>
+    <span class="text-gray-400">›</span>
+    <span class="text-gray-600 font-medium">Deadlocks, Livelocks &amp; Starvation</span>
+  </div>
+</div>
+
+<!-- Page Title -->
+<div class="max-w-5xl mx-auto px-6 pt-8 pb-2">
+  <h1 class="text-2xl font-bold text-violet-800 mb-1">Deadlocks, Livelocks &amp; Starvation</h1>
+  <p class="text-gray-500 text-sm">Staff Engineer Reference — Concurrency Failure Modes</p>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-5xl mx-auto px-6">
+  <div class="flex border-b border-gray-200 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text', this)">📝 Text Notes</button>
+    <button class="tab-btn" onclick="switchTab('original', this)">📄 Original Notes</button>
+    <button class="tab-btn" onclick="switchTab('image', this)">🖼️ Visual Guide</button>
+  </div>
+
+  <!-- TEXT TAB -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Big Picture -->
+    <div class="nc">
+      <div class="section-badge">THE BIG PICTURE</div>
+      <div class="nh">Why Concurrent Systems Stop Making Progress</div>
+      <p class="text-gray-700 mb-3">Instead of learning <strong>deadlock</strong>, <strong>livelock</strong>, and <strong>starvation</strong> separately, understand <strong>why concurrent systems stop making progress, how operating systems detect these problems, and how Staff Engineers design systems that avoid them.</strong></p>
+      <p class="text-gray-700 mb-3">Concurrency allows multiple threads or processes to execute simultaneously. However, when they compete for shared resources — <strong>Locks</strong>, <strong>Mutexes</strong>, <strong>CPU</strong>, <strong>Semaphores</strong>, <strong>Thread pools</strong>, <strong>Database connections</strong>, <strong>Files</strong>, <strong>Network resources</strong> — three major failure modes can occur:</p>
+      <div class="ncode">                Concurrent System
+
+                       │
+
+        ┌──────────────┼──────────────┐
+
+        ▼              ▼              ▼
+
+   Deadlock        Livelock      Starvation
+
+ (Waiting)       (Busy Loop)    (Unfair Wait)</div>
+
+      <table class="nt mt-4">
+        <thead><tr><th>Problem</th><th>What Happens</th><th>CPU Usage</th><th>Progress</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Deadlock</strong></td><td>Threads wait forever</td><td>Low</td><td>None</td></tr>
+          <tr><td><strong>Livelock</strong></td><td>Threads constantly retry</td><td>High</td><td>None</td></tr>
+          <tr><td><strong>Starvation</strong></td><td>One thread never gets resources</td><td>Mixed</td><td>Partial</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip mt-3">Although they appear similar, their <strong>causes and solutions are completely different</strong>.</div>
+    </div>
+
+    <!-- Deadlock -->
+    <div class="nc">
+      <div class="section-badge">DEADLOCK</div>
+      <div class="nh">Deadlock — Everyone Waits Forever</div>
+      <p class="text-gray-700 mb-3">Deadlock occurs when multiple threads wait for each other in a <strong>circular dependency</strong>. No thread can continue.</p>
+      <div class="ncode">Thread A                         Thread B
+
+↓                                ↓
+
+Lock A                           Lock B
+
+↓                                ↓
+
+Waiting For Lock B               Waiting For Lock A
+
+Neither thread releases its lock → System freezes</div>
+
+      <p class="font-semibold text-violet-700 mb-2 mt-4">Coffman's Four Conditions</p>
+      <p class="text-gray-600 text-sm mb-2">A deadlock can occur only if <strong>all four conditions</strong> are true. Breaking <strong>any one</strong> condition prevents deadlock.</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Condition</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Mutual Exclusion</strong></td><td>Resource owned by one thread</td></tr>
+          <tr><td><strong>Hold and Wait</strong></td><td>Thread holds one resource while waiting for another</td></tr>
+          <tr><td><strong>No Preemption</strong></td><td>Resource cannot be forcibly taken</td></tr>
+          <tr><td><strong>Circular Wait</strong></td><td>Threads form a dependency cycle</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">Deadlock Flow</p>
+      <div class="ncode">Thread A: Acquire Lock A → Needs Lock B
+Thread B: Acquire Lock B → Needs Lock A
+→ Both threads remain blocked indefinitely (Forever Waiting)</div>
+
+      <p class="font-semibold text-violet-700 mt-4 mb-1">Preventing Deadlocks</p>
+      <p class="text-gray-700 mb-2">The simplest and most effective solution is <strong>consistent lock ordering</strong>. Common strategies:</p>
+      <table class="nt">
+        <thead><tr><th>Strategy</th><th>Mechanism</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Global lock ordering</strong></td><td>Always acquire locks in same order (A→B→C)</td></tr>
+          <tr><td><strong>Try-lock with timeout</strong></td><td>Use <code>tryLock(timeout)</code> — fail gracefully on contention</td></tr>
+          <tr><td><strong>Resource hierarchy</strong></td><td>Assign levels; threads only acquire higher-level locks</td></tr>
+          <tr><td><strong>Deadlock detection</strong></td><td>Wait-for graph cycle detection (PostgreSQL, MySQL)</td></tr>
+          <tr><td><strong>Transaction rollback</strong></td><td>DB aborts one transaction and retries</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Livelock -->
+    <div class="nc">
+      <div class="section-badge">LIVELOCK</div>
+      <div class="nh">Livelock — Everyone Keeps Working, Nothing Completes</div>
+      <p class="text-gray-700 mb-3">Livelock occurs when threads are <strong>not blocked</strong>, but continuously react to each other, preventing useful work. Unlike deadlock — <strong>threads keep running</strong>, <strong>CPU usage is high</strong>, but <strong>no thread completes work</strong>. The system appears busy but makes zero forward progress.</p>
+      <div class="ncode">Thread A                         Thread B
+
+Acquire Lock → Conflict          Acquire Lock → Conflict
+
+↓                                ↓
+
+Release Lock → Retry             Release Lock → Retry
+
+↓                                ↓
+
+Acquire Lock → Conflict          Acquire Lock → Conflict
+
+↓                                ↓
+
+(Repeat Forever)                 (Repeat Forever)
+
+→ Both threads remain active, but nothing finishes</div>
+
+      <p class="font-semibold text-violet-700 mt-4 mb-1">Preventing Livelock</p>
+      <p class="text-gray-700 mb-2">Randomization prevents threads from colliding repeatedly:</p>
+      <table class="nt">
+        <thead><tr><th>Strategy</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Random delay (jitter)</strong></td><td>Insert random sleep before retrying</td></tr>
+          <tr><td><strong>Exponential backoff</strong></td><td>Double retry intervals after each failure (TCP, gRPC, AWS SDK)</td></tr>
+          <tr><td><strong>Fair locks</strong></td><td>Allow one thread to "win" (e.g., ticket lock)</td></tr>
+          <tr><td><strong>Retry limits</strong></td><td>Limit retries; fallback to blocking mutex</td></tr>
+          <tr><td><strong>Yield CPU occasionally</strong></td><td>Adaptive spinning with backoff (Linux spinlocks)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Starvation -->
+    <div class="nc">
+      <div class="section-badge">STARVATION</div>
+      <div class="nh">Starvation — One Thread Never Gets a Turn</div>
+      <p class="text-gray-700 mb-3">Starvation occurs when a thread waits indefinitely because other threads continuously receive resources first. The system works — but <strong>one thread never progresses</strong>.</p>
+      <div class="ncode">CPU Scheduler
+
+↓
+
+High Priority Thread
+
+↓
+
+High Priority Thread
+
+↓
+
+High Priority Thread
+
+↓
+
+Low Priority Thread (Never Runs)</div>
+
+      <p class="text-gray-700 mt-3 mb-2"><strong>Common causes:</strong> Priority scheduling · Unfair locks · Busy thread pools · Resource monopolization · Queue imbalance</p>
+      <p class="font-semibold text-violet-700 mb-1 mt-3">Preventing Starvation</p>
+      <p class="text-gray-700 mb-2">Operating systems typically use:</p>
+      <table class="nt">
+        <thead><tr><th>Strategy</th><th>Explanation</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Fair scheduling</strong></td><td>Round-robin, FIFO ordering</td></tr>
+          <tr><td><strong>Priority aging</strong></td><td>Gradually increase priority of waiting threads until scheduled</td></tr>
+          <tr><td><strong>Completely Fair Scheduler (CFS)</strong></td><td>Linux: tracks virtual runtime, schedules most-starved thread next</td></tr>
+          <tr><td><strong>Fair locks</strong></td><td>Ticket locks guarantee FIFO order for lock acquisition</td></tr>
+          <tr><td><strong>Bounded wait</strong></td><td>Guarantee max waiting time (real-time systems)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Comparison -->
+    <div class="nc">
+      <div class="section-badge">COMPARISON</div>
+      <div class="nh">Full Comparison</div>
+      <div style="overflow-x:auto;">
+        <table class="nt mb-4" style="min-width:650px;">
+          <thead><tr><th>Feature</th><th>Deadlock</th><th>Livelock</th><th>Starvation</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Threads Blocked</strong></td><td>Yes</td><td>No</td><td>Some</td></tr>
+            <tr><td><strong>CPU Usage</strong></td><td>Low</td><td>High</td><td>Mixed</td></tr>
+            <tr><td><strong>Progress</strong></td><td>None</td><td>None</td><td>Partial</td></tr>
+            <tr><td><strong>Root Cause</strong></td><td>Circular Wait</td><td>Infinite Retry</td><td>Unfair Scheduling</td></tr>
+            <tr><td><strong>Fix</strong></td><td>Lock Ordering</td><td>Backoff</td><td>Fair Scheduling</td></tr>
+            <tr><td><strong>Detection</strong></td><td>Wait-for Graph</td><td>High CPU + No Throughput</td><td>Long Waiting Time</td></tr>
+            <tr><td><strong>Latency</strong></td><td>Infinite</td><td>Infinite</td><td>High</td></tr>
+            <tr><td><strong>Throughput</strong></td><td>Zero</td><td>Zero</td><td>Reduced</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="font-semibold text-violet-700 mb-1">Thread State Comparison</p>
+      <div class="ncode">Deadlock:    READY → RUNNING → WAITING → WAITING → WAITING (Forever)
+Livelock:    READY → RUNNING → RUNNING → RUNNING → RUNNING (Forever)
+Starvation:  READY → READY  → READY  → READY  → Never Scheduled</div>
+    </div>
+
+    <!-- OS Perspective -->
+    <div class="nc">
+      <div class="section-badge">OS INTERNALS</div>
+      <div class="nh">Operating System Perspective</div>
+      <p class="text-gray-700 mb-3">Linux prevents these problems using:</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Component</th><th>Responsibility</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Scheduler (CFS)</strong></td><td>Fair CPU allocation — tracks virtual runtime debt</td></tr>
+          <tr><td><strong>Mutexes</strong></td><td>Synchronization via atomic CAS + futex</td></tr>
+          <tr><td><strong>Spinlocks</strong></td><td>Short critical sections — adaptive spinning with backoff</td></tr>
+          <tr><td><strong>Futex</strong></td><td>Efficient user-space locking — kernel sleep only under contention</td></tr>
+          <tr><td><strong>Lockdep</strong></td><td>Kernel deadlock detection — validates lock ordering at runtime</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Distributed Systems -->
+    <div class="nc">
+      <div class="section-badge">DISTRIBUTED SYSTEMS</div>
+      <div class="nh">Distributed System Analogies</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div style="background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:16px;">
+          <p class="font-semibold text-violet-700 mb-2">Distributed Deadlock</p>
+          <div class="ncode" style="font-size:0.8rem;">Service A
+↓ Waiting For B
+↓ Waiting For C
+↓ Waiting For A</div>
+          <p class="text-sm text-gray-600 mt-2">Fix: <strong>Timeouts, Circuit breakers, Global lock ordering</strong></p>
+        </div>
+        <div style="background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:16px;">
+          <p class="font-semibold text-violet-700 mb-2">Distributed Livelock (Retry Storm)</p>
+          <div class="ncode" style="font-size:0.8rem;">Client Retry
+↓ Server Busy
+↓ Retry Again
+↓ Server Busier</div>
+          <p class="text-sm text-gray-600 mt-2">Fix: <strong>Exponential backoff, Random jitter</strong></p>
+        </div>
+        <div style="background:#faf5ff; border:1px solid #ede9fe; border-radius:10px; padding:16px;">
+          <p class="font-semibold text-violet-700 mb-2">Distributed Starvation</p>
+          <div class="ncode" style="font-size:0.8rem;">Load Balancer
+↓ Hot Node
+↓ Hot Node
+↓ Cold Node Never Used</div>
+          <p class="text-sm text-gray-600 mt-2">Fix: <strong>Fair load balancing, Weighted routing</strong></p>
+        </div>
+      </div>
+
+      <table class="nt">
+        <thead><tr><th>Scenario</th><th>Problem</th><th>How to Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Two DB transactions update rows in opposite order</td><td>Deadlock</td><td>DB aborts one transaction, consistent lock ordering</td></tr>
+          <tr><td>Kubernetes controllers retry failed reconciliation without backoff</td><td>Livelock</td><td>Exponential backoff on requeue</td></tr>
+          <tr><td>One Kafka consumer continuously receives all partitions</td><td>Starvation</td><td>Fair consumer group scheduling</td></tr>
+          <tr><td>Java thread pool — one long task monopolizes all workers</td><td>Starvation</td><td>Separate thread pools, bounded queues</td></tr>
+          <tr><td>Raft cluster — simultaneous elections, split votes</td><td>Livelock</td><td>Randomized election timeout</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Production Failures -->
+    <div class="nc">
+      <div class="section-badge">PRODUCTION SCENARIOS</div>
+      <div class="nh">Production Failure Scenarios</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Scenario</th><th>Problem Type</th><th>Mitigation Strategy</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Database Deadlock</strong> — transactions acquire locks in different order</td><td>Deadlock</td><td>Enforce consistent lock ordering</td></tr>
+          <tr><td><strong>Retry Storm</strong> — aggressive retries after temporary failures</td><td>Livelock</td><td>Exponential backoff with jitter</td></tr>
+          <tr><td><strong>Thread Pool Starvation</strong> — long tasks occupy all workers</td><td>Starvation</td><td>Separate thread pools, bounded queues</td></tr>
+          <tr><td><strong>API Gateway</strong> — priority traffic monopolizes worker threads</td><td>Starvation</td><td>Weighted Fair Queueing</td></tr>
+          <tr><td><strong>Kubernetes Leader Election</strong> — simultaneous elections</td><td>Livelock</td><td>Randomized election timeout</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Prevention Patterns</p>
+      <table class="nt">
+        <thead><tr><th>Pattern</th><th>Solves</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Timeout + Retry with Jitter</strong></td><td>Deadlock, Livelock</td><td>Prevents circular waits + synchronized retries</td></tr>
+          <tr><td><strong>Circuit Breaker</strong></td><td>Deadlock</td><td>Breaks dependency loop between services</td></tr>
+          <tr><td><strong>Bulkhead Pattern</strong></td><td>Starvation</td><td>Isolates resources per client or service</td></tr>
+          <tr><td><strong>Rate Limiting / Token Bucket</strong></td><td>Starvation</td><td>Fair resource distribution</td></tr>
+          <tr><td><strong>Leader Election with Randomized Timeout</strong></td><td>Livelock</td><td>Ensures convergence in cluster coordination</td></tr>
+          <tr><td><strong>Distributed Lock Hierarchy</strong></td><td>Deadlock</td><td>Global ordering (e.g., ZooKeeper paths)</td></tr>
+          <tr><td><strong>Lock-Free / Optimistic Algorithms</strong></td><td>Deadlock, Contention</td><td>CAS-based structures avoid locks entirely</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- End-to-End Lifecycle -->
+    <div class="nc">
+      <div class="section-badge">END-TO-END FLOW</div>
+      <div class="nh">Concurrency Failure Lifecycle</div>
+      <div class="ncode">Multiple Threads
+
+↓
+
+Compete For Resources
+
+↓
+
+Synchronization
+
+↓
+
+───────────────────────────────────
+
+Circular Wait?  YES → Deadlock
+               Apply: Lock Ordering, Timeout, Detection
+
+───────────────────────────────────
+
+Constant Retry? YES → Livelock
+               Apply: Backoff, Jitter, Retry Limits
+
+───────────────────────────────────
+
+Unfair Scheduling? YES → Starvation
+               Apply: Fair Scheduling, Priority Aging
+
+───────────────────────────────────
+
+↓
+
+System Makes Progress ✅</div>
+    </div>
+
+    <!-- Staff Engineer Thinking -->
+    <div class="nc">
+      <div class="section-badge">STAFF ENGINEER THINKING</div>
+      <div class="nh">Staff Engineer Decision Framework</div>
+      <p class="text-gray-700 mb-3">A Staff Engineer asks the right questions <em>before</em> a system hangs in production:</p>
+      <ul class="dot-ul mb-4">
+        <li>Is there a <strong>circular dependency</strong> in resource acquisition?</li>
+        <li>Are <strong>retries synchronized</strong> across nodes?</li>
+        <li>Is <strong>scheduling fair</strong> across threads or services?</li>
+        <li>Are locks acquired in a <strong>consistent order</strong>?</li>
+        <li>Is <strong>backoff randomized</strong>?</li>
+        <li>Can <strong>bounded waiting</strong> be guaranteed?</li>
+        <li>Is <strong>thread pool isolation</strong> required for blocking tasks?</li>
+        <li>Can the system <strong>recover automatically</strong>?</li>
+      </ul>
+
+      <table class="nt mb-4">
+        <thead><tr><th>Scenario</th><th>Recommended Solution</th></tr></thead>
+        <tbody>
+          <tr><td>Multiple Locks</td><td><strong>Global Lock Ordering</strong></td></tr>
+          <tr><td>Retry Logic</td><td><strong>Exponential Backoff + Jitter</strong></td></tr>
+          <tr><td>Thread Pool</td><td><strong>Fair Queue + Bounded Queue</strong></td></tr>
+          <tr><td>Priority Scheduling</td><td><strong>Priority Aging</strong></td></tr>
+          <tr><td>Distributed Transactions</td><td><strong>Timeouts + Deadlock Detection</strong></td></tr>
+          <tr><td>High Contention</td><td><strong>Lock-Free / Optimistic Algorithms</strong></td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Production Readiness Checklist</p>
+      <ol class="list-decimal pl-5 space-y-1 text-gray-700">
+        <li>Define global lock ordering.</li>
+        <li>Avoid nested locks where possible.</li>
+        <li>Use try-lock for long waits.</li>
+        <li>Add exponential backoff to retries.</li>
+        <li>Monitor blocked threads.</li>
+        <li>Track thread pool queue length.</li>
+        <li>Measure scheduler fairness.</li>
+        <li>Detect retry storms.</li>
+        <li>Monitor lock contention.</li>
+        <li>Load test concurrent workloads.</li>
+      </ol>
+    </div>
+
+    <!-- Key Takeaways -->
+    <div class="nc">
+      <div class="section-badge">KEY TAKEAWAYS</div>
+      <div class="nh">Summary — Staff Engineer Soundbite</div>
+      <ul class="dot-ul mb-4">
+        <li><strong>Deadlock</strong> occurs when threads form a <strong>circular dependency</strong>, causing every participant to wait indefinitely. Prevent through <strong>lock ordering, timeouts, resource hierarchies, or deadlock detection</strong>.</li>
+        <li><strong>Livelock</strong> occurs when threads continuously <strong>retry or react without making progress</strong>, typically consuming high CPU. Fix with <strong>randomized backoff, exponential delays, and fair retry policies</strong>.</li>
+        <li><strong>Starvation</strong> occurs when one thread is <strong>continuously denied access to CPU or shared resources</strong> due to unfair scheduling or resource monopolization. OS prevents this with <strong>fair scheduling and priority aging</strong>.</li>
+        <li>These problems exist at both the <strong>OS level (threads, locks, schedulers)</strong> and the <strong>distributed systems level (microservices, databases, message queues, leader elections)</strong>.</li>
+        <li>Staff Engineers design for <strong>forward progress, fairness, bounded waiting, and graceful recovery</strong> — using global lock ordering, adaptive backoff, fair schedulers, bounded thread pools, circuit breakers, and load balancing.</li>
+      </ul>
+      <div class="nq">"Deadlock = no progress, no CPU. Livelock = no progress, high CPU. Starvation = some progress, one waits forever. Prevent with consistent lock ordering, randomized backoff, and fair scheduling policies."</div>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ORIGINAL NOTES TAB -->
+  <div id="tab-original" class="tab-pane pb-16">
+
+    <!-- Intro -->
+    <div class="nc">
+      <div class="section-badge">ORIGINAL NOTES — OVERVIEW</div>
+      <div class="nh">Deadlocks, Livelocks &amp; Starvation — Core Concurrency Failure Modes</div>
+      <p class="text-gray-700 mb-3">These three terms are the <strong>core concurrency failure modes</strong> that staff engineers must be able to <strong>identify, explain, and design mitigations for</strong> at both OS and distributed system levels.</p>
+      <table class="nt">
+        <thead><tr><th>Problem</th><th>Type</th><th>What Happens</th><th>CPU Usage</th><th>Example Analogy</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Deadlock</strong></td><td>Waiting cycle</td><td>Threads <strong>wait forever</strong> for each other's resources</td><td>Idle (no progress)</td><td>Two people holding one end of two chopsticks each, waiting for the other to release</td></tr>
+          <tr><td><strong>Livelock</strong></td><td>Reactive loop</td><td>Threads keep <strong>changing state</strong> but <strong>never make progress</strong></td><td>Busy (high CPU)</td><td>Two people both step left/right repeatedly to avoid each other — but never pass</td></tr>
+          <tr><td><strong>Starvation</strong></td><td>Scheduling unfairness</td><td>Some threads <strong>never get access</strong> to CPU or resources</td><td>Others progress; one starves</td><td>Waiter keeps serving VIPs, ignoring you</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Deadlock -->
+    <div class="nc">
+      <div class="section-badge">SECTION 1 — DEADLOCK</div>
+      <div class="nh">Deadlock — The "Waits-For" Cycle</div>
+      <p class="text-gray-700 mb-3">A <strong>deadlock</strong> occurs when two or more threads are <strong>waiting for each other's resources</strong>, creating a <strong>circular wait</strong> — none can proceed.</p>
+      <div class="nq mb-3">"Thread A waits for Thread B's lock; Thread B waits for Thread A's lock → both freeze forever."</div>
+
+      <p class="font-semibold text-violet-700 mb-2">OS-Level Conditions — Coffman's 4 Necessary Conditions</p>
+      <p class="text-gray-700 mb-2">For a deadlock to occur, all <strong>four</strong> must be true. Break <strong>any one</strong> of these, and deadlock is impossible.</p>
+      <table class="nt mb-4">
+        <thead><tr><th>#</th><th>Condition</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>1️⃣</td><td><strong>Mutual Exclusion</strong></td><td>A resource can be held by only one thread at a time.</td></tr>
+          <tr><td>2️⃣</td><td><strong>Hold and Wait</strong></td><td>A thread holds one resource while waiting for another.</td></tr>
+          <tr><td>3️⃣</td><td><strong>No Preemption</strong></td><td>Resources can't be forcibly taken; must be released voluntarily.</td></tr>
+          <tr><td>4️⃣</td><td><strong>Circular Wait</strong></td><td>A → B → C → A dependency loop exists.</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-1">Example (Classic Deadlock — C)</p>
+      <div class="ncode">pthread_mutex_t lockA, lockB;
+
+void* task1(void* arg) {
+    pthread_mutex_lock(&lockA);
+    sleep(1);                    // Simulate delay
+    pthread_mutex_lock(&lockB);
+    // ...
+    pthread_mutex_unlock(&lockB);
+    pthread_mutex_unlock(&lockA);
+}
+
+void* task2(void* arg) {
+    pthread_mutex_lock(&lockB);
+    sleep(1);
+    pthread_mutex_lock(&lockA);
+    // ...
+    pthread_mutex_unlock(&lockA);
+    pthread_mutex_unlock(&lockB);
+}
+// Deadlock occurs if:
+// Thread 1 holds lockA and waits for lockB
+// Thread 2 holds lockB and waits for lockA
+// Both wait forever → no progress</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Detection &amp; Prevention</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Strategy</th><th>Mechanism</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Avoid Circular Wait</strong></td><td>Impose <strong>lock ordering</strong> (always acquire locks A→B→C)</td><td>Code convention</td></tr>
+          <tr><td><strong>Timeout / Try-Lock</strong></td><td>Use <code>pthread_mutex_trylock()</code> with timeout</td><td>Detect and recover</td></tr>
+          <tr><td><strong>Deadlock Detection</strong></td><td>Maintain <strong>"wait-for graph"</strong> and detect cycles</td><td>Databases, OS kernels</td></tr>
+          <tr><td><strong>Preemption</strong></td><td>Allow forced resource release</td><td>Kernel driver design</td></tr>
+          <tr><td><strong>Banker's Algorithm</strong></td><td>Predict safe resource allocation state</td><td>Used in OS theory and DB transaction systems</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Livelock -->
+    <div class="nc">
+      <div class="section-badge">SECTION 2 — LIVELOCK</div>
+      <div class="nh">Livelock (Reactive Deadlock)</div>
+      <p class="text-gray-700 mb-3">A <strong>livelock</strong> occurs when threads <strong>aren't blocked</strong> but are <strong>constantly reacting to each other</strong> in a way that prevents forward progress.</p>
+      <div class="nq mb-3">"Everyone keeps moving — but nobody gets closer to completing work."</div>
+
+      <div class="ncode">void* threadA() {
+    while (true) {
+        if (try_acquire(lockA)) {
+            if (try_acquire(lockB)) {
+                // do work
+                release(lockB);
+                release(lockA);
+                break;
+            } else {
+                release(lockA);
+                // retry later
+            }
+        }
+    }
+}
+
+void* threadB() {
+    // Same pattern, opposite order
+}
+// Both threads keep acquiring & releasing locks repeatedly to "avoid" deadlock
+// — but NEVER actually enter the critical section
+// They're busy looping (high CPU) → system looks active, but NO PROGRESS = LIVELOCK</div>
+
+      <table class="nt mt-3 mb-3">
+        <thead><tr><th>Strategy</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Random backoff</strong></td><td>Insert random sleep before retrying (like in network protocols)</td></tr>
+          <tr><td><strong>Fair scheduling</strong></td><td>Allow one thread to "win" (e.g., lock with ticket number)</td></tr>
+          <tr><td><strong>State transition limits</strong></td><td>Limit retries; fallback to blocking mutex</td></tr>
+          <tr><td><strong>Exponential backoff</strong></td><td>Increase delay with each failure (used in Ethernet CSMA/CD, spinlocks)</td></tr>
+        </tbody>
+      </table>
+      <div class="ntip">Linux spinlocks use <strong>adaptive spinning with backoff</strong> to prevent livelock under heavy contention.</div>
+    </div>
+
+    <!-- Starvation -->
+    <div class="nc">
+      <div class="section-badge">SECTION 3 — STARVATION</div>
+      <div class="nh">Starvation (Unfair Scheduling)</div>
+      <p class="text-gray-700 mb-3"><strong>Starvation</strong> happens when <strong>some threads never get CPU or resource access</strong>, because others continuously take priority.</p>
+      <div class="nq mb-3">"The thread is alive but never scheduled to run."</div>
+
+      <p class="font-semibold text-violet-700 mb-1">Example 1 — CPU Starvation</p>
+      <div class="ncode">pthread_mutex_t lock;
+void* greedy_thread() {
+    while (true) {
+        pthread_mutex_lock(&lock);
+        // holds lock very long
+        pthread_mutex_unlock(&lock);
+    }
+}
+void* polite_thread() {
+    while (true) {
+        pthread_mutex_lock(&lock);
+        // small work
+        pthread_mutex_unlock(&lock);
+        sleep(1);
+    }
+}
+// greedy_thread continuously reacquires lock before polite_thread can
+// → polite_thread starves (makes little or no progress)</div>
+
+      <p class="font-semibold text-violet-700 mt-3 mb-1">Example 2 — Scheduling Starvation</p>
+      <ul class="dot-ul mb-3">
+        <li>Thread with <strong>low priority</strong> never scheduled if high-priority threads always runnable.</li>
+        <li>Common in <strong>priority-based schedulers</strong> without <strong>aging</strong>.</li>
+      </ul>
+
+      <table class="nt mb-3">
+        <thead><tr><th>Strategy</th><th>Explanation</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Fair Queuing</strong></td><td>Maintain FIFO order or round-robin scheduling</td></tr>
+          <tr><td><strong>Priority Aging</strong></td><td>Gradually increase priority of waiting threads</td></tr>
+          <tr><td><strong>Randomized Access</strong></td><td>Random selection avoids starvation bias</td></tr>
+          <tr><td><strong>Bounded Wait</strong></td><td>Guarantee max waiting time (real-time systems)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Comparison -->
+    <div class="nc">
+      <div class="section-badge">SECTION 4 — COMPARISON</div>
+      <div class="nh">Comparison Table (for interviews)</div>
+      <div style="overflow-x:auto;">
+        <table class="nt mb-3" style="min-width:650px;">
+          <thead><tr><th>Property</th><th>Deadlock</th><th>Livelock</th><th>Starvation</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Definition</strong></td><td>Threads block each other forever</td><td>Threads actively run but make no progress</td><td>Some threads never get scheduled</td></tr>
+            <tr><td><strong>CPU usage</strong></td><td>0% (idle)</td><td>100% (busy spinning)</td><td>Mixed — starving thread idle</td></tr>
+            <tr><td><strong>Root cause</strong></td><td>Circular waiting</td><td>Overactive retry logic</td><td>Unfair scheduling or resource hoarding</td></tr>
+            <tr><td><strong>Progress</strong></td><td>❌ None</td><td>❌ None</td><td>⚠️ Partial</td></tr>
+            <tr><td><strong>Detection</strong></td><td>Wait-for graph cycle</td><td>High CPU + no state change</td><td>Monitor long waiting times</td></tr>
+            <tr><td><strong>Fix</strong></td><td>Break circular wait / enforce lock order</td><td>Add randomness / yield / backoff</td><td>Fair scheduling / priority aging</td></tr>
+            <tr><td><strong>Occurs in</strong></td><td>Mutex, DB locks, distributed transactions</td><td>Spinlocks, retry loops, network contention</td><td>Priority queues, thread pools</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Visual ASCII -->
+    <div class="nc">
+      <div class="section-badge">SECTION 5 — VISUAL</div>
+      <div class="nh">Thread State Visual (Whiteboard-Friendly)</div>
+      <p class="text-gray-700 mb-2 font-semibold">Normal Thread Life Cycle</p>
+      <div class="ncode"> ┌──────────────────┐
+ │   READY (runnable)│   ← waiting for CPU
+ └───────┬──────────┘
+         │  scheduled by OS
+         ▼
+ ┌──────────────────┐
+ │   RUNNING (active)│  ← executing code
+ └───────┬──────────┘
+         │  waiting for I/O / lock
+         ▼
+ ┌──────────────────┐
+ │ WAITING (blocked)│  ← sleeping on futex, lock, I/O
+ └───────┬──────────┘
+         │  event occurs (lock released, I/O done)
+         └────────► back to READY</div>
+
+      <p class="text-gray-700 mb-2 mt-4 font-semibold">Deadlock — Circular Waiting Forever</p>
+      <div class="ncode">Thread A: holds Lock1, waiting for Lock2
+Thread B: holds Lock2, waiting for Lock1
+
+[Thread A - WAITING]  ◄──────────►  [Thread B - WAITING]
+         ↑                                 ↑
+         └─────────────── Locked resources ┘
+
+=> Both are blocked (WAITING)
+=> No thread ever transitions back to READY or RUNNING
+=> CPU idle → 0% utilization</div>
+
+      <p class="text-gray-700 mb-2 mt-4 font-semibold">Livelock — Everyone Moves, Nothing Progresses</p>
+      <div class="ncode">Thread A: tries to acquire Lock → sees contention → releases and retries
+Thread B: does the same → both keep retrying
+
+[Thread A - RUNNING]  ◄──────────►  [Thread B - RUNNING]
+         │                                 │
+         ▼                                 ▼
+   keeps yielding or retrying     keeps yielding or retrying
+
+=> Threads never blocked (no WAITING)
+=> CPU 100% busy, but no useful work done</div>
+
+      <p class="text-gray-700 mb-2 mt-4 font-semibold">Starvation — Unfair Access</p>
+      <div class="ncode">Thread A (high priority) keeps getting CPU time
+Thread B (low priority) always preempted
+
+CPU Timeline:
+|--A--|--A--|--A--|--A--|--A--|--A--|--A--|
+|            B never scheduled             |
+
+[Thread A - RUNNING  → READY  → RUNNING]
+[Thread B - READY → READY → READY (never scheduled)]
+
+=> One thread keeps running
+=> One thread starves (never progresses)</div>
+
+      <p class="text-gray-700 mb-2 mt-4 font-semibold">Side-by-Side Summary</p>
+      <div class="ncode">                    Distributed Concurrency Failures
+┌────────────────────────────┬────────────────────────────┬───────────────────────────┐
+│         Deadlock           │          Livelock          │        Starvation         │
+├────────────────────────────┼────────────────────────────┼───────────────────────────┤
+│ Nodes waiting on each other│ Nodes retrying endlessly   │ Nodes or requests ignored │
+│  (A↔B↔C cycle)             │  (retry storm, election)   │  (unfair load balancing)  │
+│                            │                            │                           │
+│  CPU/Network: idle          │ CPU/Network: maxed out     │ Mixed utilization         │
+│  → total freeze             │ → chaos, no success        │ → unfair but progressing  │
+└────────────────────────────┴────────────────────────────┴───────────────────────────┘</div>
+    </div>
+
+    <!-- Distributed Systems -->
+    <div class="nc">
+      <div class="section-badge">SECTION 6 — DISTRIBUTED SYSTEMS</div>
+      <div class="nh">Distributed System Analogies — Staff-Level Deep Dive</div>
+      <table class="nt mb-4">
+        <thead><tr><th>Problem</th><th>In Local Threads</th><th>In Distributed Systems</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Deadlock</strong></td><td>Threads hold locks waiting on each other</td><td>Services or nodes hold resources or transactions waiting on each other</td></tr>
+          <tr><td><strong>Livelock</strong></td><td>Threads repeatedly retry or yield</td><td>Services continuously retry requests or elections with no progress</td></tr>
+          <tr><td><strong>Starvation</strong></td><td>Scheduler ignores low-priority threads</td><td>Some requests, services, or nodes are always deprioritized or delayed</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Distributed Deadlock Examples</p>
+      <div class="ncode">// Microservices Circular Wait
+Service A  ──►  Service B  ──►  Service C  ──►  Service A
+   ▲                                  │
+   └──────────────────────────────────┘
+
+// Scenario:
+// Service A calls B (holds transaction lock on A's DB row)
+// B calls C (locks its own DB row)
+// C calls A (tries to access the locked row in A)
+// All three block — distributed deadlock</div>
+      <table class="nt mt-3 mb-4">
+        <thead><tr><th>Technique</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Timeouts</strong></td><td>Each request or transaction has a TTL; abort after deadline.</td></tr>
+          <tr><td><strong>Wait-for graph detection</strong></td><td>DB or distributed lock managers detect dependency cycles (e.g., PostgreSQL, Spanner).</td></tr>
+          <tr><td><strong>Global ordering</strong></td><td>Impose consistent lock ordering (e.g., always lock users before orders).</td></tr>
+          <tr><td><strong>Idempotent retries</strong></td><td>On timeout, safely retry (design endpoints to handle duplicates).</td></tr>
+          <tr><td><strong>Deadlock avoidance algorithms</strong></td><td>E.g., timestamp ordering (younger transactions back off).</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Distributed Livelock Examples</p>
+      <div class="ncode">// API Retry Storm
+Client → API → DB (slightly slow)
+Client timeouts too early → retries
+API overloaded → responds slower
+Clients retry even more → total meltdown
+→ All components actively working, but none finishing = distributed livelock
+
+// Leader Election Livelock (Raft / ZooKeeper)
+// Multiple nodes detect leader failure simultaneously
+// Each starts an election — votes split → no majority → all restart → repeat forever
+// Cluster never converges to a stable leader → high CPU + no progress</div>
+      <table class="nt mt-3 mb-4">
+        <thead><tr><th>Technique</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Randomized backoff / jitter</strong></td><td>Each node waits a random delay before retrying or starting election.</td></tr>
+          <tr><td><strong>Exponential backoff</strong></td><td>Double retry intervals after each failure (used in TCP, gRPC, AWS SDK).</td></tr>
+          <tr><td><strong>Leader stickiness / fencing tokens</strong></td><td>Prevent multiple concurrent leaders.</td></tr>
+          <tr><td><strong>Quorum requirement</strong></td><td>Require majority votes before progressing (Raft, Paxos).</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Distributed Starvation Examples</p>
+      <div class="ncode">// Load Balancer Starvation
+Node 1 → 95% of traffic  (overloaded, queue delays)
+Node 2 → 5% of traffic   (idle)
+// Requests to Node 1 starve for CPU / threads
+
+// Priority-based Queue
+// High-priority jobs keep arriving → low-priority never picked
+// Queue never empties → low-priority ones STARVE</div>
+      <table class="nt mt-3 mb-4">
+        <thead><tr><th>Strategy</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Fair queuing / weighted round-robin</strong></td><td>Balance load evenly or by capacity.</td></tr>
+          <tr><td><strong>Priority aging</strong></td><td>Gradually increase waiting job's priority.</td></tr>
+          <tr><td><strong>Leaky bucket / rate limiting</strong></td><td>Bound per-client throughput.</td></tr>
+          <tr><td><strong>Shard rebalancing</strong></td><td>Redistribute hot shards dynamically.</td></tr>
+          <tr><td><strong>Backpressure</strong></td><td>Let clients slow down if server overloaded.</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Real-world Distributed Examples</p>
+      <table class="nt mb-4">
+        <thead><tr><th>Scenario</th><th>Problem</th><th>How to Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Microservices with circular dependencies</td><td>Deadlock</td><td>Introduce async queues or cache responses; add timeouts</td></tr>
+          <tr><td>Kafka consumers repeatedly rebalance</td><td>Livelock</td><td>Use incremental rebalancing, random jitter</td></tr>
+          <tr><td>API Gateway overloading one region</td><td>Starvation</td><td>Implement weighted routing or request throttling</td></tr>
+          <tr><td>Database transactions holding locks too long</td><td>Deadlock</td><td>Reduce transaction scope, consistent lock order</td></tr>
+          <tr><td>Leader election storm in Raft cluster</td><td>Livelock</td><td>Randomized election timeout</td></tr>
+          <tr><td>Low-priority background job never runs</td><td>Starvation</td><td>Fair scheduler, aging, per-tenant quotas</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Prevention Patterns</p>
+      <table class="nt mb-3">
+        <thead><tr><th>Pattern</th><th>Solves</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Timeout + Retry with Jitter</strong></td><td>Deadlock, Livelock</td><td>Prevents circular waits + synchronized retries</td></tr>
+          <tr><td><strong>Circuit Breaker</strong></td><td>Deadlock</td><td>Breaks dependency loop between services</td></tr>
+          <tr><td><strong>Bulkhead Pattern</strong></td><td>Starvation</td><td>Isolates resources per client or service</td></tr>
+          <tr><td><strong>Rate Limiting / Token Bucket</strong></td><td>Starvation</td><td>Fair resource distribution</td></tr>
+          <tr><td><strong>Leader Election with Randomized Timeout</strong></td><td>Livelock</td><td>Ensures convergence in cluster coordination</td></tr>
+          <tr><td><strong>Distributed Lock Hierarchy</strong></td><td>Deadlock</td><td>Defines global ordering (e.g., ZooKeeper paths)</td></tr>
+        </tbody>
+      </table>
+
+      <p class="font-semibold text-violet-700 mb-2">Real Examples</p>
+      <ul class="dot-ul mb-3">
+        <li><span class="nkw"><span>MySQL / PostgreSQL</span></span> — detect deadlocks automatically via wait-for graph</li>
+        <li><span class="nkw"><span>AWS S3 SDK</span></span> — uses exponential backoff + jitter to prevent retry storms</li>
+        <li><span class="nkw"><span>Raft</span></span> — uses randomized election timeouts to avoid repeated elections</li>
+        <li><span class="nkw"><span>Kafka</span></span> — uses fair fetch scheduling per consumer group to prevent starvation</li>
+        <li><span class="nkw"><span>Kubernetes</span></span> — implements fair-share scheduling across namespaces; controllers back off exponentially</li>
+        <li><span class="nkw"><span>Linux CFS</span></span> — eliminates starvation by tracking runtime debt</li>
+      </ul>
+    </div>
+
+    <!-- Soundbite -->
+    <div class="nc">
+      <div class="section-badge">SOUNDBITE</div>
+      <div class="nh">Staff Engineer Interview Soundbite</div>
+      <div class="nq">"Deadlock is a circular wait where threads block forever; livelock is where threads stay active but never make progress; and starvation is where some threads never get scheduled due to unfairness. In distributed systems, deadlocks appear as cyclic waits between services or transactions; livelocks happen when nodes keep retrying simultaneously without progress; and starvation occurs when some nodes or clients never get scheduled or served. The fixes mirror OS-level strategies — use <strong>timeouts</strong>, <strong>randomized backoff</strong>, <strong>fair scheduling</strong>, <strong>circuit breakers</strong>, and <strong>global ordering</strong> to ensure forward progress and fairness."</div>
+    </div>
+
+  </div><!-- /tab-original -->
+
+  <!-- IMAGE TAB -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-xl border border-violet-100 shadow-sm p-4">
+      <img src="images/foundation/l1/OS/797b4e9a-53cd-4b87-b28a-aee0fba7bfac.png"
+           alt="Deadlocks, Livelocks and Starvation Visual Guide"
+           class="w-full rounded-lg"/>
+    </div>
+  </div>
+
+</div><!-- /max-w-5xl -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bottleneck Identification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.78rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    /* bottleneck type cards */
+    .bc  { border-radius:.85rem; padding:1rem 1.15rem; }
+    .bc-cpu  { background:#eff6ff; border:1px solid #bfdbfe; }
+    .bc-mem  { background:#f0fdf4; border:1px solid #bbf7d0; }
+    .bc-disk { background:#fff7ed; border:1px solid #fed7aa; }
+    .bc-net  { background:#faf5ff; border:1px solid #e9d5ff; }
+    .bc-other{ background:#f8fafc; border:1px solid #e2e8f0; }
+    .bc-title{ font-size:.8rem; font-weight:800; }
+    .bc-sub  { font-size:.62rem; color:#64748b; margin-bottom:.5rem; }
+    .pill-sm { font-size:.62rem; font-weight:600; padding:.18em .55em;
+               border-radius:999px; display:inline-block; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Bottleneck Identification</span>
+  </div>
+</header>
+
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Bottleneck Identification</h1>
+      <p class="text-xs text-gray-400 mt-0.5">CPU &bull; Memory &bull; Disk/IO &bull; Network &bull; DB &bull; Cache &bull; Queues &bull; Locks</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TEXT TAB ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core -->
+    <div class="nc">
+      <p class="nh">Definition &amp; Golden Rule</p>
+      <p class="nq">A bottleneck is the resource that limits the overall <strong>performance, scalability, or reliability</strong> of the system.</p>
+      <p class="ntip mt-3">Golden Rule: <strong>A system is only as fast as its slowest component.</strong><br/>
+        Staff Engineers identify the current bottleneck. Principal Engineers <em>predict the next bottleneck before it appears.</em></p>
+    </div>
+
+    <!-- Why -->
+    <div class="nc">
+      <p class="nh">Why It Matters</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs text-red-600 font-semibold">Without finding it: optimize wrong component</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs text-red-600 font-semibold">Waste infrastructure cost</p></div>
+        <div class="bg-red-50 rounded-lg p-2 text-center"><p class="text-xs text-red-600 font-semibold">Scaling doesn't improve performance</p></div>
+      </div>
+      <p class="ntip mt-3">Always ask: <strong>"Which resource is saturated first?"</strong></p>
+    </div>
+
+    <!-- 4 Primary Bottlenecks -->
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Primary Bottlenecks</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+
+      <!-- CPU -->
+      <div class="bc bc-cpu">
+        <p class="bc-title text-blue-700">CPU Bottleneck</p>
+        <p class="bc-sub">CPU cannot process requests fast enough &bull; Compute Bound</p>
+        <p class="sub-h">Causes</p>
+        <p class="text-xs text-gray-600">Heavy compute &bull; Encryption &bull; JSON Serialization &bull; Image processing &bull; Too many threads</p>
+        <p class="sub-h">Symptoms &amp; Metrics</p>
+        <div class="flex flex-wrap gap-1 mb-1">
+          <span class="pill-sm bg-blue-100 text-blue-700">CPU &gt; 85%</span>
+          <span class="pill-sm bg-blue-100 text-blue-700">High Load Avg</span>
+          <span class="pill-sm bg-blue-100 text-blue-700">Low Throughput</span>
+          <span class="pill-sm bg-blue-100 text-blue-700">Context Switch/sec</span>
+        </div>
+        <div class="bg-blue-900 rounded text-xs font-mono text-blue-200 px-2 py-1 mb-1">CPU&uarr; Latency&uarr; Throughput&darr;</div>
+        <p class="sub-h">How to Fix</p>
+        <p class="text-xs text-gray-600">Horizontal scaling &bull; Better algorithms &bull; Async processing &bull; Caching &bull; GPU offload</p>
+        <p class="text-xs text-blue-600 font-medium mt-1">Tip: CPU bottleneck = Compute Bound workload</p>
+      </div>
+
+      <!-- Memory -->
+      <div class="bc bc-mem">
+        <p class="bc-title text-green-700">Memory Bottleneck</p>
+        <p class="bc-sub">Application runs out of RAM or suffers memory pressure</p>
+        <p class="sub-h">Causes</p>
+        <p class="text-xs text-gray-600">Memory leak &bull; Huge cache &bull; Large objects &bull; GC pressure</p>
+        <p class="sub-h">Symptoms &amp; Metrics</p>
+        <div class="flex flex-wrap gap-1 mb-1">
+          <span class="pill-sm bg-green-100 text-green-700">Frequent GC</span>
+          <span class="pill-sm bg-green-100 text-green-700">OOM errors</span>
+          <span class="pill-sm bg-green-100 text-green-700">Heap %</span>
+          <span class="pill-sm bg-green-100 text-green-700">Swap Usage</span>
+          <span class="pill-sm bg-green-100 text-green-700">GC Pause</span>
+        </div>
+        <div class="bg-green-900 rounded text-xs font-mono text-green-200 px-2 py-1 mb-1">Heap&uarr; GC&uarr; Latency&uarr;</div>
+        <p class="sub-h">How to Fix</p>
+        <p class="text-xs text-gray-600">Reduce object creation &bull; Tune GC &bull; Streaming &bull; Object pools &bull; Increase RAM</p>
+        <p class="text-xs text-green-600 font-medium mt-1">Tip: Memory bottlenecks often become CPU bottlenecks due to GC</p>
+      </div>
+
+      <!-- Disk/IO -->
+      <div class="bc bc-disk">
+        <p class="bc-title text-orange-700">Disk / IO Bottleneck</p>
+        <p class="bc-sub">Storage cannot read/write data quickly</p>
+        <p class="sub-h">Causes</p>
+        <p class="text-xs text-gray-600">Full table scan &bull; HDD &bull; Logging &bull; WAL flush &bull; Random reads</p>
+        <p class="sub-h">Symptoms &amp; Metrics</p>
+        <div class="flex flex-wrap gap-1 mb-1">
+          <span class="pill-sm bg-orange-100 text-orange-700">Slow queries</span>
+          <span class="pill-sm bg-orange-100 text-orange-700">High IO Wait</span>
+          <span class="pill-sm bg-orange-100 text-orange-700">IOPS</span>
+          <span class="pill-sm bg-orange-100 text-orange-700">Queue Depth</span>
+        </div>
+        <div class="bg-orange-900 rounded text-xs font-mono text-orange-200 px-2 py-1 mb-1">CPU 40% &bull; Disk 100% &rarr; IO problem</div>
+        <p class="sub-h">How to Fix</p>
+        <p class="text-xs text-gray-600">SSD / NVMe &bull; Indexing &bull; Caching &bull; Read replicas &bull; Batch writes</p>
+        <p class="text-xs text-orange-600 font-medium mt-1">Tip: CPU low + Latency high = usually IO problem</p>
+      </div>
+
+      <!-- Network -->
+      <div class="bc bc-net">
+        <p class="bc-title text-violet-700">Network Bottleneck</p>
+        <p class="bc-sub">Network becomes the limiting resource</p>
+        <p class="sub-h">Causes</p>
+        <p class="text-xs text-gray-600">Large payloads &bull; Cross-region &bull; Too many RPC calls &bull; High packet loss</p>
+        <p class="sub-h">Symptoms &amp; Metrics</p>
+        <div class="flex flex-wrap gap-1 mb-1">
+          <span class="pill-sm bg-violet-100 text-violet-700">RTT High</span>
+          <span class="pill-sm bg-violet-100 text-violet-700">Packet Loss</span>
+          <span class="pill-sm bg-violet-100 text-violet-700">Timeouts</span>
+          <span class="pill-sm bg-violet-100 text-violet-700">Bandwidth %</span>
+        </div>
+        <div class="bg-violet-900 rounded text-xs font-mono text-violet-200 px-2 py-1 mb-1">CPU Low &bull; Memory OK &bull; RTT High &rarr; Network</div>
+        <p class="sub-h">How to Fix</p>
+        <p class="text-xs text-gray-600">CDN &bull; Compression &bull; HTTP/2 &bull; QUIC &bull; Reduce RPC &bull; Data locality</p>
+        <p class="text-xs text-violet-600 font-medium mt-1">Tip: Large payload + high RTT = network bottleneck</p>
+      </div>
+    </div>
+
+    <!-- Other 6 bottlenecks -->
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Other Common Bottlenecks</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+      <div class="bc bc-other">
+        <p class="bc-title text-gray-700">Database</p>
+        <p class="sub-h">Symptoms</p><p class="text-xs text-gray-600">Slow queries &bull; Lock waits &bull; High connections</p>
+        <p class="sub-h">Fix</p><p class="text-xs text-gray-600">Index &bull; Read replicas &bull; Sharding &bull; Query cache</p>
+      </div>
+      <div class="bc bc-other">
+        <p class="bc-title text-gray-700">Cache</p>
+        <p class="sub-h">Symptoms</p><p class="text-xs text-gray-600">High miss rate &bull; Hot keys &bull; Evictions</p>
+        <p class="sub-h">Fix</p><p class="text-xs text-gray-600">L1 cache &bull; Key sharding &bull; Request collapsing</p>
+      </div>
+      <div class="bc bc-other">
+        <p class="bc-title text-gray-700">Thread Pool</p>
+        <p class="sub-h">Symptoms</p><p class="text-xs text-gray-600">Queue grows &bull; Active threads = Max</p>
+        <p class="sub-h">Fix</p><p class="text-xs text-gray-600">Async I/O &bull; Tune pool size &bull; More workers</p>
+      </div>
+      <div class="bc bc-other">
+        <p class="bc-title text-gray-700">Connection Pool</p>
+        <p class="sub-h">Symptoms</p><p class="text-xs text-gray-600">All connections busy &bull; High acquire time</p>
+        <p class="sub-h">Fix</p><p class="text-xs text-gray-600">Bigger pool &bull; Faster queries &bull; Read replicas</p>
+      </div>
+      <div class="bc bc-other">
+        <p class="bc-title text-gray-700">Queue</p>
+        <p class="sub-h">Symptoms</p><p class="text-xs text-gray-600">Consumer lag &bull; Queue depth &uarr; &bull; E2E latency</p>
+        <p class="sub-h">Fix</p><p class="text-xs text-gray-600">More consumers &bull; More partitions &bull; Backpressure</p>
+      </div>
+      <div class="bc bc-other">
+        <p class="bc-title text-gray-700">Lock Contention</p>
+        <p class="sub-h">Symptoms</p><p class="text-xs text-gray-600">CPU low &bull; Throughput low &bull; Thread wait high</p>
+        <p class="sub-h">Fix</p><p class="text-xs text-gray-600">Lock-free structs &bull; Reduce shared state &bull; Sharding</p>
+      </div>
+    </div>
+
+    <!-- Detection Decision Tree -->
+    <div class="nc">
+      <p class="nh">Bottleneck Detection Decision Tree</p>
+      <div class="ncode">Latency High / Throughput Low?
+  &darr; Check Resource Utilization
+  &darr;
+  CPU High?    &rarr; CPU Bottleneck
+  Memory High? &rarr; Memory Bottleneck
+  Disk Busy?   &rarr; IO Bottleneck
+  Network RTT? &rarr; Network Bottleneck
+  DB Wait?     &rarr; Database Bottleneck
+  None of above? &rarr; Check Thread Pool, Connection Pool, Queue, Locks</div>
+    </div>
+
+    <!-- Staff thinking progression -->
+    <div class="nc">
+      <p class="nh">Engineer Thinking Progression</p>
+      <div class="space-y-2 mt-1">
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-gray-400 w-16 shrink-0 mt-0.5">Junior</span>
+          <p class="text-sm text-gray-500">API is slow.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-blue-500 w-16 shrink-0 mt-0.5">Senior</span>
+          <p class="text-sm text-gray-600">Database is slow.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-violet-600 w-16 shrink-0 mt-0.5">Staff</span>
+          <p class="text-sm text-violet-800 font-medium">Which resource is saturated first?</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-bold text-amber-600 w-16 shrink-0 mt-0.5">Principal</span>
+          <p class="text-sm text-amber-800 font-medium">If I remove this bottleneck, what becomes the next one?</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Scenarios -->
+    <div class="nc">
+      <p class="nh">System Design Interview Scenarios</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+        <div class="bg-slate-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-slate-300 mb-2">Interviewer: "Latency increasing"</p>
+          <p class="text-xs text-slate-400 font-mono">CPU? Memory? Disk?<br/>Network? Database?<br/>Queue? Locks?<br/>Thread / Conn Pool?</p>
+        </div>
+        <div class="bg-slate-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-slate-300 mb-2">Interviewer: "Traffic 10x"</p>
+          <p class="text-xs text-slate-400 font-mono">What saturates first?<br/>Little's Law &rarr;<br/>concurrency needed<br/>= RPS x Latency</p>
+        </div>
+        <div class="bg-slate-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-slate-300 mb-2">Interviewer: "Scaling didn't help"</p>
+          <p class="text-xs text-slate-400 font-mono">Contention?<br/>Shared DB?<br/>Network?<br/>Lock? Cache leader?</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="nc">
+      <p class="nh">Full Comparison Table</p>
+      <div class="overflow-x-auto">
+        <table class="nt mt-1">
+          <thead><tr><th>Bottleneck</th><th>Key Symptoms</th><th>Key Metrics</th><th>Typical Fix</th></tr></thead>
+          <tbody>
+            <tr><td><strong>CPU</strong></td><td>High latency, low throughput</td><td>CPU %, Load Avg</td><td>Scale out, optimise algos</td></tr>
+            <tr><td><strong>Memory</strong></td><td>GC pauses, OOM</td><td>Heap, GC pause, Swap</td><td>Tune GC, reduce allocations</td></tr>
+            <tr><td><strong>Disk / IO</strong></td><td>Slow reads/writes, IO wait</td><td>IOPS, IO Wait %</td><td>SSD, indexing, caching</td></tr>
+            <tr><td><strong>Network</strong></td><td>High RTT, packet loss</td><td>RTT, bandwidth</td><td>CDN, compression, locality</td></tr>
+            <tr><td><strong>Database</strong></td><td>Lock waits, slow queries</td><td>QPS, conn count</td><td>Indexes, replicas, sharding</td></tr>
+            <tr><td><strong>Cache</strong></td><td>Misses, hot keys</td><td>Hit ratio, evictions</td><td>L1 cache, sharding</td></tr>
+            <tr><td><strong>Thread Pool</strong></td><td>Request queue growth</td><td>Active threads, queue</td><td>Async I/O, tune pool</td></tr>
+            <tr><td><strong>Conn Pool</strong></td><td>Waiting for connections</td><td>Pool utilisation</td><td>Increase pool, optimise queries</td></tr>
+            <tr><td><strong>Queue</strong></td><td>Consumer lag</td><td>Depth, lag</td><td>More consumers, partitions</td></tr>
+            <tr><td><strong>Lock Contention</strong></td><td>Low CPU, poor throughput</td><td>Lock wait time</td><td>Lock-free, reduce shared state</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Principal Checklist -->
+    <div class="nc">
+      <p class="nh">Principal Engineer Checklist</p>
+      <div class="space-y-1 mt-1">
+        <p class="text-sm text-green-700 font-medium">&#10003; What is the current bottleneck?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Which metric proves it?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Is it CPU, Memory, IO, Network, or Contention?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Will scaling remove or simply move the bottleneck?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; What becomes the next bottleneck after the fix?</p>
+        <p class="text-sm text-green-700 font-medium">&#10003; Can it be eliminated through architecture instead of just hardware?</p>
+      </div>
+    </div>
+
+    <!-- One-Liner -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">One-Line Summary</p>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        Staff Engineers identify the current bottleneck.
+        <strong class="text-yellow-300">Principal Engineers predict the next bottleneck before it appears.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== IMAGE TAB ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/BottleneckIdentification/bottleneck.png"
+           alt="Bottleneck Identification Cheat Sheet"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

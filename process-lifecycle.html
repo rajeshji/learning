@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Process Lifecycle</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .tab-btn { padding:.5rem 1.5rem; font-size:.85rem; font-weight:600;
+               border-bottom:3px solid transparent; color:#64748b;
+               transition:color .15s,border-color .15s; cursor:pointer;
+               background:none; border-top:none; border-left:none; border-right:none; }
+    .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+    .tab-btn:hover:not(.active){ color:#4c1d95; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .nc  { background:#faf5ff; border:1px solid #ede9fe; border-radius:1rem;
+           padding:1.1rem 1.4rem; margin-bottom:.85rem; }
+    .nh  { font-size:.65rem; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; color:#7c3aed; margin-bottom:.5rem; }
+    .nq  { font-size:.84rem; color:#1e293b; line-height:1.7;
+           border-left:3px solid #8b5cf6; background:#ede9fe;
+           border-radius:.4rem; padding:.6rem .9rem; }
+    .ntip{ font-size:.76rem; color:#5b21b6; background:#ddd6fe; border-radius:.5rem;
+           padding:.45rem .8rem; border-left:3px solid #7c3aed; line-height:1.55; }
+    .ncode{ background:#1e1b4b; color:#c4b5fd; font-family:'Courier New',monospace;
+            font-size:.78rem; border-radius:.65rem; padding:.85rem 1rem;
+            white-space:pre; overflow-x:auto; line-height:1.8; }
+    .nt  { width:100%; border-collapse:collapse; font-size:.79rem; }
+    .nt th{ background:#ede9fe; color:#4c1d95; font-weight:700; font-size:.62rem;
+            text-transform:uppercase; letter-spacing:.06em; padding:.38rem .7rem; text-align:left; }
+    .nt td{ padding:.36rem .7rem; border-top:1px solid #ede9fe; color:#374151; vertical-align:top; }
+    .sub-h{ font-size:.62rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; margin:.65rem 0 .28rem; color:#64748b; }
+    .dot-ul { list-style:disc; padding-left:1.1rem; }
+    .dot-ul li{ font-size:.8rem; color:#374151; line-height:1.75; }
+    .dot-ul li::marker{ color:#7c3aed; }
+    .step-badge { display:inline-flex; align-items:center; justify-content:center;
+                  width:1.4rem; height:1.4rem; border-radius:9999px;
+                  font-size:.62rem; font-weight:800; margin-right:.4rem; flex-shrink:0; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-5xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="layer1.html" class="flex items-center gap-1.5 text-violet-600 hover:text-violet-800 font-semibold
+       bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="layer1.html" class="text-gray-400 hover:text-gray-600">Layer 1</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-violet-700 font-semibold">Process Lifecycle</span>
+  </div>
+</header>
+
+<!-- PAGE TITLE -->
+<div class="max-w-5xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Process Lifecycle</h1>
+      <p class="text-xs text-gray-400 mt-0.5">fork() &bull; exec() &bull; wait() &bull; Signals &bull; Zombie &bull; Orphan &bull; Graceful Shutdown</p>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="max-w-5xl mx-auto px-5">
+  <div class="border-b border-gray-200 flex gap-0 mb-6">
+    <button class="tab-btn active" onclick="switchTab('text',this)">Text Notes</button>
+    <button class="tab-btn"        onclick="switchTab('image',this)">Visual Guide</button>
+  </div>
+
+  <!-- ===== TEXT TAB ===== -->
+  <div id="tab-text" class="tab-pane active pb-16">
+
+    <!-- Core Idea -->
+    <div class="nc">
+      <p class="nh">Core Idea</p>
+      <p class="nq">Every process — web server, database, container, shell command — follows the same OS lifecycle. Without a managed lifecycle the system leaks memory, file descriptors, and PIDs until it collapses.</p>
+      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
+        <div class="bg-green-50 border border-green-100 rounded-lg p-2 text-center">
+          <p class="text-xs font-black text-green-700">1. Create</p>
+          <p class="text-xs text-gray-500 mt-0.5"><code>fork()</code></p>
+        </div>
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-2 text-center">
+          <p class="text-xs font-black text-blue-700">2. Load</p>
+          <p class="text-xs text-gray-500 mt-0.5"><code>exec()</code></p>
+        </div>
+        <div class="bg-violet-50 border border-violet-100 rounded-lg p-2 text-center">
+          <p class="text-xs font-black text-violet-700">3. Run</p>
+          <p class="text-xs text-gray-500 mt-0.5">execute</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-100 rounded-lg p-2 text-center">
+          <p class="text-xs font-black text-amber-700">4. Signals</p>
+          <p class="text-xs text-gray-500 mt-0.5">events</p>
+        </div>
+        <div class="bg-red-50 border border-red-100 rounded-lg p-2 text-center">
+          <p class="text-xs font-black text-red-700">5. Exit</p>
+          <p class="text-xs text-gray-500 mt-0.5"><code>exit()</code></p>
+        </div>
+        <div class="bg-gray-100 border border-gray-200 rounded-lg p-2 text-center">
+          <p class="text-xs font-black text-gray-700">6. Reap</p>
+          <p class="text-xs text-gray-500 mt-0.5"><code>wait()</code></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1: fork() + Step 2: exec() -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Step 1 — <code>fork()</code> — Create a Process</p>
+        <p class="text-xs text-gray-600 mb-2">A process calls <code>fork()</code> to spawn a child. The child gets a near-identical copy of the parent using <strong>Copy-on-Write (COW)</strong> — no full memory copy until a page is modified.</p>
+        <div class="ncode" style="font-size:.72rem">Parent Process (PID 1000)
+  ↓ fork()
+  ↓
+Parent (PID 1000)  +  Child (PID 1001)
+
+fork() returns:
+  0        in the child
+  child PID in the parent
+  -1       on error</div>
+        <p class="sub-h">What child inherits</p>
+        <ul class="dot-ul">
+          <li>Same open file descriptors</li>
+          <li>Same environment variables</li>
+          <li>Same memory (COW — shared until written)</li>
+        </ul>
+        <p class="ntip mt-2"><strong>COW benefit:</strong> fork() followed immediately by exec() is extremely cheap — COW pages are never actually copied.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Step 2 — <code>exec()</code> — Load a New Program</p>
+        <p class="text-xs text-gray-600 mb-2">After fork(), the child usually replaces itself with a different program. The kernel wipes the child's memory and loads the new executable — <strong>same PID, brand new program</strong>.</p>
+        <div class="ncode" style="font-size:.72rem">Child (PID 1001)
+  ↓ exec("/bin/ls")
+  ↓
+New code, heap, stack, libraries
+  loaded into PID 1001
+  ↓
+"ls" is now running as PID 1001
+
+On success: exec() never returns.
+On failure: returns -1.</div>
+        <p class="sub-h">Real example — Linux Shell running <code>ls -l</code></p>
+        <div class="ncode" style="font-size:.7rem">bash
+  ↓ fork()  → Child PID 1001
+  ↓ exec("/bin/ls")
+  ↓ ls executes &amp; exits
+  ↓ SIGCHLD sent to bash
+  ↓ bash calls wait()
+  ↓ Shell prompt returns</div>
+      </div>
+    </div>
+
+    <!-- Step 3: Run + Step 4: Signals -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Step 3 — Run (Execute Work)</p>
+        <p class="text-xs text-gray-600 mb-2">The scheduler allocates CPU time. The process interacts with the kernel via system calls for every real-world operation.</p>
+        <ul class="dot-ul">
+          <li><code>read()</code> / <code>write()</code> — file I/O</li>
+          <li><code>send()</code> / <code>recv()</code> — network</li>
+          <li><code>open()</code> / <code>close()</code> — file descriptors</li>
+          <li><code>mmap()</code> — memory mapping</li>
+        </ul>
+        <p class="ntip mt-2">The scheduler continuously switches between runnable processes. Each gets a time slice (quantum) until blocked or preempted.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Step 4 — Signals (Async Notifications)</p>
+        <p class="text-xs text-gray-600 mb-2">Signals notify a process about important events without polling. The OS delivers them asynchronously.</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Signal</th><th>Meaning</th><th>Catchable?</th></tr></thead>
+          <tbody>
+            <tr><td><code>SIGTERM</code></td><td>Graceful shutdown request</td><td class="text-green-600">Yes</td></tr>
+            <tr><td><code>SIGINT</code></td><td>Ctrl+C interrupt</td><td class="text-green-600">Yes</td></tr>
+            <tr><td><code>SIGKILL</code></td><td>Force kill immediately</td><td class="text-red-500">No</td></tr>
+            <tr><td><code>SIGCHLD</code></td><td>Child process exited</td><td class="text-green-600">Yes</td></tr>
+            <tr><td><code>SIGHUP</code></td><td>Terminal closed / reload config</td><td class="text-green-600">Yes</td></tr>
+            <tr><td><code>SIGSEGV</code></td><td>Invalid memory access</td><td class="text-green-600">Yes*</td></tr>
+            <tr><td><code>SIGSTOP</code></td><td>Pause process</td><td class="text-red-500">No</td></tr>
+          </tbody>
+        </table>
+        <p class="ntip mt-2">Use <code>sigaction()</code> to install signal handlers safely. Signals are the OS's only way to notify processes of external events.</p>
+      </div>
+    </div>
+
+    <!-- Step 5: exit() + Step 6: wait() -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Step 5 — <code>exit()</code> — Terminate</p>
+        <p class="text-xs text-gray-600 mb-2">When execution completes, the process calls <code>exit()</code>. The kernel cleans up resources but <strong>does not remove the process entry yet</strong>.</p>
+        <ul class="dot-ul">
+          <li class="text-green-700">Closes all open file descriptors</li>
+          <li class="text-green-700">Releases allocated memory</li>
+          <li class="text-green-700">Frees sockets and locks</li>
+          <li class="text-green-700">Records the exit code</li>
+          <li class="text-red-600">Process entry stays in the process table</li>
+          <li class="text-red-600">State becomes ZOMBIE</li>
+        </ul>
+        <p class="ntip mt-2">The kernel keeps the process entry so the parent can collect the exit code. Without <code>wait()</code>, it stays a zombie forever.</p>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Step 6 — <code>wait()</code> — Reap the Child</p>
+        <p class="text-xs text-gray-600 mb-2">The parent calls <code>wait()</code> or <code>waitpid()</code> to collect the child's exit status. Only then does the kernel fully remove the process.</p>
+        <div class="ncode" style="font-size:.72rem">Child exits → kernel stores exit code
+  ↓ SIGCHLD sent to parent
+  ↓ Parent calls waitpid(1001, &amp;status, 0)
+  ↓ Kernel returns exit status
+  ↓ Process entry removed from table
+  ↓ PID 1001 is now free to reuse</div>
+        <p class="sub-h">wait variants</p>
+        <ul class="dot-ul">
+          <li><code>wait()</code> — wait for any child</li>
+          <li><code>waitpid(pid, ...)</code> — wait for specific child</li>
+          <li><code>waitpid(..., WNOHANG)</code> — non-blocking poll</li>
+          <li><code>waitid()</code> — fine-grained control</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Zombie + Orphan -->
+    <div class="nc">
+      <p class="nh">Zombie vs Orphan — The Two Cleanup Failures</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        <div class="bg-red-50 border border-red-200 rounded-xl p-3">
+          <p class="text-xs font-black text-red-700 mb-2">Zombie (Defunct) — Parent forgot wait()</p>
+          <div class="ncode" style="font-size:.7rem; background:#1e1b4b; padding:.6rem .85rem">Child exits
+  ↓ State: ZOMBIE (Z)
+  ↓ Entry stays in process table
+  ↓ Parent never calls wait()
+  ↓ PID is permanently consumed</div>
+          <p class="sub-h mt-2">Impact</p>
+          <ul class="dot-ul">
+            <li>Nearly zero CPU or memory</li>
+            <li class="text-red-600">PID permanently consumed</li>
+            <li class="text-red-600">Thousands of zombies = PID exhaustion</li>
+            <li class="text-red-600">No new processes can be created</li>
+          </ul>
+          <p class="sub-h">Fix</p>
+          <p class="text-xs text-gray-600">Install a <code>SIGCHLD</code> handler that calls <code>waitpid(-1, NULL, WNOHANG)</code> in a loop to reap all finished children.</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <p class="text-xs font-black text-amber-700 mb-2">Orphan — Parent dies first</p>
+          <div class="ncode" style="font-size:.7rem; background:#1e1b4b; padding:.6rem .85rem">Parent crashes
+  ↓ Child still running
+  ↓ Kernel re-parents child to PID 1
+  ↓ systemd / init adopts it
+  ↓ When child exits: init calls wait()
+  ↓ Process cleaned up automatically</div>
+          <p class="sub-h mt-2">Why this matters in containers</p>
+          <ul class="dot-ul">
+            <li class="text-red-600">Container runs app as PID 1</li>
+            <li class="text-red-600">App spawns children, then exits first</li>
+            <li class="text-red-600">PID 1 is gone — no one calls wait()</li>
+            <li class="text-green-700">Fix: use <code>tini</code> or a proper init as PID 1</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-world + Production Failures -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Real-World Architecture Examples</p>
+        <table class="nt mt-1">
+          <thead><tr><th>System</th><th>Pattern</th></tr></thead>
+          <tbody>
+            <tr><td>Linux Shell</td><td>fork → exec("/bin/cmd") → wait()</td></tr>
+            <tr><td>PostgreSQL</td><td>Postmaster forks a backend per client; SIGCHLD + waitpid() reaps it</td></tr>
+            <tr><td>Apache Prefork</td><td>Master forks N workers; each handles one client, then exits</td></tr>
+            <tr><td>Nginx</td><td>SIGTERM → master drains workers → graceful exit</td></tr>
+            <tr><td>Docker / K8s</td><td>App runs as PID 1; must handle SIGTERM and reap child zombies</td></tr>
+            <tr><td>systemd</td><td>Adopts all orphans; reaps them when they exit</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Production Failure Scenarios</p>
+        <div class="space-y-2">
+          <div class="bg-red-50 border border-red-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-red-700">Zombie accumulation → PID exhaustion</p>
+            <p class="text-xs text-gray-600 mt-0.5">Parent spawns children but never calls <code>wait()</code>. PIDs fill up. New processes cannot be created. Install SIGCHLD handler + loop <code>waitpid(WNOHANG)</code>.</p>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-orange-700">Container won't stop — SIGTERM ignored</p>
+            <p class="text-xs text-gray-600 mt-0.5">K8s sends SIGTERM; app ignores it; after grace period K8s sends SIGKILL. In-flight requests fail abruptly. Always handle SIGTERM for graceful shutdown.</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-amber-700">High fork() overhead per request</p>
+            <p class="text-xs text-gray-600 mt-0.5">Spawning a new process per request at high RPS burns CPU on process creation. Use worker pools, thread pools, or connection pooling instead.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Engineer thinking + Decision framework -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Engineer Progression</p>
+        <div class="space-y-2">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <p class="text-xs font-bold text-gray-500 mb-0.5">Junior</p>
+            <p class="text-xs text-gray-600">"How do I create another process?"</p>
+          </div>
+          <div class="bg-blue-50 border border-blue-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-blue-700 mb-0.5">Senior</p>
+            <p class="text-xs text-gray-600">"Should I use fork() or threads for this workload?"</p>
+          </div>
+          <div class="bg-violet-50 border border-violet-100 rounded-lg p-3">
+            <p class="text-xs font-bold text-violet-700 mb-0.5">Staff</p>
+            <ul class="dot-ul">
+              <li>Is process creation a bottleneck at scale?</li>
+              <li>Are zombies accumulating silently?</li>
+              <li>Is PID 1 reaping children correctly?</li>
+              <li>Are signals handled safely during shutdown?</li>
+              <li>Should I use worker/connection pools instead?</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="nc" style="margin-bottom:0">
+        <p class="nh">Staff Engineer Decision Framework</p>
+        <table class="nt mt-1">
+          <thead><tr><th>Scenario</th><th>Approach</th></tr></thead>
+          <tbody>
+            <tr><td>Run a different program</td><td><code>fork()</code> + <code>exec()</code></td></tr>
+            <tr><td>Collect child exit status</td><td><code>waitpid()</code></td></tr>
+            <tr><td>Graceful shutdown</td><td>Handle <code>SIGTERM</code></td></tr>
+            <tr><td>Force stop</td><td><code>SIGKILL</code> (last resort)</td></tr>
+            <tr><td>Prevent zombie accumulation</td><td>SIGCHLD handler + <code>WNOHANG</code> loop</td></tr>
+            <tr><td>High-throughput workers</td><td>Worker pool — avoid per-request fork</td></tr>
+            <tr><td>Container PID 1</td><td>Use <code>tini</code> or handle SIGCHLD yourself</td></tr>
+            <tr><td>Reload config without downtime</td><td><code>SIGHUP</code> handler</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Interview Cheat Sheet -->
+    <div class="nc">
+      <p class="nh">Interview Cheat Sheet</p>
+      <div class="ncode">fork()     Creates child process via Copy-on-Write. Returns 0 in child, PID in parent.
+exec()     Replaces process image with new program. Same PID. Never returns on success.
+wait()     Parent collects child exit status. Removes zombie. Required to free PID.
+SIGTERM    Catchable. Use for graceful shutdown. Handle it — don't ignore it.
+SIGKILL    Cannot be caught. Kernel kills immediately. Last resort only.
+SIGCHLD    Sent to parent when child exits. Trigger for wait() in async apps.
+
+Zombie     Child exited, parent hasn't called wait(). Wastes PID. Fix: SIGCHLD + waitpid(WNOHANG).
+Orphan     Parent died first. Kernel re-parents to PID 1 (systemd). Cleaned up automatically.
+
+COW        Copy-on-Write: parent and child share pages until one writes. Makes fork() cheap.
+Container  App as PID 1 must reap children. Use tini if your app doesn't handle this.
+
+Best Practices
+  Always check return values of fork() / exec() / wait()
+  Use exec() in child — avoid complex logic before exec
+  Handle SIGCHLD and reap children promptly
+  Use WNOHANG in waitpid() inside event loops
+  Use FD_CLOEXEC to avoid file descriptor leaks across exec()</div>
+    </div>
+
+    <!-- Principal Takeaway -->
+    <div class="nc" style="background:#4c1d95;border-color:#4c1d95">
+      <p class="text-xs font-bold text-purple-200 uppercase tracking-widest mb-2">Principal Engineer Takeaway</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>fork() + exec()</strong> — COW makes creation cheap; exec() replaces image, same PID</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Signals</strong> — async OS notifications; always handle SIGTERM and SIGCHLD</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Zombie / Orphan</strong> — both are resource leaks; wait() and PID 1 adoption solve them</p>
+        </div>
+        <div class="bg-violet-800 rounded-lg p-2">
+          <p class="text-xs text-white"><strong>Production focus</strong> — graceful shutdown, zombie prevention, worker pools, container PID 1</p>
+        </div>
+      </div>
+      <p class="text-sm text-white font-medium leading-relaxed">
+        <strong class="text-yellow-300">Staff Engineers focus not just on correctness but on process creation cost, graceful shutdowns, signal handling, zombie prevention, and minimizing process churn. Proper lifecycle management keeps production systems stable and resource-leak-free.</strong>
+      </p>
+    </div>
+
+  </div><!-- /tab-text -->
+
+  <!-- ===== IMAGE TAB ===== -->
+  <div id="tab-image" class="tab-pane pb-16">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <img src="images/foundation/l1/OS/ProcessLifecycle/process-lifecycle.png"
+           alt="Process Lifecycle visual guide"
+           class="w-full rounded-xl" style="max-width:100%;height:auto;"/>
+    </div>
+  </div>
+
+</div><!-- /max-w -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

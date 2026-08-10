@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Layer 2 — Storage &amp; Database Systems</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+    code { background:#f1f5f9; padding:.12em .38em; border-radius:4px;
+           font-size:.82em; font-family:'Courier New',monospace; color:#1e293b; }
+    .dot-list { list-style:disc; padding-left:1.25rem; }
+    .dot-list li { line-height:1.85; break-inside:avoid; }
+    .dot-list li::marker { color:var(--dot,#7c3aed); }
+    @media(min-width:640px){ .two-col{ columns:2; column-gap:1.75rem; } }
+    .section-block { scroll-margin-top:5rem; }
+    .toc-link { display:block; padding:.26rem .65rem; border-radius:.4rem; font-size:.72rem;
+                color:#64748b; transition:all .15s; overflow:hidden;
+                text-overflow:ellipsis; white-space:nowrap; }
+    .toc-link:hover { background:#eff6ff; color:#2563eb; }
+    .sub-h { font-size:.7rem; font-weight:700; letter-spacing:.06em;
+             text-transform:uppercase; margin-top:.9rem; margin-bottom:.45rem; }
+    .badge-tag { font-size:.6rem; font-weight:600; background:#f1f5f9;
+                 color:#64748b; padding:.1em .5em; border-radius:999px; vertical-align:middle; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="foundation.html"
+       class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold
+              bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="foundation.html" class="text-gray-400 hover:text-gray-600">Foundation</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-blue-700 font-semibold">Layer 2 — Storage &amp; Database Systems</span>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-5 py-8 flex gap-7 items-start">
+
+  <!-- SIDEBAR TOC -->
+  <nav class="hidden xl:block w-52 shrink-0 sticky top-20 self-start">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p class="text-[0.68rem] font-bold text-gray-400 uppercase tracking-widest mb-3">12 Topics</p>
+      <a href="#s01" class="toc-link">01 &middot; Storage Fundamentals</a>
+      <a href="#s02" class="toc-link">02 &middot; DB Internals</a>
+      <a href="#s03" class="toc-link">03 &middot; DB Types &amp; Use Cases</a>
+      <a href="#s04" class="toc-link">04 &middot; Distributed DBs</a>
+      <a href="#s05" class="toc-link">05 &middot; Consistency &amp; Durability</a>
+      <a href="#s06" class="toc-link">06 &middot; Performance &amp; Tuning</a>
+      <a href="#s07" class="toc-link">07 &middot; Observability</a>
+      <a href="#s08" class="toc-link">08 &middot; Reliability &amp; Recovery</a>
+      <a href="#s09" class="toc-link">09 &middot; Schema Evolution</a>
+      <a href="#s10" class="toc-link">10 &middot; Cost &amp; Scaling</a>
+      <a href="#s12" class="toc-link">12 &middot; Staff-Level Advanced</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 min-w-0 space-y-5 pb-16">
+
+    <!-- S01 STORAGE FUNDAMENTALS -->
+    <div id="s01" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-amber-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-black text-xs shrink-0">01</span>
+        <h2 class="font-bold text-gray-800 text-lg">Storage Systems Fundamentals</h2>
+      </div>
+
+      <p class="sub-h text-amber-600">1.1 File System Concepts</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>File descriptors, inodes, metadata</li>
+        <li>Block vs extent allocation</li>
+        <li>Journaling — ext4, XFS, ZFS internals</li>
+        <li>Mounting, <code>fsck</code>, fragmentation</li>
+        <li>Copy-on-write (COW) mechanism — ZFS, Btrfs</li>
+      </ul>
+
+      <p class="sub-h text-amber-600">1.2 Disk &amp; OS I/O</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>HDD vs SSD — seek time, latency, wear-leveling</li>
+        <li>Disk scheduling algorithms (CFQ, noop, deadline)</li>
+        <li>OS Page Cache, Buffer Cache, dirty page flushing</li>
+        <li>IOPS, Throughput, Latency metrics</li>
+        <li>Direct I/O vs Buffered I/O</li>
+        <li><code>fsync()</code>, <code>fdatasync()</code>, <code>O_DIRECT</code></li>
+        <li>Write amplification &amp; TRIM (SSD-specific)</li>
+      </ul>
+
+      <p class="sub-h text-amber-600">1.3 Storage Abstractions</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li><strong>Block Storage</strong> — raw volume (EBS, SAN)</li>
+        <li><strong>File Storage</strong> — NFS, EFS, SMB</li>
+        <li><strong>Object Storage</strong> — S3, MinIO, GCS</li>
+        <li>Erasure Coding vs Replication</li>
+        <li>Storage tiers — hot, warm, cold</li>
+      </ul>
+
+      <p class="sub-h text-amber-600">1.4 Data Encoding &amp; Compression</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#d97706">
+        <li>Snappy, Zstd, LZ4, Gzip trade-offs</li>
+        <li>Dictionary encoding, Delta encoding</li>
+        <li>Bloom filters &amp; checksums for corruption detection</li>
+      </ul>
+    </div>
+
+    <!-- S02 DATABASE INTERNALS -->
+    <div id="s02" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-violet-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 text-violet-700 font-black text-xs shrink-0">02</span>
+        <h2 class="font-bold text-gray-800 text-lg">Database Internals</h2>
+      </div>
+
+      <p class="sub-h text-violet-600">2.1 Architecture Layers</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>Storage engine — InnoDB, RocksDB, WiredTiger</li>
+        <li>Buffer pool, page cache</li>
+        <li>WAL (Write-Ahead Log)</li>
+        <li>Background threads — checkpointing, compaction, flushing</li>
+        <li>Checkpoint algorithms</li>
+      </ul>
+
+      <p class="sub-h text-violet-600">2.2 Data Structures for Indexing</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>B-Tree / B+Tree</li>
+        <li>Hash Indexes</li>
+        <li>Skip Lists</li>
+        <li>LSM Tree — SSTables, Memtables, Compaction</li>
+        <li>Bloom Filters</li>
+        <li>Adaptive Radix Trees (ART)</li>
+        <li>Secondary indexes and covering indexes</li>
+      </ul>
+
+      <p class="sub-h text-violet-600">2.3 Transaction Management</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>ACID principles</li>
+        <li>WAL durability and atomicity</li>
+        <li>Pessimistic locking (2PL)</li>
+        <li>Optimistic concurrency control</li>
+        <li>MVCC (Multi-Version Concurrency Control)</li>
+        <li>Deadlocks &amp; detection algorithms</li>
+        <li>Savepoints &amp; rollbacks</li>
+        <li>Snapshot isolation</li>
+        <li>Transaction logs &amp; recovery procedures</li>
+      </ul>
+
+      <p class="sub-h text-violet-600">2.4 Query Processing &amp; Optimization</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>SQL parser, query planner, optimizer, executor</li>
+        <li>Cost-based vs rule-based optimization</li>
+        <li>Statistics and histograms</li>
+        <li>Join algorithms — Nested Loop, Hash, Merge</li>
+        <li>Index scan vs table scan</li>
+        <li>Predicate pushdown</li>
+        <li>Query caching and plan caching</li>
+      </ul>
+
+      <p class="sub-h text-violet-600">2.5 Caching &amp; Buffering</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#7c3aed">
+        <li>Buffer pool management (LRU, Clock, MRU)</li>
+        <li>Page replacement strategies</li>
+        <li>Write-through vs write-back caches</li>
+        <li>Cache coherence and invalidation strategies</li>
+        <li>Hot key management and cache stampede prevention</li>
+      </ul>
+    </div>
+
+    <!-- S03 DATABASE TYPES -->
+    <div id="s03" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-indigo-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">03</span>
+        <h2 class="font-bold text-gray-800 text-lg">Database Types &amp; Use Cases</h2>
+      </div>
+
+      <p class="sub-h text-indigo-600">3.1 Relational (SQL)</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Schema design normalization (1NF–5NF)</li>
+        <li>Foreign keys, constraints</li>
+        <li>Joins, subqueries, window functions</li>
+        <li>Stored procedures, triggers</li>
+        <li>Partitioning — range, hash, list, composite</li>
+      </ul>
+
+      <p class="sub-h text-indigo-600">3.2 NoSQL</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li><strong>Key-Value</strong> — Redis, DynamoDB</li>
+        <li><strong>Document</strong> — MongoDB, Couchbase</li>
+        <li><strong>Columnar</strong> — Cassandra, HBase</li>
+        <li><strong>Graph</strong> — Neo4j, JanusGraph</li>
+        <li><strong>Time-Series</strong> — InfluxDB, TimescaleDB</li>
+        <li><strong>Search</strong> — Elasticsearch, Solr</li>
+      </ul>
+
+      <p class="sub-h text-indigo-600">3.3 NewSQL</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Spanner, CockroachDB, TiDB internals</li>
+        <li>TrueTime API, Hybrid Logical Clocks (HLC)</li>
+        <li>Distributed ACID transactions</li>
+        <li>SQL with horizontal scalability</li>
+      </ul>
+
+      <p class="sub-h text-indigo-600">3.4 Data Warehousing &amp; Analytics</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#6366f1">
+        <li>Columnar storage formats (Parquet, ORC)</li>
+        <li>OLTP vs OLAP</li>
+        <li>Vectorized execution engines — DuckDB, ClickHouse</li>
+        <li>Query federation &amp; pushdown optimization</li>
+        <li>Cost-based parallelism (MPP systems)</li>
+      </ul>
+    </div>
+
+    <!-- S04 DISTRIBUTED DATABASE SYSTEMS -->
+    <div id="s04" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-blue-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black text-xs shrink-0">04</span>
+        <h2 class="font-bold text-gray-800 text-lg">Distributed Database Systems</h2>
+        <span class="badge-tag">Must Read</span>
+      </div>
+
+      <p class="sub-h text-blue-600">4.1 Distributed System Theory</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>CAP Theorem &amp; PACELC</li>
+        <li>Consensus — Paxos, Raft, ZAB (ZooKeeper Atomic Broadcast)</li>
+        <li>Vector clocks, Lamport clocks, Hybrid clocks</li>
+      </ul>
+
+      <p class="sub-h text-blue-600">4.2 Replication Models</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>Leader-follower, leaderless</li>
+        <li>Synchronous, Asynchronous, Semi-synchronous</li>
+        <li>Read-after-write consistency</li>
+        <li>Conflict resolution — LWW, CRDTs</li>
+      </ul>
+
+      <p class="sub-h text-blue-600">4.3 Sharding &amp; Partitioning</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>Horizontal partitioning</li>
+        <li>Range vs hash sharding</li>
+        <li>Consistent hashing</li>
+        <li>Shard rebalancing strategies</li>
+        <li>Metadata management &amp; shard maps</li>
+      </ul>
+
+      <p class="sub-h text-blue-600">4.4 Distributed Transactions</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>Two-Phase Commit (2PC)</li>
+        <li>Three-Phase Commit (3PC)</li>
+        <li>Saga pattern — choreography / orchestration</li>
+        <li>Idempotency &amp; deduplication</li>
+        <li>Distributed snapshot isolation</li>
+      </ul>
+
+      <p class="sub-h text-blue-600">4.5 Consensus &amp; Coordination Systems</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#3b82f6">
+        <li>ZooKeeper, Etcd, Consul</li>
+        <li>Leader election</li>
+        <li>Quorum reads/writes — <code>R + W &gt; N</code></li>
+        <li>Membership and gossip protocols</li>
+      </ul>
+    </div>
+
+    <!-- S05 CONSISTENCY, AVAILABILITY & DURABILITY -->
+    <div id="s05" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-teal-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-700 font-black text-xs shrink-0">05</span>
+        <h2 class="font-bold text-gray-800 text-lg">Consistency, Availability &amp; Durability</h2>
+      </div>
+
+      <p class="sub-h text-teal-600">5.1 Consistency Models</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Strong, Weak, Eventual</li>
+        <li>Causal, Monotonic, Read-your-writes</li>
+        <li>Linearizability</li>
+        <li>Session consistency</li>
+        <li>Write skew &amp; anomalies</li>
+      </ul>
+
+      <p class="sub-h text-teal-600">5.2 Durability Techniques</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>WAL, <code>fsync</code>, journaling</li>
+        <li>Checkpointing</li>
+        <li>Replicated logs &amp; log shipping</li>
+        <li>Snapshot + incremental backup strategies</li>
+        <li>RAID levels (RAID 0–6)</li>
+      </ul>
+
+      <p class="sub-h text-teal-600">5.3 Availability Patterns</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#0d9488">
+        <li>Active-active replication</li>
+        <li>Leader election and failover</li>
+        <li>Read replicas</li>
+        <li>Geo-redundancy</li>
+        <li>Failover orchestration</li>
+      </ul>
+    </div>
+
+    <!-- S06 PERFORMANCE & TUNING -->
+    <div id="s06" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-green-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 font-black text-xs shrink-0">06</span>
+        <h2 class="font-bold text-gray-800 text-lg">Performance, Tuning &amp; Optimization</h2>
+      </div>
+
+      <p class="sub-h text-green-600">6.1 Query Optimization</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Execution plans &amp; <code>EXPLAIN</code></li>
+        <li>Index tuning — covering, partial, composite</li>
+        <li>Materialized views</li>
+        <li>Query rewriting and hinting</li>
+        <li>Parallel query execution</li>
+      </ul>
+
+      <p class="sub-h text-green-600">6.2 Storage Optimization</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Compression and encoding</li>
+        <li>Page size and block alignment</li>
+        <li>SSD vs HDD tuning</li>
+        <li>Disk layout and IO batching</li>
+      </ul>
+
+      <p class="sub-h text-green-600">6.3 Caching &amp; Memory Optimization</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#16a34a">
+        <li>Redis persistence tuning — AOF, RDB</li>
+        <li>Memcached slab allocation</li>
+        <li>Postgres buffer tuning (<code>shared_buffers</code>, <code>work_mem</code>)</li>
+        <li>JVM tuning for RocksDB or Cassandra</li>
+      </ul>
+    </div>
+
+    <!-- S07 OBSERVABILITY -->
+    <div id="s07" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-slate-500 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-black text-xs shrink-0">07</span>
+        <h2 class="font-bold text-gray-800 text-lg">Observability &amp; Monitoring</h2>
+      </div>
+
+      <p class="sub-h text-slate-500">7.1 Metrics to Track</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>Query latency (P50, P95, P99)</li>
+        <li>Replication lag</li>
+        <li>Disk I/O — IOPS, throughput</li>
+        <li>Cache hit / miss ratio</li>
+        <li>Connection pool usage</li>
+        <li>Lock contention, deadlock frequency</li>
+        <li>Storage utilization and fragmentation</li>
+      </ul>
+
+      <p class="sub-h text-slate-500">7.2 Monitoring Tools</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>Prometheus + Grafana</li>
+        <li>OpenTelemetry — traces, spans, DB instrumentation</li>
+        <li><code>pg_stat_activity</code> / MySQL Performance Schema</li>
+        <li>ELK Stack (Elastic, Logstash, Kibana)</li>
+        <li>Jaeger / Zipkin for tracing</li>
+      </ul>
+
+      <p class="sub-h text-slate-500">7.3 Alerting</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#475569">
+        <li>Threshold-based — latency, error rate</li>
+        <li>Anomaly detection — replica lag, throughput drop</li>
+        <li>Log-based alerting — errors, deadlocks, corruption</li>
+      </ul>
+    </div>
+
+    <!-- S08 RELIABILITY & RECOVERY -->
+    <div id="s08" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-red-400 p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-700 font-black text-xs shrink-0">08</span>
+        <h2 class="font-bold text-gray-800 text-lg">Reliability, Recovery &amp; Disaster Management</h2>
+      </div>
+
+      <p class="sub-h text-red-500">8.1 Failure Scenarios</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>Disk corruption / bad sectors</li>
+        <li>Replica lag / split-brain</li>
+        <li>Network partition</li>
+        <li>Node crash / leader unavailability</li>
+        <li>WAL corruption / <code>fsync</code> failure</li>
+      </ul>
+
+      <p class="sub-h text-red-500">8.2 Recovery Mechanisms</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>Point-in-time recovery (PITR)</li>
+        <li>Incremental restore</li>
+        <li>Log replay and re-snapshotting</li>
+        <li>Auto rebalancing and self-healing clusters</li>
+        <li>Backup rotation &amp; retention policies</li>
+      </ul>
+
+      <p class="sub-h text-red-500">8.3 Disaster Recovery (DR)</p>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ef4444">
+        <li>RPO / RTO definitions</li>
+        <li>Multi-region failover</li>
+        <li>Backup verification</li>
+        <li>Read-only failover zones</li>
+      </ul>
+    </div>
+
+    <!-- S09 SCHEMA & DATA EVOLUTION -->
+    <div id="s09" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-purple-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-black text-xs shrink-0">09</span>
+        <h2 class="font-bold text-gray-800 text-lg">Schema &amp; Data Evolution</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#9333ea">
+        <li>Schema versioning &amp; migrations</li>
+        <li>Backward / forward compatibility</li>
+        <li>Online schema change (<code>gh-ost</code>, <code>pt-online-schema-change</code>)</li>
+        <li>Shadow reads/writes for migration validation</li>
+        <li>Blue-green / canary rollout for schema updates</li>
+      </ul>
+    </div>
+
+    <!-- S10 COST, SCALING & STORAGE STRATEGY -->
+    <div id="s10" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-orange-400 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 text-orange-700 font-black text-xs shrink-0">10</span>
+        <h2 class="font-bold text-gray-800 text-lg">Cost, Scaling &amp; Storage Strategy</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ea580c">
+        <li>Hot vs Cold storage tiers</li>
+        <li>Archival storage — Glacier, Nearline</li>
+        <li>Tiered caching — L1/L2, Redis + CDN</li>
+        <li>Auto-scaling replicas and partitions</li>
+        <li>Compaction tuning for write-heavy workloads</li>
+        <li>Cost-aware compression and retention policies</li>
+      </ul>
+    </div>
+
+    <!-- S12 ADVANCED STAFF-LEVEL TOPICS -->
+    <div id="s12" class="section-block bg-white rounded-2xl shadow-sm border-l-4 border-pink-500 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100 text-pink-700 font-black text-xs shrink-0">12</span>
+        <h2 class="font-bold text-gray-800 text-lg">Advanced Staff-Level Topics</h2>
+      </div>
+      <ul class="dot-list two-col text-sm text-gray-600" style="--dot:#ec4899">
+        <li>Hybrid transactional/analytical processing (HTAP)</li>
+        <li>Vectorized execution — Arrow, DuckDB</li>
+        <li>Log-structured storage for time-series data</li>
+        <li>Consensus under network partitions</li>
+        <li>Read-write path tracing with OpenTelemetry</li>
+        <li>Multi-tenant database isolation</li>
+        <li>Multi-model databases — document + graph hybrid</li>
+        <li>Query federation across heterogeneous systems</li>
+        <li>CRDTs and conflict-free replicated data types</li>
+      </ul>
+    </div>
+
+  </main>
+</div>
+  <script src="layer-utils.js"></script>
+</body>
+</html>
