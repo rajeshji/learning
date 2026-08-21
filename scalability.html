@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scalability Components in System Design</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; }
+
+    .sc-card { cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; text-decoration:none; display:block; }
+    .sc-card:hover { transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,0.08); }
+    .sc-tag { display:inline-block; font-size:.68rem; font-weight:700; border-radius:999px; padding:.2em .65em; background:#fee2e2; color:#991b1b; }
+    .sc-hint { font-size:.7rem; color:#9ca3af; }
+
+    .map-diagram { background:#0f172a; color:#a7f3d0; font-family:'Courier New',monospace; font-size:.68rem;
+                   border-radius:.9rem; padding:1.1rem 1.3rem; white-space:pre; overflow-x:auto; line-height:1.45; }
+    .principal-box { background:#1c1917; border:1px solid #ca8a04; border-radius:1rem; padding:1.1rem 1.4rem; }
+    .principal-head { font-size:.65rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#fbbf24; margin-bottom:.5rem; }
+    .principal-step { font-size:.82rem; color:#fef3c7; line-height:1.8; }
+    .principal-conclusion { font-size:.85rem; color:#fef08a; font-weight:700; font-style:italic; margin-top:.6rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="index.html"
+       class="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-800 font-semibold
+              bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-emerald-700 font-semibold">Scalability</span>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-4">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8m0 0h-5m5 0v5"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Scalability Components in System Design</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Click a component to open its full scalability deep dive</p>
+    </div>
+  </div>
+</div>
+
+<!-- SYSTEM-WIDE SCALABILITY MAP -->
+<div class="max-w-6xl mx-auto px-5 pb-6">
+  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+    <p class="font-bold text-gray-800 text-sm mb-3">The complete scalability map</p>
+    <pre id="system-map" class="map-diagram"></pre>
+  </div>
+  <div id="principal-box" class="principal-box"></div>
+</div>
+
+<!-- CARD GRID (rendered by JS from scalability-data.js) -->
+<div class="max-w-6xl mx-auto px-5 pb-16">
+  <div id="card-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</div>
+
+<script src="scalability-data.js"></script>
+<script src="scalability-interview-data.js"></script>
+<script>
+  function slugify(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  }
+
+  function renderCards() {
+    const grid = document.getElementById("card-grid");
+    grid.innerHTML = COMPONENTS.map((c, i) => {
+      const id = slugify(c.name);
+      const num = String(i + 1).padStart(2, "0");
+      return `
+        <a href="component.html?c=${id}" class="sc-card bg-white rounded-2xl border border-emerald-100 shadow-sm p-5 flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 font-black text-[.65rem] shrink-0">${num}</span>
+            <h2 class="font-bold text-gray-800 text-sm flex-1">${c.name}</h2>
+            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+          <p class="sc-hint">Click to open the full scalability deep dive</p>
+          <span class="sc-tag w-fit">${c.failure}</span>
+        </a>`;
+    }).join("");
+  }
+
+  renderCards();
+
+  if (typeof INTERVIEW_META !== "undefined") {
+    document.getElementById("system-map").textContent = INTERVIEW_META.systemMap;
+    const bm = INTERVIEW_META.bottleneckMigration;
+    document.getElementById("principal-box").innerHTML = `
+      <p class="principal-head">${bm.title}</p>
+      ${bm.steps.map(s => `<p class="principal-step">${s}</p>`).join("")}
+      <p class="principal-conclusion">${bm.conclusion}</p>`;
+  }
+</script>
+</body>
+</html>

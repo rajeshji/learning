@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Coding Patterns</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; }
+
+    .stat-chip { background:#fffbeb; border:1px solid #fde68a; border-radius:1rem; padding:1rem 1.25rem; text-align:center; }
+    .stat-num { font-size:1.05rem; font-weight:800; color:#b45309; }
+    .stat-label { font-size:.68rem; color:#92400e; margin-top:.15rem; }
+
+    .phase-card { background:white; border:1px solid #e5e7eb; border-radius:1rem; padding:1.1rem 1.25rem; }
+    .phase-title { font-weight:800; color:#1f2937; font-size:.85rem; margin-bottom:.3rem; }
+    .phase-desc { font-size:.78rem; color:#6b7280; margin-bottom:.6rem; line-height:1.5; }
+    .phase-step { display:inline-flex; align-items:center; font-size:.68rem; font-weight:700; color:#b45309;
+                  background:#fef3c7; border-radius:999px; padding:.2em .65em; margin:.15em .25em .15em 0; }
+
+    .priority-box { background:#1c1917; border:1px solid #ca8a04; border-radius:1rem; padding:1.1rem 1.4rem; }
+    .priority-head { font-size:.65rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#fbbf24; margin-bottom:.6rem; }
+    .priority-chip { display:inline-flex; font-size:.75rem; font-weight:700; color:#1c1917; background:#fbbf24;
+                      border-radius:999px; padding:.25em .8em; margin:.2em .3em .2em 0; }
+    .priority-note { font-size:.8rem; color:#fef3c7; line-height:1.6; margin-top:.7rem; font-style:italic; }
+
+    .tier-head { display:flex; align-items:baseline; gap:.5rem; margin-bottom:.9rem; }
+    .tier-title { font-weight:800; font-size:1.05rem; color:#1f2937; }
+    .tier-subtitle { font-size:.78rem; color:#9ca3af; font-style:italic; }
+
+    .pat-card { border-radius:1rem; padding:1rem 1.2rem; border:1px solid; }
+    .pat-emerald { background:#ecfdf5; border-color:#a7f3d0; }
+    .pat-amber   { background:#fffbeb; border-color:#fde68a; }
+    .pat-rose    { background:#fef2f2; border-color:#fecaca; }
+    .pat-num { display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem;
+               border-radius:999px; font-size:.7rem; font-weight:800; color:white; margin-right:.5rem; shrink:0; }
+    .pat-num-emerald { background:#059669; }
+    .pat-num-amber   { background:#d97706; }
+    .pat-num-rose    { background:#e11d48; }
+    .pat-name { font-weight:700; font-size:.88rem; color:#1f2937; display:inline; }
+    .pat-sub { display:inline-block; font-size:.68rem; font-weight:600; background:white; border:1px solid rgba(0,0,0,0.08);
+               border-radius:999px; padding:.15em .6em; margin:.3em .3em 0 0; color:#374151; }
+    .pat-note { font-size:.74rem; color:#6b7280; font-style:italic; margin-top:.5rem; line-height:1.5; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="index.html"
+       class="flex items-center gap-1.5 text-amber-600 hover:text-amber-800 font-semibold
+              bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-amber-700 font-semibold">Coding Patterns</span>
+    <a href="pattern-explorer.html"
+       class="ml-auto shrink-0 flex items-center gap-1.5 text-emerald-600 hover:text-emerald-800 font-semibold
+              bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors text-xs">
+      &#128269; Explorer &#8250;
+    </a>
+    <a href="pattern-master-index.html"
+       class="shrink-0 flex items-center gap-1.5 text-gray-600 hover:text-gray-900 font-semibold
+              bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors text-xs">
+      &#129504; Master Index &#8250;
+    </a>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-2">
+  <div class="flex items-center gap-3 mb-1">
+    <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4-4 4M7 8l-4 4 4 4M14 4l-4 16"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">The Complete Pattern Vocabulary</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Learn the patterns first, then recognize them, then solve with them</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-6xl mx-auto px-5 pb-4">
+  <p class="text-sm text-gray-600 leading-relaxed bg-white border border-gray-200 rounded-2xl p-5 mt-4">
+    Every pattern below is uniquely numbered, #1 through #122, grouped into 11 tiers from Arrays &amp; Hashing
+    through Interview Combination Patterns. You don't need to memorize all 122 up front \u2014 you need the map below,
+    and the full lessons (marked <b>Lesson ready</b>) as you work through each tier.
+  </p>
+</div>
+
+<!-- STAT CHIPS -->
+<div class="max-w-6xl mx-auto px-5 pb-6" id="stat-chips"></div>
+
+<!-- PHASES -->
+<div class="max-w-6xl mx-auto px-5 pb-6">
+  <p class="font-bold text-gray-800 text-sm mb-3">The training sequence (why we don't jump to LeetCode yet)</p>
+  <div id="phase-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+</div>
+
+<!-- PRIORITY ORDER -->
+<div class="max-w-6xl mx-auto px-5 pb-10">
+  <div id="priority-box" class="priority-box"></div>
+</div>
+
+<!-- TIERS -->
+<div class="max-w-6xl mx-auto px-5 pb-16" id="tiers"></div>
+
+<script src="coding-patterns-data.js"></script>
+<script src="pattern-academy-data.js"></script>
+<script src="pattern-academy-data-2.js"></script>
+<script src="pattern-academy-data-3.js"></script>
+<script src="pattern-academy-data-4.js"></script>
+<script src="pattern-academy-data-5.js"></script>
+<script src="pattern-academy-data-6.js"></script>
+<script src="pattern-academy-data-7.js"></script>
+<script src="pattern-academy-data-8.js"></script>
+<script src="pattern-academy-data-9.js"></script>
+<script src="pattern-academy-data-10.js"></script>
+<script src="pattern-academy-data-11.js"></script>
+<script src="pattern-academy-data-12.js"></script>
+<script src="pattern-academy-data-13.js"></script>
+<script src="pattern-academy-data-14.js"></script>
+<script src="pattern-academy-data-15.js"></script>
+<script src="pattern-academy-data-16.js"></script>
+<script src="pattern-academy-data-17.js"></script>
+<script src="pattern-academy-data-18.js"></script>
+<script src="pattern-academy-data-19.js"></script>
+<script src="pattern-academy-data-20.js"></script>
+<script src="pattern-academy-data-21.js"></script>
+<script src="pattern-academy-data-22.js"></script>
+<script>
+  const PATTERN_ACADEMY = Object.assign({},
+    (typeof PATTERN_ACADEMY_1 !== "undefined") ? PATTERN_ACADEMY_1 : {},
+    (typeof PATTERN_ACADEMY_2 !== "undefined") ? PATTERN_ACADEMY_2 : {},
+    (typeof PATTERN_ACADEMY_3 !== "undefined") ? PATTERN_ACADEMY_3 : {},
+    (typeof PATTERN_ACADEMY_4 !== "undefined") ? PATTERN_ACADEMY_4 : {},
+    (typeof PATTERN_ACADEMY_5 !== "undefined") ? PATTERN_ACADEMY_5 : {},
+    (typeof PATTERN_ACADEMY_6 !== "undefined") ? PATTERN_ACADEMY_6 : {},
+    (typeof PATTERN_ACADEMY_7 !== "undefined") ? PATTERN_ACADEMY_7 : {},
+    (typeof PATTERN_ACADEMY_8 !== "undefined") ? PATTERN_ACADEMY_8 : {},
+    (typeof PATTERN_ACADEMY_9 !== "undefined") ? PATTERN_ACADEMY_9 : {},
+    (typeof PATTERN_ACADEMY_10 !== "undefined") ? PATTERN_ACADEMY_10 : {},
+    (typeof PATTERN_ACADEMY_11 !== "undefined") ? PATTERN_ACADEMY_11 : {},
+    (typeof PATTERN_ACADEMY_12 !== "undefined") ? PATTERN_ACADEMY_12 : {},
+    (typeof PATTERN_ACADEMY_13 !== "undefined") ? PATTERN_ACADEMY_13 : {},
+    (typeof PATTERN_ACADEMY_14 !== "undefined") ? PATTERN_ACADEMY_14 : {},
+    (typeof PATTERN_ACADEMY_15 !== "undefined") ? PATTERN_ACADEMY_15 : {},
+    (typeof PATTERN_ACADEMY_16 !== "undefined") ? PATTERN_ACADEMY_16 : {},
+    (typeof PATTERN_ACADEMY_17 !== "undefined") ? PATTERN_ACADEMY_17 : {},
+    (typeof PATTERN_ACADEMY_18 !== "undefined") ? PATTERN_ACADEMY_18 : {},
+    (typeof PATTERN_ACADEMY_19 !== "undefined") ? PATTERN_ACADEMY_19 : {},
+    (typeof PATTERN_ACADEMY_20 !== "undefined") ? PATTERN_ACADEMY_20 : {},
+    (typeof PATTERN_ACADEMY_21 !== "undefined") ? PATTERN_ACADEMY_21 : {},
+    (typeof PATTERN_ACADEMY_22 !== "undefined") ? PATTERN_ACADEMY_22 : {});
+</script>
+<script>
+  function statChips() {
+    // Computed live from TIERS -- the real pattern-wise numbering (1..N, unique,
+    // no gaps) rather than a hand-typed estimate that goes stale as patterns are added.
+    const allPatterns = TIERS.flatMap(t => t.patterns);
+    const totalPatterns = allPatterns.length;
+    const lowestNum = Math.min(...allPatterns.map(p => p.num));
+    const highestNum = Math.max(...allPatterns.map(p => p.num));
+    const lessonsReady = allPatterns.filter(p => {
+      const slug = slugify(p.name);
+      return (typeof PATTERN_ACADEMY !== "undefined") && !!PATTERN_ACADEMY[slug];
+    }).length;
+    const rows = [
+      [`#${lowestNum}\u2013${highestNum}`, `${totalPatterns} patterns, numbered`],
+      [TIERS.length, "Tiers"],
+      [`${lessonsReady} / ${totalPatterns}`, "Full lessons ready"]
+    ];
+    document.getElementById("stat-chips").innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        ${rows.map(([num, label]) => `
+          <div class="stat-chip">
+            <p class="stat-num">${num}</p>
+            <p class="stat-label">${label}</p>
+          </div>`).join("")}
+      </div>`;
+  }
+
+  function phaseGrid() {
+    document.getElementById("phase-grid").innerHTML = PATTERN_META.phases.map(p => `
+      <div class="phase-card">
+        <p class="phase-title">${p.title}</p>
+        <p class="phase-desc">${p.desc}</p>
+        <div>${p.steps.map(s => `<span class="phase-step">${s}</span>`).join("")}</div>
+      </div>`).join("");
+  }
+
+  function priorityBox() {
+    document.getElementById("priority-box").innerHTML = `
+      <p class="priority-head">Where we start (based on what you told me)</p>
+      <div>${PATTERN_META.priorityOrder.map(p => `<span class="priority-chip">${p}</span>`).join("")}</div>
+      <p class="priority-note">${PATTERN_META.priorityNote}</p>`;
+  }
+
+  function slugify(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+
+  function patternCard(p, color, tierIndex) {
+    const subs = p.subs.map(s => `<span class="pat-sub">${s}</span>`).join("");
+    const slug = slugify(p.name);
+    const hasLesson = (typeof PATTERN_ACADEMY !== "undefined") && !!PATTERN_ACADEMY[slug];
+    return `
+      <a href="pattern.html?p=${slug}" class="pat-card pat-${color} block hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="pat-num pat-num-${color}">${tierIndex}</span>
+            <span class="pat-name">${p.name}</span>
+          </div>
+          ${hasLesson ? `<span class="text-[.62rem] font-bold text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5">Lesson ready</span>` : ""}
+        </div>
+        ${subs ? `<div class="mt-2">${subs}</div>` : ""}
+        ${p.note ? `<p class="pat-note">${p.note}</p>` : ""}
+      </a>`;
+  }
+
+  function renderTiers() {
+    document.getElementById("tiers").innerHTML = TIERS.map(tier => `
+      <div class="mb-9">
+        <div class="tier-head">
+          <span>${tier.emoji}</span>
+          <span class="tier-title">${tier.title}</span>
+          ${tier.subtitle ? `<span class="tier-subtitle">\u2014 ${tier.subtitle}</span>` : ""}
+          <span class="tier-subtitle">(${tier.patterns.length} patterns, numbered 1\u2013${tier.patterns.length} within this tier)</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${tier.patterns.map((p, idx) => patternCard(p, tier.color, idx + 1)).join("")}
+        </div>
+      </div>`).join("");
+  }
+
+  statChips();
+  phaseGrid();
+  priorityBox();
+  renderTiers();
+</script>
+<script src="page-timer.js"></script>
+</body>
+</html>

@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DSA Pattern Master Index</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; scroll-behavior:smooth; }
+
+    .tier-group { border:1px solid #e5e7eb; border-radius:1rem; margin-bottom:1rem; overflow:hidden; background:white; scroll-margin-top:5rem; }
+    .tier-group summary { cursor:pointer; padding:1rem 1.3rem; display:flex; align-items:center; gap:.7rem; list-style:none; }
+    .tier-group summary::-webkit-details-marker { display:none; }
+    .tier-group summary::after { content:'\25be'; margin-left:auto; font-size:1rem; color:#9ca3af; transition:transform .15s; }
+    .tier-group[open] summary::after { transform:rotate(180deg); }
+    .tier-group-body { padding:0 1.3rem 1.2rem; border-top:1px solid #f1f5f9; }
+    .tier-num { display:inline-flex; align-items:center; justify-content:center; width:1.9rem; height:1.9rem; border-radius:.6rem;
+                color:white; font-weight:800; font-size:.8rem; }
+    .tier-title { font-weight:800; font-size:.95rem; color:#1f2937; }
+    .tier-subtitle { font-size:.72rem; color:#9ca3af; font-style:italic; }
+
+    table.pat-table { width:100%; border-collapse:collapse; margin-top:.8rem; font-size:.8rem; }
+    table.pat-table th { text-align:left; font-size:.65rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+                         color:#9ca3af; padding:.35rem .6rem; border-bottom:2px solid #f1f5f9; }
+    table.pat-table td { padding:.5rem .6rem; border-bottom:1px solid #f8fafc; color:#374151; vertical-align:top; }
+    table.pat-table td.pnum { color:#9ca3af; font-weight:700; width:2.5rem; }
+    table.pat-table td.pname { font-weight:700; color:#1f2937; white-space:nowrap; }
+    table.pat-table tr:last-child td { border-bottom:none; }
+
+    .daily-ref { background:#0f172a; color:#a7f3d0; font-family:'Courier New',monospace; font-size:.72rem;
+                 border-radius:.7rem; padding:.8rem 1rem; white-space:pre; overflow-x:auto; line-height:1.55; margin-top:.8rem; }
+
+    .diagram-box { background:#0f172a; color:#a7f3d0; font-family:'Courier New',monospace; font-size:.72rem;
+                   border-radius:1rem; padding:1.2rem 1.4rem; white-space:pre; overflow-x:auto; line-height:1.55; }
+
+    .combo-grid { display:grid; grid-template-columns:1fr 1fr; gap:.6rem .9rem; font-size:.8rem; }
+    .combo-item { background:#fffbeb; border:1px solid #fde68a; border-radius:.7rem; padding:.6rem .8rem; }
+    .combo-name { font-weight:800; color:#92400e; font-size:.78rem; }
+    .combo-eg { color:#78350f; font-size:.75rem; margin-top:.15rem; }
+
+    .study-step { display:inline-flex; align-items:center; font-size:.7rem; font-weight:700; color:#b45309;
+                  background:#fef3c7; border-radius:999px; padding:.25em .8em; margin:.2em .3em .2em 0; }
+
+    .priority-chip { display:inline-flex; font-size:.78rem; font-weight:700; color:#1c1917; background:#fbbf24;
+                     border-radius:999px; padding:.3em .9em; margin:.2em .3em .2em 0; }
+
+    .anchor-nav { display:flex; flex-wrap:wrap; gap:.4rem; }
+    .anchor-nav a { font-size:.7rem; font-weight:700; padding:.3rem .75rem; border-radius:999px; background:#f3f4f6;
+                    color:#4b5563; text-decoration:none; border:1px solid #e5e7eb; }
+    .anchor-nav a:hover { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="coding-patterns.html"
+       class="flex items-center gap-1.5 text-amber-600 hover:text-amber-800 font-semibold
+              bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Patterns Hub
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-gray-600 font-semibold">Master Index</span>
+    <a href="pattern.html?p=palindrome-dp"
+       class="ml-auto shrink-0 flex items-center gap-1.5 text-rose-600 hover:text-rose-800 font-semibold
+              bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors text-xs">
+      DP Lessons &#8250;
+    </a>
+    <a href="pattern-explorer.html"
+       class="shrink-0 flex items-center gap-1.5 text-emerald-600 hover:text-emerald-800 font-semibold
+              bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors text-xs">
+      &#128269; Explorer &#8250;
+    </a>
+  </div>
+</header>
+
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-20">
+
+  <!-- HERO -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-extrabold text-gray-900 mb-2">&#129504; DSA Pattern Master Index</h1>
+    <p class="text-sm text-gray-500 leading-relaxed max-w-3xl">
+      Every pattern we've covered (and the ones queued up next), organized so you can pick <b>one tier/topic per day</b>
+      instead of memorizing individual questions. The order that actually works:
+    </p>
+    <div class="mt-3 daily-ref">learn the pattern -&gt; understand why it exists -&gt; recognition triggers -&gt; variations -&gt; when NOT to use -&gt; combinations -&gt; then practice problems</div>
+  </div>
+
+  <!-- QUICK NAV -->
+  <div class="bg-white border border-gray-200 rounded-2xl px-5 py-4 mb-8">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Jump to a tier</p>
+    <nav class="anchor-nav">
+      <a href="#t1">1 Arrays/Hashing</a><a href="#t2">2 Stack/Queue</a><a href="#t3">3 Linked List</a>
+      <a href="#t4">4 Binary Search</a><a href="#t5">5 Trees</a><a href="#t6">6 Heap</a>
+      <a href="#t7">7 Sequence/Interval DP &#11088;</a><a href="#t8">8 Graph Traversal</a><a href="#t9">9 Union-Find</a>
+      <a href="#t10">10 Shortest Path</a><a href="#t11">11 Advanced Graph</a><a href="#t12">12 Backtracking</a>
+      <a href="#t13">13 Trie</a><a href="#t14">14 Greedy</a><a href="#t15">15 Advanced Strings</a>
+      <a href="#t16">16 Bit Manipulation</a><a href="#t17">17 Advanced DP</a><a href="#t18">18 Math</a>
+      <a href="#t19">19 Advanced DS</a><a href="#t20">20 Combinations &#11088;</a>
+      <a href="#map">One-Page Map</a><a href="#study">Study Structure</a><a href="#priority">Priority Order</a>
+    </nav>
+  </div>
+
+  <!-- TIER 1 -->
+  <details id="t1" class="tier-group" open>
+    <summary><span class="tier-num" style="background:#059669">1</span>
+      <span class="tier-title">Arrays &amp; Hashing</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">1</td><td class="pname">Hash Map / Frequency Counting</td><td>Store what you've seen</td></tr>
+          <tr><td class="pnum">2</td><td class="pname">Two Sum / Complement Lookup</td><td>target - current</td></tr>
+          <tr><td class="pnum">3</td><td class="pname">Prefix Sum</td><td>Convert repeated range sums into O(1)</td></tr>
+          <tr><td class="pnum">4</td><td class="pname">Difference Array</td><td>Efficient range updates</td></tr>
+          <tr><td class="pnum">5</td><td class="pname">Sliding Window</td><td>Maintain a valid/optimal contiguous window</td></tr>
+          <tr><td class="pnum">6</td><td class="pname">Two Pointers</td><td>Move boundaries based on a condition</td></tr>
+          <tr><td class="pnum">7</td><td class="pname">Fast/Slow Pointers</td><td>Two traversal speeds</td></tr>
+          <tr><td class="pnum">8</td><td class="pname">Kadane's Algorithm</td><td>Best subarray ending here</td></tr>
+          <tr><td class="pnum">9</td><td class="pname">Sorting + Greedy</td><td>Sort to expose the optimal decision order</td></tr>
+          <tr><td class="pnum">10</td><td class="pname">Merge Intervals</td><td>Sort + merge overlapping ranges</td></tr>
+        </tbody>
+      </table>
+      <div class="daily-ref">Tier 1
+-&gt; Arrays -&gt; Hashing -&gt; Prefix Sum -&gt; Difference Array
+-&gt; Sliding Window -&gt; Two Pointers -&gt; Fast/Slow
+-&gt; Kadane -&gt; Sorting + Greedy -&gt; Intervals</div>
+    </div>
+  </details>
+
+  <!-- TIER 2 -->
+  <details id="t2" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">2</span>
+      <span class="tier-title">Stack &amp; Queue</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">11</td><td class="pname">Stack</td><td>Last-in-first-out state</td></tr>
+          <tr><td class="pnum">12</td><td class="pname">Monotonic Stack</td><td>Maintain increasing/decreasing candidates</td></tr>
+          <tr><td class="pnum">13</td><td class="pname">Next Greater / Smaller Element</td><td>Find nearest qualifying element</td></tr>
+          <tr><td class="pnum">14</td><td class="pname">Histogram / Boundary Stack</td><td>Find previous/next smaller boundaries</td></tr>
+          <tr><td class="pnum">15</td><td class="pname">Parentheses / Expression Stack</td><td>Match nested structure</td></tr>
+          <tr><td class="pnum">16</td><td class="pname">Queue / BFS</td><td>Process level by level</td></tr>
+          <tr><td class="pnum">17</td><td class="pname">Monotonic Queue / Deque</td><td>Maintain best candidate inside window</td></tr>
+        </tbody>
+      </table>
+      <div class="daily-ref">Tier 2
+-&gt; Stack -&gt; Monotonic Stack -&gt; Next Greater/Smaller
+-&gt; Histogram -&gt; Parentheses/Expression -&gt; Queue/BFS -&gt; Monotonic Queue</div>
+    </div>
+  </details>
+
+  <!-- TIER 3 -->
+  <details id="t3" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">3</span>
+      <span class="tier-title">Linked List</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">18</td><td class="pname">Dummy Node</td><td>Simplify head/edge cases</td></tr>
+          <tr><td class="pnum">19</td><td class="pname">Fast &amp; Slow Pointer</td><td>Find middle/cycle</td></tr>
+          <tr><td class="pnum">20</td><td class="pname">Reverse Linked List</td><td>Reverse pointers</td></tr>
+          <tr><td class="pnum">21</td><td class="pname">Reverse Sublist</td><td>Reverse a section</td></tr>
+          <tr><td class="pnum">22</td><td class="pname">Merge Linked Lists</td><td>Two-pointer merge</td></tr>
+          <tr><td class="pnum">23</td><td class="pname">Linked List Cycle</td><td>Floyd's algorithm</td></tr>
+          <tr><td class="pnum">24</td><td class="pname">Intersection</td><td>Align distances</td></tr>
+          <tr><td class="pnum">25</td><td class="pname">Reorder List</td><td>Split + reverse + merge</td></tr>
+        </tbody>
+      </table>
+      <div class="daily-ref">Tier 3
+-&gt; Dummy Node -&gt; Fast/Slow -&gt; Reverse -&gt; Reverse Sublist
+-&gt; Merge -&gt; Cycle -&gt; Intersection -&gt; Reorder</div>
+    </div>
+  </details>
+
+  <!-- TIER 4 -->
+  <details id="t4" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">4</span>
+      <span class="tier-title">Binary Search</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">26</td><td class="pname">Classic Binary Search</td><td>Search sorted space</td></tr>
+          <tr><td class="pnum">27</td><td class="pname">Lower Bound</td><td>First &gt;= target</td></tr>
+          <tr><td class="pnum">28</td><td class="pname">Upper Bound</td><td>First &gt; target</td></tr>
+          <tr><td class="pnum">29</td><td class="pname">Search Rotated Array</td><td>Identify sorted half</td></tr>
+          <tr><td class="pnum">30</td><td class="pname">Binary Search on Answer</td><td>Search possible answer space</td></tr>
+          <tr><td class="pnum">31</td><td class="pname">Minimum Feasible Value</td><td>Find first valid answer</td></tr>
+          <tr><td class="pnum">32</td><td class="pname">Maximum Feasible Value</td><td>Find last valid answer</td></tr>
+          <tr><td class="pnum">33</td><td class="pname">Peak / Mountain</td><td>Search based on slope</td></tr>
+          <tr><td class="pnum">34</td><td class="pname">2D Binary Search</td><td>Search matrix/search space</td></tr>
+        </tbody>
+      </table>
+      <div class="daily-ref">Tier 4
+-&gt; Basic Binary Search -&gt; Lower/Upper Bound -&gt; Rotated Array
+-&gt; Binary Search on Answer -&gt; Feasibility -&gt; Peak/Mountain -&gt; 2D Search</div>
+    </div>
+  </details>
+
+  <!-- TIER 5 -->
+  <details id="t5" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">5</span>
+      <span class="tier-title">Trees</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">35</td><td class="pname">DFS Traversal</td><td>Explore recursively</td></tr>
+          <tr><td class="pnum">36</td><td class="pname">BFS / Level Order</td><td>Process by depth</td></tr>
+          <tr><td class="pnum">37</td><td class="pname">Tree Height / Depth</td><td>Bottom-up information</td></tr>
+          <tr><td class="pnum">38</td><td class="pname">Tree Diameter</td><td>Best path through a node</td></tr>
+          <tr><td class="pnum">39</td><td class="pname">Path Sum</td><td>Carry path information</td></tr>
+          <tr><td class="pnum">40</td><td class="pname">Lowest Common Ancestor</td><td>Find shared ancestor</td></tr>
+          <tr><td class="pnum">41</td><td class="pname">BST Search</td><td>Exploit ordering</td></tr>
+          <tr><td class="pnum">42</td><td class="pname">BST Validation</td><td>Maintain valid range</td></tr>
+          <tr><td class="pnum">43</td><td class="pname">Tree Construction</td><td>Reconstruct from traversal</td></tr>
+          <tr><td class="pnum">44</td><td class="pname">Serialize / Deserialize</td><td>Convert tree &lt;-&gt; representation</td></tr>
+          <tr><td class="pnum">45</td><td class="pname">Tree DP</td><td>Combine child states</td></tr>
+        </tbody>
+      </table>
+      <div class="daily-ref">Tier 5
+-&gt; DFS -&gt; BFS -&gt; Height -&gt; Diameter -&gt; Path -&gt; LCA
+-&gt; BST -&gt; Construction -&gt; Serialization -&gt; Tree DP</div>
+    </div>
+  </details>
+
+  <!-- TIER 6 -->
+  <details id="t6" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">6</span>
+      <span class="tier-title">Heap / Priority Queue</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">46</td><td class="pname">Top K</td><td>Maintain K best candidates</td></tr>
+          <tr><td class="pnum">47</td><td class="pname">Kth Largest / Smallest</td><td>Heap boundary</td></tr>
+          <tr><td class="pnum">48</td><td class="pname">Two Heaps</td><td>Maintain lower + upper halves</td></tr>
+          <tr><td class="pnum">49</td><td class="pname">K-Way Merge</td><td>Merge sorted sources</td></tr>
+          <tr><td class="pnum">50</td><td class="pname">Scheduling with Heap</td><td>Process next best/earliest</td></tr>
+          <tr><td class="pnum">51</td><td class="pname">Greedy + Heap</td><td>Make best available decision</td></tr>
+          <tr><td class="pnum">52</td><td class="pname">Frequency + Heap</td><td>Most/least frequent candidates</td></tr>
+        </tbody>
+      </table>
+      <div class="daily-ref">Tier 6
+-&gt; Top K -&gt; Kth -&gt; Two Heaps -&gt; K-Way Merge
+-&gt; Scheduling -&gt; Greedy + Heap -&gt; Frequency Heap</div>
+    </div>
+  </details>
+
+  <!-- TIER 7 -- STAR TIER, fully built -->
+  <details id="t7" class="tier-group" open style="border-color:#fecaca">
+    <summary><span class="tier-num" style="background:#e11d48">7</span>
+      <span class="tier-title">Sequence &amp; Interval DP</span>
+      <span class="tier-subtitle">&#11088; The tier we've fully built lessons for -- <a href="coding-patterns.html" class="text-rose-500 underline">browse cards</a></span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">53</td><td class="pname">1D Sequence DP</td><td>Best answer up to position</td></tr>
+          <tr><td class="pnum">54</td><td class="pname">0/1 Knapsack</td><td>Take / Skip</td></tr>
+          <tr><td class="pnum">55</td><td class="pname">Unbounded Knapsack</td><td>Take repeatedly / Skip</td></tr>
+          <tr><td class="pnum">56</td><td class="pname">Coin Change</td><td>Optimize/count ways to form amount</td></tr>
+          <tr><td class="pnum">57</td><td class="pname">Subset Sum</td><td>Can we form target?</td></tr>
+          <tr><td class="pnum">58</td><td class="pname">Partition DP</td><td>Split into independent parts</td></tr>
+          <tr><td class="pnum">59</td><td class="pname"><a href="pattern.html?p=lcs" class="text-rose-600 underline">LCS</a></td><td>Maximum common subsequence</td></tr>
+          <tr><td class="pnum">60</td><td class="pname"><a href="pattern.html?p=longest-common-substring" class="text-rose-600 underline">Longest Common Substring</a></td><td>Best contiguous match</td></tr>
+          <tr><td class="pnum">61</td><td class="pname"><a href="pattern.html?p=edit-distance" class="text-rose-600 underline">Edit Distance</a></td><td>Minimum transformation</td></tr>
+          <tr><td class="pnum">62</td><td class="pname"><a href="pattern.html?p=shortest-common-supersequence" class="text-rose-600 underline">Shortest Common Supersequence</a></td><td>LCS reduction</td></tr>
+          <tr><td class="pnum">63</td><td class="pname"><a href="pattern.html?p=distinct-subsequences" class="text-rose-600 underline">Distinct Subsequences</a></td><td>Count ordered ways</td></tr>
+          <tr><td class="pnum">64</td><td class="pname"><a href="pattern.html?p=interleaving-string" class="text-rose-600 underline">Interleaving String</a></td><td>Two sources -&gt; one target</td></tr>
+          <tr><td class="pnum">65</td><td class="pname"><a href="pattern.html?p=lis" class="text-rose-600 underline">LIS</a></td><td>Best increasing chain</td></tr>
+          <tr><td class="pnum">66</td><td class="pname"><a href="pattern.html?p=palindrome-dp" class="text-rose-600 underline">Palindrome DP</a></td><td>Two ends / interval</td></tr>
+          <tr><td class="pnum">67</td><td class="pname">Interval DP</td><td>dp[l][r]</td></tr>
+        </tbody>
+      </table>
+      <p class="text-xs text-gray-400 italic mt-2">Note: in the site's numbering these were built as Pattern 68-75 (LCS through Palindrome DP) -- normalized here into one clean master index.</p>
+
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-1">The most important Tier 7 mental map</p>
+      <div class="diagram-box">                 DP
+                  |
+        +---------+---------+
+        |                   |
+   Sequence DP          Interval DP
+        |                   |
+   +----+-----+             |
+   v    v     v             v
+  LCS   LIS  Edit       Palindrome
+   |
+  SCS
+   |
+Distinct
+Subsequence
+
+dp[i]     -&gt; one sequence / ending state
+dp[i][j]  -&gt; two sequences
+dp[l][r]  -&gt; interval</div>
+    </div>
+  </details>
+
+  <!-- TIER 8 -->
+  <details id="t8" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">8</span>
+      <span class="tier-title">Graph Traversal</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">68</td><td class="pname">Graph DFS</td><td>Explore connected structure</td></tr>
+          <tr><td class="pnum">69</td><td class="pname">Graph BFS</td><td>Shortest unweighted path</td></tr>
+          <tr><td class="pnum">70</td><td class="pname">Multi-Source BFS</td><td>Expand simultaneously from many sources</td></tr>
+          <tr><td class="pnum">71</td><td class="pname">Connected Components</td><td>Count isolated groups</td></tr>
+          <tr><td class="pnum">72</td><td class="pname">Cycle Detection -- Undirected</td><td>DFS / Union-Find</td></tr>
+          <tr><td class="pnum">73</td><td class="pname">Cycle Detection -- Directed</td><td>DFS states</td></tr>
+          <tr><td class="pnum">74</td><td class="pname">Topological Sort -- BFS</td><td>Indegree</td></tr>
+          <tr><td class="pnum">75</td><td class="pname">Topological Sort -- DFS</td><td>Postorder</td></tr>
+          <tr><td class="pnum">76</td><td class="pname">Bipartite Graph</td><td>Two-coloring</td></tr>
+          <tr><td class="pnum">77</td><td class="pname">Grid DFS/BFS</td><td>Matrix as graph</td></tr>
+          <tr><td class="pnum">78</td><td class="pname">Flood Fill</td><td>Connected region</td></tr>
+          <tr><td class="pnum">79</td><td class="pname">Shortest Path -- Unweighted</td><td>BFS</td></tr>
+        </tbody>
+      </table>
+      <div class="daily-ref">Tier 8
+-&gt; DFS -&gt; BFS -&gt; Multi-source BFS -&gt; Components -&gt; Cycle Detection
+-&gt; Topological Sort -&gt; Bipartite -&gt; Grid Graph -&gt; Flood Fill -&gt; Unweighted Shortest Path</div>
+    </div>
+  </details>
+
+  <!-- TIER 9 -->
+  <details id="t9" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">9</span>
+      <span class="tier-title">Union-Find / DSU</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">80</td><td class="pname">Basic Union-Find</td><td>Maintain connected components</td></tr>
+          <tr><td class="pnum">81</td><td class="pname">Path Compression</td><td>Flatten parent chains</td></tr>
+          <tr><td class="pnum">82</td><td class="pname">Union by Rank/Size</td><td>Keep trees shallow</td></tr>
+          <tr><td class="pnum">83</td><td class="pname">Cycle Detection</td><td>Edge connects already-connected nodes</td></tr>
+          <tr><td class="pnum">84</td><td class="pname">Dynamic Connectivity</td><td>Merge components</td></tr>
+          <tr><td class="pnum">85</td><td class="pname">Kruskal's MST</td><td>Sort edges + Union-Find</td></tr>
+          <tr><td class="pnum">86</td><td class="pname">Redundant Connection</td><td>Detect unnecessary edge</td></tr>
+          <tr><td class="pnum">87</td><td class="pname">Accounts / Groups Merge</td><td>Merge equivalent entities</td></tr>
+        </tbody>
+      </table>
+      <div class="daily-ref">Tier 9
+-&gt; DSU -&gt; Path Compression -&gt; Union by Rank -&gt; Cycle
+-&gt; Connectivity -&gt; Kruskal -&gt; Redundant Edge -&gt; Merge Groups</div>
+    </div>
+  </details>
+
+  <!-- TIER 10 -->
+  <details id="t10" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">10</span>
+      <span class="tier-title">Shortest Path</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">88</td><td class="pname">BFS Shortest Path</td><td>Unweighted graph</td></tr>
+          <tr><td class="pnum">89</td><td class="pname">Dijkstra</td><td>Non-negative weighted edges</td></tr>
+          <tr><td class="pnum">90</td><td class="pname">0-1 BFS</td><td>Edge weights 0/1</td></tr>
+          <tr><td class="pnum">91</td><td class="pname">Bellman-Ford</td><td>Negative edges</td></tr>
+          <tr><td class="pnum">92</td><td class="pname">Floyd-Warshall</td><td>All-pairs shortest path</td></tr>
+          <tr><td class="pnum">93</td><td class="pname">DAG Shortest Path</td><td>Topological order</td></tr>
+          <tr><td class="pnum">94</td><td class="pname">State-Space Shortest Path</td><td>Node = (position, state)</td></tr>
+          <tr><td class="pnum">95</td><td class="pname">Shortest Path + Constraints</td><td>Add constraint to state</td></tr>
+        </tbody>
+      </table>
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-1">Recognition</p>
+      <div class="daily-ref">No weights          -&gt; BFS
+Weights &gt;= 0        -&gt; Dijkstra
+Weights only 0/1    -&gt; 0-1 BFS
+Negative weights    -&gt; Bellman-Ford
+All pairs           -&gt; Floyd-Warshall
+DAG                 -&gt; Topological DP</div>
+    </div>
+  </details>
+
+  <!-- TIER 11 -->
+  <details id="t11" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">11</span>
+      <span class="tier-title">Advanced Graph</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">96</td><td class="pname">Minimum Spanning Tree</td><td>Connect everything cheapest</td></tr>
+          <tr><td class="pnum">97</td><td class="pname">Kruskal</td><td>Sort edges + DSU</td></tr>
+          <tr><td class="pnum">98</td><td class="pname">Prim</td><td>Expand cheapest frontier</td></tr>
+          <tr><td class="pnum">99</td><td class="pname">Strongly Connected Components</td><td>Mutual reachability</td></tr>
+          <tr><td class="pnum">100</td><td class="pname">Tarjan</td><td>DFS low-link</td></tr>
+          <tr><td class="pnum">101</td><td class="pname">Bridges</td><td>Edge whose removal disconnects</td></tr>
+          <tr><td class="pnum">102</td><td class="pname">Articulation Points</td><td>Critical vertex</td></tr>
+          <tr><td class="pnum">103</td><td class="pname">Eulerian Path/Circuit</td><td>Use every edge</td></tr>
+          <tr><td class="pnum">104</td><td class="pname">Bipartite Matching</td><td>Match two sets</td></tr>
+          <tr><td class="pnum">105</td><td class="pname">Network Flow</td><td>Maximum transferable flow</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- TIER 12 -->
+  <details id="t12" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">12</span>
+      <span class="tier-title">Backtracking</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">106</td><td class="pname">Basic Backtracking</td><td>Choose -&gt; Explore -&gt; Undo</td></tr>
+          <tr><td class="pnum">107</td><td class="pname">Subsets</td><td>Take / Don't take</td></tr>
+          <tr><td class="pnum">108</td><td class="pname">Permutations</td><td>Choose unused</td></tr>
+          <tr><td class="pnum">109</td><td class="pname">Combinations</td><td>Choose forward</td></tr>
+          <tr><td class="pnum">110</td><td class="pname">Combination Sum</td><td>Reuse / don't reuse</td></tr>
+          <tr><td class="pnum">111</td><td class="pname">N-Queens</td><td>Place + constraints</td></tr>
+          <tr><td class="pnum">112</td><td class="pname">Sudoku</td><td>Constraint satisfaction</td></tr>
+          <tr><td class="pnum">113</td><td class="pname">Word Search</td><td>DFS + visited</td></tr>
+          <tr><td class="pnum">114</td><td class="pname">Partitioning</td><td>Choose cut positions</td></tr>
+          <tr><td class="pnum">115</td><td class="pname">Generate Parentheses</td><td>Maintain valid state</td></tr>
+        </tbody>
+      </table>
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-1">Master template</p>
+      <div class="daily-ref">choose -&gt; modify state -&gt; recurse -&gt; undo</div>
+    </div>
+  </details>
+
+  <!-- TIER 13 -->
+  <details id="t13" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">13</span>
+      <span class="tier-title">Trie</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">116</td><td class="pname">Basic Trie</td><td>Character-by-character path</td></tr>
+          <tr><td class="pnum">117</td><td class="pname">Prefix Search</td><td>Shared prefix</td></tr>
+          <tr><td class="pnum">118</td><td class="pname">Word Search with Trie</td><td>Trie + DFS</td></tr>
+          <tr><td class="pnum">119</td><td class="pname">Autocomplete</td><td>Prefix -&gt; candidates</td></tr>
+          <tr><td class="pnum">120</td><td class="pname">Word Replacement</td><td>Find shortest matching prefix</td></tr>
+          <tr><td class="pnum">121</td><td class="pname">Maximum XOR Trie</td><td>Bitwise prefix</td></tr>
+          <tr><td class="pnum">122</td><td class="pname">Trie + Backtracking</td><td>Dictionary-constrained DFS</td></tr>
+        </tbody>
+      </table>
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-1">Recognition</p>
+      <div class="daily-ref">prefix, startsWith, dictionary, autocomplete
+word search, many string lookups -&gt; Think Trie</div>
+    </div>
+  </details>
+
+  <!-- TIER 14 -->
+  <details id="t14" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">14</span>
+      <span class="tier-title">Greedy</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">123</td><td class="pname">Activity Selection</td><td>Earliest finish</td></tr>
+          <tr><td class="pnum">124</td><td class="pname">Interval Scheduling</td><td>Sort + choose</td></tr>
+          <tr><td class="pnum">125</td><td class="pname">Jump Game</td><td>Maintain farthest reach</td></tr>
+          <tr><td class="pnum">126</td><td class="pname">Gas Station</td><td>Reset impossible starting points</td></tr>
+          <tr><td class="pnum">127</td><td class="pname">Two City / Cost Greedy</td><td>Choose cheapest difference</td></tr>
+          <tr><td class="pnum">128</td><td class="pname">Task Scheduling</td><td>Maximize immediate useful choice</td></tr>
+          <tr><td class="pnum">129</td><td class="pname">Greedy + Heap</td><td>Best available candidate</td></tr>
+          <tr><td class="pnum">130</td><td class="pname">Greedy + Sorting</td><td>Sort to expose exchange argument</td></tr>
+          <tr><td class="pnum">131</td><td class="pname">Minimum Platforms / Resources</td><td>Sweep events</td></tr>
+          <tr><td class="pnum">132</td><td class="pname">Huffman / Optimal Merge</td><td>Repeatedly combine smallest</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- TIER 15 -->
+  <details id="t15" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">15</span>
+      <span class="tier-title">Advanced String Algorithms</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">133</td><td class="pname">KMP</td><td>Prefix-function / failure links</td></tr>
+          <tr><td class="pnum">134</td><td class="pname">Z Algorithm</td><td>Matching prefix</td></tr>
+          <tr><td class="pnum">135</td><td class="pname">Rabin-Karp</td><td>Rolling hash</td></tr>
+          <tr><td class="pnum">136</td><td class="pname">Rolling Hash</td><td>O(1) substring hash</td></tr>
+          <tr><td class="pnum">137</td><td class="pname">Manacher</td><td>All palindromic substrings in O(n)</td></tr>
+          <tr><td class="pnum">138</td><td class="pname">String Hashing</td><td>Compare substrings efficiently</td></tr>
+          <tr><td class="pnum">139</td><td class="pname">Suffix Array</td><td>Sort suffixes</td></tr>
+          <tr><td class="pnum">140</td><td class="pname">Suffix Automaton</td><td>All substring structure</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- TIER 16 -->
+  <details id="t16" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">16</span>
+      <span class="tier-title">Bit Manipulation</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">141</td><td class="pname">XOR Cancellation</td><td>x ^ x = 0</td></tr>
+          <tr><td class="pnum">142</td><td class="pname">XOR Missing Number</td><td>Pair cancellation</td></tr>
+          <tr><td class="pnum">143</td><td class="pname">Bit Mask</td><td>Represent subset</td></tr>
+          <tr><td class="pnum">144</td><td class="pname">Set / Clear / Toggle Bit</td><td>Bit operations</td></tr>
+          <tr><td class="pnum">145</td><td class="pname">Power of Two</td><td>n &amp; (n-1)</td></tr>
+          <tr><td class="pnum">146</td><td class="pname">Count Set Bits</td><td>Brian Kernighan</td></tr>
+          <tr><td class="pnum">147</td><td class="pname">Subset Enumeration</td><td>Iterate masks</td></tr>
+          <tr><td class="pnum">148</td><td class="pname">Bitmask DP</td><td>State = selected elements</td></tr>
+          <tr><td class="pnum">149</td><td class="pname">XOR Trie</td><td>Maximum XOR</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- TIER 17 -->
+  <details id="t17" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">17</span>
+      <span class="tier-title">Advanced DP</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">150</td><td class="pname">Bitmask DP</td><td>DP over subsets</td></tr>
+          <tr><td class="pnum">151</td><td class="pname">Digit DP</td><td>DP over digits + constraints</td></tr>
+          <tr><td class="pnum">152</td><td class="pname">Tree DP</td><td>DP over subtrees</td></tr>
+          <tr><td class="pnum">153</td><td class="pname">DAG DP</td><td>DP in topological order</td></tr>
+          <tr><td class="pnum">154</td><td class="pname">State Machine DP</td><td>State = current mode</td></tr>
+          <tr><td class="pnum">155</td><td class="pname">Stock DP</td><td>Hold / Buy / Sell / Cooldown</td></tr>
+          <tr><td class="pnum">156</td><td class="pname">DP + Binary Search</td><td>LIS / weighted intervals</td></tr>
+          <tr><td class="pnum">157</td><td class="pname">DP + Monotonic Queue</td><td>Optimize transitions</td></tr>
+          <tr><td class="pnum">158</td><td class="pname">DP + Prefix Sum</td><td>Optimize range transitions</td></tr>
+          <tr><td class="pnum">159</td><td class="pname">Knuth / Interval Optimization</td><td>Advanced interval DP</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- TIER 18 -->
+  <details id="t18" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">18</span>
+      <span class="tier-title">Math / Number Theory</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">160</td><td class="pname">GCD / Euclid</td><td>Reduce numbers</td></tr>
+          <tr><td class="pnum">161</td><td class="pname">LCM</td><td>a/gcd*b</td></tr>
+          <tr><td class="pnum">162</td><td class="pname">Prime Checking</td><td>Trial division</td></tr>
+          <tr><td class="pnum">163</td><td class="pname">Sieve of Eratosthenes</td><td>Generate primes</td></tr>
+          <tr><td class="pnum">164</td><td class="pname">Prime Factorization</td><td>Divide by factors</td></tr>
+          <tr><td class="pnum">165</td><td class="pname">Modular Arithmetic</td><td>Work under MOD</td></tr>
+          <tr><td class="pnum">166</td><td class="pname">Fast Power</td><td>Binary exponentiation</td></tr>
+          <tr><td class="pnum">167</td><td class="pname">Combinations</td><td>nCr / factorial</td></tr>
+          <tr><td class="pnum">168</td><td class="pname">Matrix Exponentiation</td><td>Fast recurrence</td></tr>
+          <tr><td class="pnum">169</td><td class="pname">Modular Inverse</td><td>Division under MOD</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- TIER 19 -->
+  <details id="t19" class="tier-group">
+    <summary><span class="tier-num" style="background:#d97706">19</span>
+      <span class="tier-title">Advanced Data Structures</span></summary>
+    <div class="tier-group-body">
+      <table class="pat-table">
+        <thead><tr><th>#</th><th>Pattern</th><th>Core Mental Model</th></tr></thead>
+        <tbody>
+          <tr><td class="pnum">170</td><td class="pname">Segment Tree</td><td>Range query + updates</td></tr>
+          <tr><td class="pnum">171</td><td class="pname">Fenwick Tree</td><td>Prefix sums + updates</td></tr>
+          <tr><td class="pnum">172</td><td class="pname">Sparse Table</td><td>Static range queries</td></tr>
+          <tr><td class="pnum">173</td><td class="pname">Ordered Set / TreeMap</td><td>Dynamic sorted data</td></tr>
+          <tr><td class="pnum">174</td><td class="pname">Interval Tree</td><td>Overlapping intervals</td></tr>
+          <tr><td class="pnum">175</td><td class="pname">Heap + Lazy Deletion</td><td>Dynamic priority structure</td></tr>
+          <tr><td class="pnum">176</td><td class="pname">Skip List</td><td>Probabilistic ordered structure</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <!-- TIER 20 -->
+  <details id="t20" class="tier-group" open style="border-color:#fde68a">
+    <summary><span class="tier-num" style="background:#b45309">20</span>
+      <span class="tier-title">Interview Combination Patterns</span>
+      <span class="tier-subtitle">&#11088; One of the most important tiers for FAANG/Uber</span></summary>
+    <div class="tier-group-body">
+      <p class="text-sm text-gray-500 mt-2 mb-2">Real interview questions frequently combine patterns rather than fitting neatly into one box.</p>
+      <div class="combo-grid mt-2">
+        <div class="combo-item"><div class="combo-name">HashMap + Sliding Window</div><div class="combo-eg">Longest substring</div></div>
+        <div class="combo-item"><div class="combo-name">Sorting + Two Pointers</div><div class="combo-eg">Pair/triplet problems</div></div>
+        <div class="combo-item"><div class="combo-name">Prefix Sum + HashMap</div><div class="combo-eg">Subarray sum</div></div>
+        <div class="combo-item"><div class="combo-name">Binary Search + Greedy</div><div class="combo-eg">Minimum feasible answer</div></div>
+        <div class="combo-item"><div class="combo-name">Heap + Greedy</div><div class="combo-eg">Scheduling</div></div>
+        <div class="combo-item"><div class="combo-name">BFS + HashSet</div><div class="combo-eg">State-space search</div></div>
+        <div class="combo-item"><div class="combo-name">BFS + Multi-source</div><div class="combo-eg">Rotting oranges</div></div>
+        <div class="combo-item"><div class="combo-name">DFS + Backtracking</div><div class="combo-eg">Word Search</div></div>
+        <div class="combo-item"><div class="combo-name">Trie + Backtracking</div><div class="combo-eg">Word Search II</div></div>
+        <div class="combo-item"><div class="combo-name">Graph + Union-Find</div><div class="combo-eg">Connectivity</div></div>
+        <div class="combo-item"><div class="combo-name">Graph + Heap</div><div class="combo-eg">Dijkstra</div></div>
+        <div class="combo-item"><div class="combo-name">Graph + DP</div><div class="combo-eg">DAG DP</div></div>
+        <div class="combo-item"><div class="combo-name">Sorting + LIS</div><div class="combo-eg">Russian Doll Envelopes</div></div>
+        <div class="combo-item"><div class="combo-name">LCS + DP</div><div class="combo-eg">SCS</div></div>
+        <div class="combo-item"><div class="combo-name">LCS + String</div><div class="combo-eg">Palindromic subsequence</div></div>
+        <div class="combo-item"><div class="combo-name">Palindrome + Partition DP</div><div class="combo-eg">Palindrome partitioning</div></div>
+        <div class="combo-item"><div class="combo-name">DP + Binary Search</div><div class="combo-eg">Optimized sequence DP</div></div>
+        <div class="combo-item"><div class="combo-name">Heap + HashMap</div><div class="combo-eg">Frequency problems</div></div>
+        <div class="combo-item"><div class="combo-name">Monotonic Stack + Array</div><div class="combo-eg">Largest rectangle</div></div>
+        <div class="combo-item"><div class="combo-name">Bitmask + DP</div><div class="combo-eg">TSP / subset DP</div></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- STUDY STRUCTURE -->
+  <div id="study" class="bg-white border border-gray-200 rounded-2xl px-5 py-5 mt-8 mb-6 scroll-mt-20">
+    <h2 class="text-lg font-extrabold text-gray-900 mb-3">&#127919; Your Daily Study Structure</h2>
+    <p class="text-sm text-gray-500 mb-3">Don't try to finish an entire tier in one day. Use this cycle:</p>
+
+    <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Day N -- Learn the pattern</p>
+    <div class="mb-4">
+      <span class="study-step">1. Why does this pattern exist?</span>
+      <span class="study-step">2. Mental model</span>
+      <span class="study-step">3. Recognition triggers</span>
+      <span class="study-step">4. State</span>
+      <span class="study-step">5. Transition</span>
+      <span class="study-step">6. Variations</span>
+      <span class="study-step">7. When NOT to use it</span>
+      <span class="study-step">8. Combinations</span>
+    </div>
+
+    <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Then practice</p>
+    <div class="daily-ref mb-4">3 Easy -&gt; 3 Medium -&gt; 2 Hard
+
+But don't solve them immediately one after another. Use:
+
+Problem
+ -&gt; 5-10 min recognition
+ -&gt; Identify pattern
+ -&gt; derive state
+ -&gt; attempt
+ -&gt; solution if stuck
+ -&gt; close solution
+ -&gt; re-code from memory</div>
+
+    <p class="text-sm text-gray-700 font-semibold mt-4">Most important rule:</p>
+    <p class="text-sm text-gray-500">Don't measure progress by "I solved 300 LeetCode problems." Measure it by: can I see a NEW problem, identify the underlying pattern, choose the correct state, derive the transition, code it, and explain why it works? That's the skill that transfers to unfamiliar interview questions.</p>
+  </div>
+
+  <!-- PRIORITY ORDER -->
+  <div id="priority" class="bg-gray-900 border border-amber-700 rounded-2xl px-5 py-5 mb-8 scroll-mt-20">
+    <p class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3">&#128293; Highest-Priority Tiers for Uber/FAANG</p>
+    <div class="mb-3">
+      <span class="priority-chip">Tier 1 Arrays / Hashing</span>
+      <span class="priority-chip">Tier 2 Stack / Queue</span>
+      <span class="priority-chip">Tier 4 Binary Search</span>
+      <span class="priority-chip">Tier 5 Trees</span>
+      <span class="priority-chip">Tier 6 Heap</span>
+      <span class="priority-chip">Tier 7 DP</span>
+      <span class="priority-chip">Tier 8 Graph</span>
+      <span class="priority-chip">Tier 9 Union-Find</span>
+      <span class="priority-chip">Tier 10 Shortest Path</span>
+      <span class="priority-chip">Tier 12 Backtracking</span>
+      <span class="priority-chip">Tier 13 Trie</span>
+      <span class="priority-chip">Tier 14 Greedy</span>
+    </div>
+    <p class="text-xs text-amber-200 italic">Then, only after the core patterns are strong: Tier 16 Bit Manipulation, Tier 17 Advanced DP, Tier 19 Advanced Data Structures.</p>
+  </div>
+
+  <!-- ONE PAGE MENTAL MAP -->
+  <div id="map" class="bg-white border border-gray-200 rounded-2xl px-5 py-5 mb-10 scroll-mt-20">
+    <h2 class="text-lg font-extrabold text-gray-900 mb-1">&#11088; The One-Page Mental Map</h2>
+    <p class="text-sm text-gray-500 mb-3">Look at this every day before solving LeetCode.</p>
+    <div class="diagram-box">ARRAY
+ +-- HashMap
+ +-- Prefix Sum
+ +-- Sliding Window
+ +-- Two Pointer
+ +-- Kadane
+ +-- Sorting
+
+STACK
+ +-- Monotonic Stack
+ +-- Next Greater
+ +-- Histogram
+
+BINARY SEARCH
+ +-- Normal
+ +-- Lower/Upper Bound
+ +-- Rotated
+ +-- Binary Search on Answer
+
+TREE
+ +-- DFS
+ +-- BFS
+ +-- LCA
+ +-- Diameter
+ +-- BST
+ +-- Tree DP
+
+HEAP
+ +-- Top K
+ +-- Kth
+ +-- Two Heap
+ +-- K-Way Merge
+ +-- Scheduling
+
+DP
+ +-- 1D DP
+ +-- Knapsack
+ +-- Coin Change
+ +-- LCS
+ +-- Edit Distance
+ +-- LIS
+ +-- Subsequence Counting
+ +-- Interval / Palindrome
+
+GRAPH
+ +-- DFS/BFS
+ +-- Components
+ +-- Cycle
+ +-- Topological Sort
+ +-- Bipartite
+ +-- Dijkstra
+ +-- MST
+
+UNION FIND
+ +-- Connectivity
+ +-- Cycle
+ +-- Kruskal
+
+BACKTRACKING
+ +-- Subsets
+ +-- Permutations
+ +-- Combinations
+ +-- Combination Sum
+ +-- Constraint Search
+
+TRIE
+ +-- Prefix
+ +-- Dictionary
+ +-- Autocomplete
+ +-- Trie + DFS
+
+GREEDY
+ +-- Sorting
+ +-- Intervals
+ +-- Jump Game
+ +-- Scheduling
+ +-- Heap + Greedy</div>
+  </div>
+
+</div><!-- /container -->
+<script src="page-timer.js"></script>
+</body>
+</html>

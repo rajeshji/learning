@@ -1,0 +1,733 @@
+Absolutely. Here is your **DSA pattern index** from everything we've covered, organized so you can pick **one tier/topic per day** instead of memorizing individual questions.
+
+The key is: **learn the pattern → understand why it exists → recognition triggers → variations → when NOT to use → combinations → then practice problems.**
+
+# 🧠 DSA Pattern Master Index
+
+## Tier 1 — Arrays & Hashing
+
+| #  | Pattern                       | Core Mental Model                          |
+| -- | ----------------------------- | ------------------------------------------ |
+| 1  | Hash Map / Frequency Counting | Store what you've seen                     |
+| 2  | Two Sum / Complement Lookup   | `target - current`                         |
+| 3  | Prefix Sum                    | Convert repeated range sums into O(1)      |
+| 4  | Difference Array              | Efficient range updates                    |
+| 5  | Sliding Window                | Maintain a valid/optimal contiguous window |
+| 6  | Two Pointers                  | Move boundaries based on a condition       |
+| 7  | Fast/Slow Pointers            | Two traversal speeds                       |
+| 8  | Kadane's Algorithm            | Best subarray ending here                  |
+| 9  | Sorting + Greedy              | Sort to expose the optimal decision order  |
+| 10 | Merge Intervals               | Sort + merge overlapping ranges            |
+
+### Daily reference
+
+```text
+Tier 1
+→ Arrays
+→ Hashing
+→ Prefix Sum
+→ Difference Array
+→ Sliding Window
+→ Two Pointers
+→ Fast/Slow
+→ Kadane
+→ Sorting + Greedy
+→ Intervals
+```
+
+---
+
+# Tier 2 — Stack & Queue
+
+| #  | Pattern                        | Core Mental Model                         |
+| -- | ------------------------------ | ----------------------------------------- |
+| 11 | Stack                          | Last-in-first-out state                   |
+| 12 | Monotonic Stack                | Maintain increasing/decreasing candidates |
+| 13 | Next Greater / Smaller Element | Find nearest qualifying element           |
+| 14 | Histogram / Boundary Stack     | Find previous/next smaller boundaries     |
+| 15 | Parentheses / Expression Stack | Match nested structure                    |
+| 16 | Queue / BFS                    | Process level by level                    |
+| 17 | Monotonic Queue / Deque        | Maintain best candidate inside window     |
+
+### Daily reference
+
+```text
+Tier 2
+→ Stack
+→ Monotonic Stack
+→ Next Greater/Smaller
+→ Histogram
+→ Parentheses/Expression
+→ Queue/BFS
+→ Monotonic Queue
+```
+
+---
+
+# Tier 3 — Linked List
+
+| #  | Pattern             | Core Mental Model        |
+| -- | ------------------- | ------------------------ |
+| 18 | Dummy Node          | Simplify head/edge cases |
+| 19 | Fast & Slow Pointer | Find middle/cycle        |
+| 20 | Reverse Linked List | Reverse pointers         |
+| 21 | Reverse Sublist     | Reverse a section        |
+| 22 | Merge Linked Lists  | Two-pointer merge        |
+| 23 | Linked List Cycle   | Floyd's algorithm        |
+| 24 | Intersection        | Align distances          |
+| 25 | Reorder List        | Split + reverse + merge  |
+
+### Daily reference
+
+```text
+Tier 3
+→ Dummy Node
+→ Fast/Slow
+→ Reverse
+→ Reverse Sublist
+→ Merge
+→ Cycle
+→ Intersection
+→ Reorder
+```
+
+---
+
+# Tier 4 — Binary Search
+
+| #  | Pattern                 | Core Mental Model            |
+| -- | ----------------------- | ---------------------------- |
+| 26 | Classic Binary Search   | Search sorted space          |
+| 27 | Lower Bound             | First `>= target`            |
+| 28 | Upper Bound             | First `> target`             |
+| 29 | Search Rotated Array    | Identify sorted half         |
+| 30 | Binary Search on Answer | Search possible answer space |
+| 31 | Minimum Feasible Value  | Find first valid answer      |
+| 32 | Maximum Feasible Value  | Find last valid answer       |
+| 33 | Peak / Mountain         | Search based on slope        |
+| 34 | 2D Binary Search        | Search matrix/search space   |
+
+### Daily reference
+
+```text
+Tier 4
+→ Basic Binary Search
+→ Lower/Upper Bound
+→ Rotated Array
+→ Binary Search on Answer
+→ Feasibility
+→ Peak/Mountain
+→ 2D Search
+```
+
+---
+
+# Tier 5 — Trees
+
+| #  | Pattern                 | Core Mental Model             |
+| -- | ----------------------- | ----------------------------- |
+| 35 | DFS Traversal           | Explore recursively           |
+| 36 | BFS / Level Order       | Process by depth              |
+| 37 | Tree Height / Depth     | Bottom-up information         |
+| 38 | Tree Diameter           | Best path through a node      |
+| 39 | Path Sum                | Carry path information        |
+| 40 | Lowest Common Ancestor  | Find shared ancestor          |
+| 41 | BST Search              | Exploit ordering              |
+| 42 | BST Validation          | Maintain valid range          |
+| 43 | Tree Construction       | Reconstruct from traversal    |
+| 44 | Serialize / Deserialize | Convert tree ↔ representation |
+| 45 | Tree DP                 | Combine child states          |
+
+### Daily reference
+
+```text
+Tier 5
+→ DFS
+→ BFS
+→ Height
+→ Diameter
+→ Path
+→ LCA
+→ BST
+→ Construction
+→ Serialization
+→ Tree DP
+```
+
+---
+
+# Tier 6 — Heap / Priority Queue
+
+| #  | Pattern                | Core Mental Model              |
+| -- | ---------------------- | ------------------------------ |
+| 46 | Top K                  | Maintain K best candidates     |
+| 47 | Kth Largest / Smallest | Heap boundary                  |
+| 48 | Two Heaps              | Maintain lower + upper halves  |
+| 49 | K-Way Merge            | Merge sorted sources           |
+| 50 | Scheduling with Heap   | Process next best/earliest     |
+| 51 | Greedy + Heap          | Make best available decision   |
+| 52 | Frequency + Heap       | Most/least frequent candidates |
+
+### Daily reference
+
+```text
+Tier 6
+→ Top K
+→ Kth
+→ Two Heaps
+→ K-Way Merge
+→ Scheduling
+→ Greedy + Heap
+→ Frequency Heap
+```
+
+---
+
+# Tier 7 — Sequence & Interval DP ⭐
+
+This is the tier we just completed.
+
+| #  | Pattern                       | Core Mental Model                  |
+| -- | ----------------------------- | ---------------------------------- |
+| 53 | 1D Sequence DP                | Best answer up to position         |
+| 54 | 0/1 Knapsack                  | Take / Skip                        |
+| 55 | Unbounded Knapsack            | Take repeatedly / Skip             |
+| 56 | Coin Change                   | Optimize/count ways to form amount |
+| 57 | Subset Sum                    | Can we form target?                |
+| 58 | Partition DP                  | Split into independent parts       |
+| 59 | LCS                           | Maximum common subsequence         |
+| 60 | Longest Common Substring      | Best contiguous match              |
+| 61 | Edit Distance                 | Minimum transformation             |
+| 62 | Shortest Common Supersequence | LCS reduction                      |
+| 63 | Distinct Subsequences         | Count ordered ways                 |
+| 64 | Interleaving String           | Two sources → one target           |
+| 65 | LIS                           | Best increasing chain              |
+| 66 | Palindrome DP                 | Two ends / interval                |
+| 67 | Interval DP                   | `dp[l][r]`                         |
+
+> **Note:** In our recent sequence, we numbered the sequence-DP topics as 68–75. Here I'm normalizing them into a clean master index so you can use the tiers as a daily reference without worrying about numbering gaps.
+
+### The most important Tier 7 mental map
+
+```text
+                 DP
+                  │
+        ┌─────────┴─────────┐
+        │                   │
+   Sequence DP          Interval DP
+        │                   │
+   ┌────┼─────┐             │
+   ↓    ↓     ↓             ↓
+  LCS   LIS  Edit       Palindrome
+   │
+  SCS
+   │
+Distinct
+Subsequence
+```
+
+And:
+
+```text
+dp[i]
+→ one sequence / ending state
+
+dp[i][j]
+→ two sequences
+
+dp[l][r]
+→ interval
+```
+
+---
+
+# Tier 8 — Graph Traversal
+
+| #  | Pattern                      | Core Mental Model                       |
+| -- | ---------------------------- | --------------------------------------- |
+| 68 | Graph DFS                    | Explore connected structure             |
+| 69 | Graph BFS                    | Shortest unweighted path                |
+| 70 | Multi-Source BFS             | Expand simultaneously from many sources |
+| 71 | Connected Components         | Count isolated groups                   |
+| 72 | Cycle Detection — Undirected | DFS / Union-Find                        |
+| 73 | Cycle Detection — Directed   | DFS states                              |
+| 74 | Topological Sort — BFS       | Indegree                                |
+| 75 | Topological Sort — DFS       | Postorder                               |
+| 76 | Bipartite Graph              | Two-coloring                            |
+| 77 | Grid DFS/BFS                 | Matrix as graph                         |
+| 78 | Flood Fill                   | Connected region                        |
+| 79 | Shortest Path — Unweighted   | BFS                                     |
+
+### Daily reference
+
+```text
+Tier 8
+→ DFS
+→ BFS
+→ Multi-source BFS
+→ Components
+→ Cycle Detection
+→ Topological Sort
+→ Bipartite
+→ Grid Graph
+→ Flood Fill
+→ Unweighted Shortest Path
+```
+
+---
+
+# Tier 9 — Union-Find / DSU
+
+| #  | Pattern                 | Core Mental Model                     |
+| -- | ----------------------- | ------------------------------------- |
+| 80 | Basic Union-Find        | Maintain connected components         |
+| 81 | Path Compression        | Flatten parent chains                 |
+| 82 | Union by Rank/Size      | Keep trees shallow                    |
+| 83 | Cycle Detection         | Edge connects already-connected nodes |
+| 84 | Dynamic Connectivity    | Merge components                      |
+| 85 | Kruskal's MST           | Sort edges + Union-Find               |
+| 86 | Redundant Connection    | Detect unnecessary edge               |
+| 87 | Accounts / Groups Merge | Merge equivalent entities             |
+
+### Daily reference
+
+```text
+Tier 9
+→ DSU
+→ Path Compression
+→ Union by Rank
+→ Cycle
+→ Connectivity
+→ Kruskal
+→ Redundant Edge
+→ Merge Groups
+```
+
+---
+
+# Tier 10 — Shortest Path
+
+| #  | Pattern                     | Core Mental Model           |
+| -- | --------------------------- | --------------------------- |
+| 88 | BFS Shortest Path           | Unweighted graph            |
+| 89 | Dijkstra                    | Non-negative weighted edges |
+| 90 | 0-1 BFS                     | Edge weights 0/1            |
+| 91 | Bellman-Ford                | Negative edges              |
+| 92 | Floyd-Warshall              | All-pairs shortest path     |
+| 93 | DAG Shortest Path           | Topological order           |
+| 94 | State-Space Shortest Path   | Node = `(position,state)`   |
+| 95 | Shortest Path + Constraints | Add constraint to state     |
+
+### Recognition
+
+```text
+No weights
+→ BFS
+
+Weights >= 0
+→ Dijkstra
+
+Weights only 0/1
+→ 0-1 BFS
+
+Negative weights
+→ Bellman-Ford
+
+All pairs
+→ Floyd-Warshall
+
+DAG
+→ Topological DP
+```
+
+---
+
+# Tier 11 — Advanced Graph
+
+| #   | Pattern                       | Core Mental Model              |
+| --- | ----------------------------- | ------------------------------ |
+| 96  | Minimum Spanning Tree         | Connect everything cheapest    |
+| 97  | Kruskal                       | Sort edges + DSU               |
+| 98  | Prim                          | Expand cheapest frontier       |
+| 99  | Strongly Connected Components | Mutual reachability            |
+| 100 | Tarjan                        | DFS low-link                   |
+| 101 | Bridges                       | Edge whose removal disconnects |
+| 102 | Articulation Points           | Critical vertex                |
+| 103 | Eulerian Path/Circuit         | Use every edge                 |
+| 104 | Bipartite Matching            | Match two sets                 |
+| 105 | Network Flow                  | Maximum transferable flow      |
+
+---
+
+# Tier 12 — Backtracking
+
+| #   | Pattern              | Core Mental Model       |
+| --- | -------------------- | ----------------------- |
+| 106 | Basic Backtracking   | Choose → Explore → Undo |
+| 107 | Subsets              | Take / Don't take       |
+| 108 | Permutations         | Choose unused           |
+| 109 | Combinations         | Choose forward          |
+| 110 | Combination Sum      | Reuse / don't reuse     |
+| 111 | N-Queens             | Place + constraints     |
+| 112 | Sudoku               | Constraint satisfaction |
+| 113 | Word Search          | DFS + visited           |
+| 114 | Partitioning         | Choose cut positions    |
+| 115 | Generate Parentheses | Maintain valid state    |
+
+### Master template
+
+```text
+choose
+   ↓
+modify state
+   ↓
+recurse
+   ↓
+undo
+```
+
+---
+
+# Tier 13 — Trie
+
+| #   | Pattern               | Core Mental Model             |
+| --- | --------------------- | ----------------------------- |
+| 116 | Basic Trie            | Character-by-character path   |
+| 117 | Prefix Search         | Shared prefix                 |
+| 118 | Word Search with Trie | Trie + DFS                    |
+| 119 | Autocomplete          | Prefix → candidates           |
+| 120 | Word Replacement      | Find shortest matching prefix |
+| 121 | Maximum XOR Trie      | Bitwise prefix                |
+| 122 | Trie + Backtracking   | Dictionary-constrained DFS    |
+
+### Recognition
+
+```text
+prefix
+startsWith
+dictionary
+autocomplete
+word search
+many string lookups
+```
+
+→ Think Trie.
+
+---
+
+# Tier 14 — Greedy
+
+| #   | Pattern                       | Core Mental Model                |
+| --- | ----------------------------- | -------------------------------- |
+| 123 | Activity Selection            | Earliest finish                  |
+| 124 | Interval Scheduling           | Sort + choose                    |
+| 125 | Jump Game                     | Maintain farthest reach          |
+| 126 | Gas Station                   | Reset impossible starting points |
+| 127 | Two City / Cost Greedy        | Choose cheapest difference       |
+| 128 | Task Scheduling               | Maximize immediate useful choice |
+| 129 | Greedy + Heap                 | Best available candidate         |
+| 130 | Greedy + Sorting              | Sort to expose exchange argument |
+| 131 | Minimum Platforms / Resources | Sweep events                     |
+| 132 | Huffman / Optimal Merge       | Repeatedly combine smallest      |
+
+---
+
+# Tier 15 — Advanced String Algorithms
+
+| #   | Pattern          | Core Mental Model                  |
+| --- | ---------------- | ---------------------------------- |
+| 133 | KMP              | Prefix-function / failure links    |
+| 134 | Z Algorithm      | Matching prefix                    |
+| 135 | Rabin-Karp       | Rolling hash                       |
+| 136 | Rolling Hash     | O(1) substring hash                |
+| 137 | Manacher         | All palindromic substrings in O(n) |
+| 138 | String Hashing   | Compare substrings efficiently     |
+| 139 | Suffix Array     | Sort suffixes                      |
+| 140 | Suffix Automaton | All substring structure            |
+
+---
+
+# Tier 16 — Bit Manipulation
+
+| #   | Pattern                  | Core Mental Model         |
+| --- | ------------------------ | ------------------------- |
+| 141 | XOR Cancellation         | `x ^ x = 0`               |
+| 142 | XOR Missing Number       | Pair cancellation         |
+| 143 | Bit Mask                 | Represent subset          |
+| 144 | Set / Clear / Toggle Bit | Bit operations            |
+| 145 | Power of Two             | `n & (n-1)`               |
+| 146 | Count Set Bits           | Brian Kernighan           |
+| 147 | Subset Enumeration       | Iterate masks             |
+| 148 | Bitmask DP               | State = selected elements |
+| 149 | XOR Trie                 | Maximum XOR               |
+
+---
+
+# Tier 17 — Advanced DP
+
+| #   | Pattern                       | Core Mental Model            |
+| --- | ----------------------------- | ---------------------------- |
+| 150 | Bitmask DP                    | DP over subsets              |
+| 151 | Digit DP                      | DP over digits + constraints |
+| 152 | Tree DP                       | DP over subtrees             |
+| 153 | DAG DP                        | DP in topological order      |
+| 154 | State Machine DP              | State = current mode         |
+| 155 | Stock DP                      | Hold / Buy / Sell / Cooldown |
+| 156 | DP + Binary Search            | LIS / weighted intervals     |
+| 157 | DP + Monotonic Queue          | Optimize transitions         |
+| 158 | DP + Prefix Sum               | Optimize range transitions   |
+| 159 | Knuth / Interval Optimization | Advanced interval DP         |
+
+---
+
+# Tier 18 — Math / Number Theory
+
+| #   | Pattern               | Core Mental Model     |
+| --- | --------------------- | --------------------- |
+| 160 | GCD / Euclid          | Reduce numbers        |
+| 161 | LCM                   | `a/gcd*b`             |
+| 162 | Prime Checking        | Trial division        |
+| 163 | Sieve of Eratosthenes | Generate primes       |
+| 164 | Prime Factorization   | Divide by factors     |
+| 165 | Modular Arithmetic    | Work under MOD        |
+| 166 | Fast Power            | Binary exponentiation |
+| 167 | Combinations          | `nCr` / factorial     |
+| 168 | Matrix Exponentiation | Fast recurrence       |
+| 169 | Modular Inverse       | Division under MOD    |
+
+---
+
+# Tier 19 — Advanced Data Structures
+
+| #   | Pattern               | Core Mental Model               |
+| --- | --------------------- | ------------------------------- |
+| 170 | Segment Tree          | Range query + updates           |
+| 171 | Fenwick Tree          | Prefix sums + updates           |
+| 172 | Sparse Table          | Static range queries            |
+| 173 | Ordered Set / TreeMap | Dynamic sorted data             |
+| 174 | Interval Tree         | Overlapping intervals           |
+| 175 | Heap + Lazy Deletion  | Dynamic priority structure      |
+| 176 | Skip List             | Probabilistic ordered structure |
+
+---
+
+# Tier 20 — Interview Combination Patterns ⭐⭐⭐⭐⭐
+
+This is actually one of the **most important tiers for FAANG/Uber**.
+
+Real interview questions frequently combine patterns.
+
+| Combination               | Example Thinking        |
+| ------------------------- | ----------------------- |
+| HashMap + Sliding Window  | Longest substring       |
+| Sorting + Two Pointers    | Pair/triplet problems   |
+| Prefix Sum + HashMap      | Subarray sum            |
+| Binary Search + Greedy    | Minimum feasible answer |
+| Heap + Greedy             | Scheduling              |
+| BFS + HashSet             | State-space search      |
+| BFS + Multi-source        | Rotting oranges         |
+| DFS + Backtracking        | Word Search             |
+| Trie + Backtracking       | Word Search II          |
+| Graph + Union-Find        | Connectivity            |
+| Graph + Heap              | Dijkstra                |
+| Graph + DP                | DAG DP                  |
+| Sorting + LIS             | Russian Doll Envelopes  |
+| LCS + DP                  | SCS                     |
+| LCS + String              | Palindromic subsequence |
+| Palindrome + Partition DP | Palindrome partitioning |
+| DP + Binary Search        | Optimized sequence DP   |
+| Heap + HashMap            | Frequency problems      |
+| Monotonic Stack + Array   | Largest rectangle       |
+| Bitmask + DP              | TSP / subset DP         |
+
+---
+
+# 🎯 Your Daily Study Structure
+
+Don't try to finish an entire tier in one day.
+
+Use this cycle:
+
+### Day N — Learn the pattern
+
+```text
+1. Why does this pattern exist?
+2. Mental model
+3. Recognition triggers
+4. State
+5. Transition
+6. Variations
+7. When NOT to use it
+8. Combinations
+```
+
+### Then practice
+
+```text
+3 Easy
+→ 3 Medium
+→ 2 Hard
+```
+
+But don't solve them immediately one after another.
+
+Use:
+
+```text
+Problem
+ ↓
+5–10 min recognition
+ ↓
+Identify pattern
+ ↓
+derive state
+ ↓
+attempt
+ ↓
+solution if stuck
+ ↓
+close solution
+ ↓
+re-code from memory
+```
+
+---
+
+# 🧠 Your Highest-Priority Tiers for Uber/FAANG
+
+You don't need every advanced pattern equally.
+
+For your current interview preparation, I'd prioritize:
+
+```text
+🔥 Tier 1  Arrays / Hashing
+🔥 Tier 2  Stack / Queue
+🔥 Tier 4  Binary Search
+🔥 Tier 5  Trees
+🔥 Tier 6  Heap
+🔥 Tier 7  DP
+🔥 Tier 8  Graph
+🔥 Tier 9  Union-Find
+🔥 Tier 10 Shortest Path
+🔥 Tier 12 Backtracking
+🔥 Tier 13 Trie
+🔥 Tier 14 Greedy
+```
+
+Then:
+
+```text
+Tier 16 Bit Manipulation
+Tier 17 Advanced DP
+Tier 19 Advanced Data Structures
+```
+
+only after the core patterns are strong.
+
+---
+
+# ⭐ The One-Page Mental Map
+
+If you want something you can look at **every day before solving LeetCode**, use this:
+
+```text
+ARRAY
+ ├── HashMap
+ ├── Prefix Sum
+ ├── Sliding Window
+ ├── Two Pointer
+ ├── Kadane
+ └── Sorting
+
+STACK
+ ├── Monotonic Stack
+ ├── Next Greater
+ └── Histogram
+
+BINARY SEARCH
+ ├── Normal
+ ├── Lower/Upper Bound
+ ├── Rotated
+ └── Binary Search on Answer
+
+TREE
+ ├── DFS
+ ├── BFS
+ ├── LCA
+ ├── Diameter
+ ├── BST
+ └── Tree DP
+
+HEAP
+ ├── Top K
+ ├── Kth
+ ├── Two Heap
+ ├── K-Way Merge
+ └── Scheduling
+
+DP
+ ├── 1D DP
+ ├── Knapsack
+ ├── Coin Change
+ ├── LCS
+ ├── Edit Distance
+ ├── LIS
+ ├── Subsequence Counting
+ └── Interval / Palindrome
+
+GRAPH
+ ├── DFS/BFS
+ ├── Components
+ ├── Cycle
+ ├── Topological Sort
+ ├── Bipartite
+ ├── Dijkstra
+ └── MST
+
+UNION FIND
+ ├── Connectivity
+ ├── Cycle
+ └── Kruskal
+
+BACKTRACKING
+ ├── Subsets
+ ├── Permutations
+ ├── Combinations
+ ├── Combination Sum
+ └── Constraint Search
+
+TRIE
+ ├── Prefix
+ ├── Dictionary
+ ├── Autocomplete
+ └── Trie + DFS
+
+GREEDY
+ ├── Sorting
+ ├── Intervals
+ ├── Jump Game
+ ├── Scheduling
+ └── Heap + Greedy
+```
+
+### Most important rule for your preparation
+
+**Don't measure progress by "I solved 300 LeetCode problems."**
+
+Measure it by:
+
+```text
+Can I see a NEW problem
+        ↓
+identify the underlying pattern
+        ↓
+choose the correct state
+        ↓
+derive the transition
+        ↓
+code it
+        ↓
+explain why it works
+```
+
+That's the skill that will transfer to the **unfamiliar Uber/FAANG questions** you've been concerned about.

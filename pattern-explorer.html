@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pattern Explorer -- Expand / Collapse</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; }
+
+    .tier-block { border:1px solid #e5e7eb; border-radius:1rem; margin-bottom:1.1rem; background:white; overflow:hidden; scroll-margin-top:8rem; }
+    .tier-block > summary { cursor:pointer; padding:.9rem 1.2rem; display:flex; align-items:center; gap:.6rem; list-style:none; }
+    .tier-block > summary::-webkit-details-marker { display:none; }
+    .tier-block > summary::after { content:'\25be'; margin-left:auto; font-size:1rem; color:#9ca3af; transition:transform .15s; }
+    .tier-block[open] > summary::after { transform:rotate(180deg); }
+    .tier-block-title { font-weight:800; font-size:.95rem; color:#1f2937; }
+    .tier-block-sub { font-size:.72rem; color:#9ca3af; font-style:italic; }
+    .tier-block-body { padding:0 1.2rem 1.1rem; border-top:1px solid #f1f5f9; display:flex; flex-direction:column; gap:.55rem; }
+    .tier-block-body { padding-top:.7rem; }
+
+    .prow { border:1px solid #f1f5f9; border-radius:.7rem; overflow:hidden; scroll-margin-top:8rem; }
+    .prow > summary { cursor:pointer; padding:.55rem .8rem; display:flex; flex-wrap:wrap; align-items:center;
+                       gap:.5rem .7rem; list-style:none; }
+    .prow > summary::-webkit-details-marker { display:none; }
+    .prow > summary::before { content:'\25b8'; font-size:.75rem; color:#9ca3af; transition:transform .15s; shrink:0; }
+    .prow[open] > summary::before { transform:rotate(90deg); }
+    .prow-num { display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem;
+                border-radius:999px; font-size:.66rem; font-weight:800; color:white; shrink:0; }
+    .prow-name { font-weight:700; font-size:.84rem; color:#1f2937; }
+    .prow-count { font-size:.65rem; font-weight:700; color:#9ca3af; background:#f3f4f6; border-radius:999px;
+                  padding:.1em .6em; }
+    .prow-link { font-size:.66rem; font-weight:700; color:#e11d48; text-decoration:none; white-space:nowrap; margin-left:auto; }
+    .prow-link:hover { text-decoration:underline; }
+    .prow-body { padding:0 .8rem .8rem 2.1rem; }
+    .prow-sub-chip { display:inline-block; font-size:.72rem; font-weight:600; background:#f9fafb; border:1px solid #e5e7eb;
+                     border-radius:999px; padding:.2em .75em; margin:.2em .3em .2em 0; color:#374151; }
+    .prow-empty { font-size:.72rem; color:#9ca3af; font-style:italic; }
+    .prow-note { font-size:.7rem; color:#92400e; font-style:italic; background:#fffbeb;
+                 border:1px solid #fde68a; border-radius:.5rem; padding:.35rem .6rem; margin-top:.5rem; }
+
+    .filter-box { position:sticky; top:4.2rem; z-index:20; }
+    .ctrl-btn { font-size:.72rem; font-weight:700; padding:.35rem .8rem; border-radius:.5rem; border:1px solid #e5e7eb;
+                background:#f9fafb; color:#4b5563; cursor:pointer; }
+    .ctrl-btn:hover { background:#f3f4f6; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="coding-patterns.html"
+       class="flex items-center gap-1.5 text-amber-600 hover:text-amber-800 font-semibold
+              bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Patterns Hub
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-gray-600 font-semibold">Pattern Explorer</span>
+    <a href="pattern-master-index.html"
+       class="ml-auto shrink-0 flex items-center gap-1.5 text-gray-600 hover:text-gray-900 font-semibold
+              bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors text-xs">
+      &#129504; Master Index &#8250;
+    </a>
+  </div>
+</header>
+
+<div class="max-w-6xl mx-auto px-5 pt-8 pb-20">
+
+  <!-- HERO -->
+  <div class="mb-5">
+    <h1 class="text-2xl font-extrabold text-gray-900 mb-2">&#128269; Pattern Explorer</h1>
+    <p class="text-sm text-gray-500 leading-relaxed max-w-3xl">
+      Every tier, every pattern. Click a pattern to expand/collapse its known variations/sub-patterns.
+      Sourced live from <code class="bg-gray-100 px-1 rounded">coding-patterns-data.js</code> -- if that file grows, this page grows with it.
+    </p>
+  </div>
+
+  <!-- FILTER + CONTROLS -->
+  <div class="filter-box bg-white border border-gray-200 rounded-2xl px-5 py-3 mb-6 flex items-center gap-3 flex-wrap">
+    <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+    </svg>
+    <input id="filterInput" type="text" placeholder="Filter patterns by name..."
+           class="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400 min-w-[10rem]"/>
+    <span id="filterCount" class="text-xs text-gray-400 shrink-0"></span>
+    <button id="expandAllBtn" class="ctrl-btn">Expand all</button>
+    <button id="collapseAllBtn" class="ctrl-btn">Collapse all</button>
+  </div>
+
+  <!-- RENDER TARGET -->
+  <div id="tiersRoot"></div>
+
+</div><!-- /container -->
+
+<script src="coding-patterns-data.js"></script>
+<script>
+  // Full scope: every tier in the source data (Tier 1 Arrays/Hashing through Tier 8 Advanced).
+  const SCOPE_TIER_IDS = TIERS.map(t => t.id);
+
+  // Slugs of patterns that already have a full pattern.html lesson page.
+  const BUILT_LESSON_SLUGS = new Set([
+    // Tier 7 -- Sequence DP family
+    "lcs", "longest-common-substring", "edit-distance", "shortest-common-supersequence",
+    "distinct-subsequences", "interleaving-string", "lis", "palindrome-dp",
+    "dp-binary-search", "bitmask-dp",
+    // Tier 9 -- Greedy
+    "activity-selection", "interval-scheduling", "jump-game", "gas-station",
+    "two-city-cost-greedy", "task-scheduling", "greedy-heap", "greedy-sorting",
+    "minimum-platforms-resources", "huffman-optimal-merge",
+    // Tier 10 -- Advanced String Algorithms
+    "kmp", "z-algorithm", "rabin-karp", "rolling-hash", "manacher",
+    "string-hashing", "suffix-array", "suffix-automaton",
+    // Tier 11 -- Interview Combination Patterns
+    "hashmap-sliding-window", "sorting-two-pointers", "prefix-sum-hashmap",
+    "binary-search-greedy", "heap-greedy", "bfs-hashset", "dfs-backtracking",
+    "graph-union-find", "graph-heap", "graph-dp", "sorting-lis", "lcs-dp",
+    "palindrome-partition-dp", "heap-hashmap", "monotonic-stack-array",
+    "trie-backtracking"
+  ]);
+
+  function slugify(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+
+  const NUM_COLORS = { emerald: "#059669", amber: "#d97706", rose: "#e11d48" };
+
+  function renderTiers() {
+    const root = document.getElementById("tiersRoot");
+    root.innerHTML = "";
+
+    TIERS.filter(t => SCOPE_TIER_IDS.includes(t.id)).forEach(tier => {
+      const tierDetails = document.createElement("details");
+      tierDetails.className = "tier-block";
+      tierDetails.open = true;
+      tierDetails.dataset.tierId = tier.id;
+
+      const summary = document.createElement("summary");
+      summary.innerHTML =
+        `<span>${tier.emoji || ""}</span>` +
+        `<span class="tier-block-title">${tier.title}</span>` +
+        (tier.subtitle ? `<span class="tier-block-sub">${tier.subtitle}</span>` : "") +
+        `<span class="prow-count">${tier.patterns.length} patterns</span>`;
+      tierDetails.appendChild(summary);
+
+      const body = document.createElement("div");
+      body.className = "tier-block-body";
+
+      tier.patterns.forEach(p => {
+        const pDetails = document.createElement("details");
+        pDetails.className = "prow";
+        pDetails.dataset.patName = p.name.toLowerCase();
+
+        const pSummary = document.createElement("summary");
+
+        const numBadge = document.createElement("span");
+        numBadge.className = "prow-num";
+        numBadge.style.background = NUM_COLORS[tier.color] || "#6b7280";
+        numBadge.textContent = p.num;
+        pSummary.appendChild(numBadge);
+
+        const nameEl = document.createElement("span");
+        nameEl.className = "prow-name";
+        nameEl.textContent = p.name;
+        pSummary.appendChild(nameEl);
+
+        const countEl = document.createElement("span");
+        countEl.className = "prow-count";
+        countEl.textContent = p.subs && p.subs.length ? `${p.subs.length} variation${p.subs.length > 1 ? "s" : ""}` : "no variations listed";
+        pSummary.appendChild(countEl);
+
+        const slug = slugify(p.name);
+        if (BUILT_LESSON_SLUGS.has(slug)) {
+          const link = document.createElement("a");
+          link.className = "prow-link";
+          link.href = `pattern.html?p=${slug}`;
+          link.textContent = "View lesson \u203a";
+          link.addEventListener("click", e => e.stopPropagation());
+          pSummary.appendChild(link);
+        }
+
+        pDetails.appendChild(pSummary);
+
+        const pBody = document.createElement("div");
+        pBody.className = "prow-body";
+        if (p.subs && p.subs.length) {
+          p.subs.forEach(sub => {
+            const chip = document.createElement("span");
+            chip.className = "prow-sub-chip";
+            chip.textContent = sub;
+            pBody.appendChild(chip);
+          });
+        } else {
+          const empty = document.createElement("span");
+          empty.className = "prow-empty";
+          empty.textContent = "No listed variations yet.";
+          pBody.appendChild(empty);
+        }
+        if (p.note) {
+          const note = document.createElement("div");
+          note.className = "prow-note";
+          note.textContent = p.note;
+          pBody.appendChild(note);
+        }
+        pDetails.appendChild(pBody);
+
+        body.appendChild(pDetails);
+      });
+
+      tierDetails.appendChild(body);
+      root.appendChild(tierDetails);
+    });
+
+    applyFilter();
+  }
+
+  function applyFilter() {
+    const q = document.getElementById("filterInput").value.trim().toLowerCase();
+    let visible = 0, total = 0;
+    document.querySelectorAll(".prow").forEach(row => {
+      total++;
+      const match = !q || row.dataset.patName.includes(q);
+      row.style.display = match ? "" : "none";
+      if (match) visible++;
+      if (q && match) row.open = true; // auto-expand matches while searching
+    });
+    document.querySelectorAll(".tier-block").forEach(block => {
+      const anyVisible = Array.from(block.querySelectorAll(".prow")).some(r => r.style.display !== "none");
+      block.style.display = anyVisible ? "" : "none";
+    });
+    document.getElementById("filterCount").textContent = q ? `${visible} / ${total} shown` : `${total} patterns`;
+  }
+
+  document.getElementById("filterInput").addEventListener("input", applyFilter);
+  document.getElementById("expandAllBtn").addEventListener("click", () => {
+    document.querySelectorAll(".prow").forEach(r => r.open = true);
+  });
+  document.getElementById("collapseAllBtn").addEventListener("click", () => {
+    document.querySelectorAll(".prow").forEach(r => r.open = false);
+  });
+
+  renderTiers();
+</script>
+<script src="page-timer.js"></script>
+</body>
+</html>

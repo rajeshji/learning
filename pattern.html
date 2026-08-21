@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pattern Academy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; }
+
+    .sec-card { background:white; border:1px solid #e5e7eb; border-radius:1rem; padding:1.1rem 1.3rem; margin-bottom:1.25rem; }
+    .sec-head { font-weight:800; font-size:.9rem; color:#1f2937; margin-bottom:.6rem; }
+    .sec-body { font-size:.83rem; color:#4b5563; line-height:1.7; }
+
+    .var-card { background:#fffbeb; border:1px solid #fde68a; border-radius:1rem; padding:1rem 1.2rem; margin-bottom:1rem; }
+    .var-id { display:inline-flex; align-items:center; justify-content:center; width:1.9rem; height:1.9rem; border-radius:.6rem;
+              background:#d97706; color:white; font-weight:800; font-size:.72rem; margin-right:.6rem; }
+    .var-title { font-weight:800; font-size:.92rem; color:#1f2937; display:inline; }
+    .var-q { font-size:.8rem; color:#78350f; background:white; border-left:3px solid #f59e0b; padding:.5rem .8rem; margin:.6rem 0; border-radius:.3rem; font-style:italic; }
+    .var-label { font-size:.62rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#92400e; margin-top:.6rem; margin-bottom:.25rem; }
+    .var-code { background:#0f172a; color:#a7f3d0; font-family:'Courier New',monospace; font-size:.75rem;
+                border-radius:.6rem; padding:.7rem .9rem; white-space:pre; overflow-x:auto; line-height:1.5; }
+    .var-chip { display:inline-block; font-size:.7rem; font-weight:600; background:white; border:1px solid #fde68a; color:#92400e;
+                border-radius:999px; padding:.15em .65em; margin:.15em .3em .15em 0; }
+    .var-note { font-size:.78rem; color:#78350f; line-height:1.6; margin-top:.5rem; }
+
+    .big-diagram { background:#0f172a; color:#a7f3d0; font-family:'Courier New',monospace; font-size:.7rem;
+                   border-radius:.9rem; padding:1.1rem 1.3rem; white-space:pre; overflow-x:auto; line-height:1.5; }
+
+    .callout-red  { background:#fef2f2; border:1px solid #fecaca; border-radius:1rem; padding:1.1rem 1.3rem; margin-bottom:1.25rem; }
+    .callout-gold { background:#1c1917; border:1px solid #ca8a04; border-radius:1rem; padding:1.1rem 1.3rem; margin-bottom:1.25rem; }
+    .callout-red .cal-head  { font-size:.65rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#dc2626; margin-bottom:.5rem; }
+    .callout-gold .cal-head { font-size:.65rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#fbbf24; margin-bottom:.5rem; }
+    .callout-red .cal-body  { font-size:.83rem; color:#7f1d1d; line-height:1.65; }
+    .callout-gold .cal-body { font-size:.83rem; color:#fef3c7; line-height:1.65; }
+    .callout-red .cal-conc  { font-size:.83rem; color:#991b1b; font-weight:700; font-style:italic; margin-top:.6rem; }
+    .callout-gold .cal-conc { font-size:.83rem; color:#fef08a; font-weight:700; font-style:italic; margin-top:.6rem; }
+
+    .cmp-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:.8rem; }
+    .cmp-item { background:#f9fafb; border:1px solid #e5e7eb; border-radius:.8rem; padding:.9rem 1.1rem; }
+    .cmp-label { font-size:.72rem; font-weight:800; color:#374151; margin-bottom:.4rem; font-family:'Courier New',monospace; }
+    .cmp-body { font-size:.8rem; color:#4b5563; line-height:1.6; }
+    .cmp-conc { font-size:.82rem; color:#1f2937; font-weight:600; font-style:italic; margin-top:.4rem; }
+
+    .prac-item { font-size:.82rem; color:#374151; line-height:1.85; }
+    .prac-note { font-size:.76rem; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:.6rem; padding:.6rem .9rem; margin-top:.7rem; font-style:italic; }
+
+    .next-box { background:#ecfdf5; border:1px solid #a7f3d0; border-radius:1rem; padding:1.1rem 1.3rem; }
+    .next-head { font-size:.65rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#059669; margin-bottom:.5rem; }
+    .next-point { list-style:disc; padding-left:1.1rem; margin:0; }
+    .next-point li { font-size:.8rem; color:#065f46; line-height:1.7; }
+
+    .algo-nav { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.5rem; }
+    .algo-nav a { font-size:.75rem; font-weight:700; padding:.4rem .9rem; border-radius:999px; border:1px solid; text-decoration:none; transition:opacity .15s; }
+    .algo-nav a:hover { opacity:.75; }
+
+    .group-badge { font-size:.68rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; padding:.3rem .8rem; border-radius:999px; white-space:nowrap; }
+    .group-title { font-size:1.05rem; font-weight:800; color:#1f2937; }
+    .group-sub { font-size:.75rem; color:#6b7280; margin-left:.25rem; }
+
+    .algo-group { border:1px solid #e5e7eb; border-radius:1rem; margin-bottom:1.1rem; overflow:hidden; background:white; scroll-margin-top:5rem; }
+    .algo-group summary { cursor:pointer; padding:1rem 1.3rem; display:flex; align-items:center; gap:.7rem; list-style:none; }
+    .algo-group summary::-webkit-details-marker { display:none; }
+    .algo-group summary::after { content:'\25be'; margin-left:auto; font-size:1rem; color:#9ca3af; transition:transform .15s; }
+    .algo-group[open] summary::after { transform:rotate(180deg); }
+    .algo-group-body { padding:.3rem 1.3rem 1.3rem; border-top:1px solid #f1f5f9; }
+    .algo-group-body .sec-card, .algo-group-body .callout-red, .algo-group-body .callout-gold, .algo-group-body .next-box { margin-top:1.1rem; margin-bottom:0; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-4xl mx-auto px-5 py-3 flex items-center gap-2 text-sm flex-wrap">
+    <a href="coding-patterns.html"
+       class="flex items-center gap-1.5 text-amber-600 hover:text-amber-800 font-semibold
+              bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>Back
+    </a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="index.html" class="text-gray-400 hover:text-gray-600">Dashboard</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <a href="coding-patterns.html" class="text-gray-400 hover:text-gray-600">Coding Patterns</a>
+    <svg class="w-3.5 h-3.5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span id="crumb-name" class="text-amber-700 font-semibold">Pattern</span>
+  </div>
+</header>
+
+<div id="page-content" class="max-w-4xl mx-auto px-5 pt-8 pb-16"></div>
+
+<script src="coding-patterns-data.js"></script>
+<script src="pattern-academy-data.js"></script>
+<script src="pattern-academy-data-2.js"></script>
+<script src="pattern-academy-data-3.js"></script>
+<script src="pattern-academy-data-4.js"></script>
+<script src="pattern-academy-data-5.js"></script>
+<script src="pattern-academy-data-6.js"></script>
+<script src="pattern-academy-data-7.js"></script>
+<script src="pattern-academy-data-8.js"></script>
+<script src="pattern-academy-data-9.js"></script>
+<script src="pattern-academy-data-10.js"></script>
+<script src="pattern-academy-data-11.js"></script>
+<script src="pattern-academy-data-12.js"></script>
+<script src="pattern-academy-data-13.js"></script>
+<script src="pattern-academy-data-14.js"></script>
+<script src="pattern-academy-data-15.js"></script>
+<script src="pattern-academy-data-16.js"></script>
+<script src="pattern-academy-data-17.js"></script>
+<script src="pattern-academy-data-18.js"></script>
+<script src="pattern-academy-data-19.js"></script>
+<script src="pattern-academy-data-20.js"></script>
+<script src="pattern-academy-data-21.js"></script>
+<script src="pattern-academy-data-22.js"></script>
+<script>
+  const PATTERN_ACADEMY = Object.assign({},
+    (typeof PATTERN_ACADEMY_1 !== "undefined") ? PATTERN_ACADEMY_1 : {},
+    (typeof PATTERN_ACADEMY_2 !== "undefined") ? PATTERN_ACADEMY_2 : {},
+    (typeof PATTERN_ACADEMY_3 !== "undefined") ? PATTERN_ACADEMY_3 : {},
+    (typeof PATTERN_ACADEMY_4 !== "undefined") ? PATTERN_ACADEMY_4 : {},
+    (typeof PATTERN_ACADEMY_5 !== "undefined") ? PATTERN_ACADEMY_5 : {},
+    (typeof PATTERN_ACADEMY_6 !== "undefined") ? PATTERN_ACADEMY_6 : {},
+    (typeof PATTERN_ACADEMY_7 !== "undefined") ? PATTERN_ACADEMY_7 : {},
+    (typeof PATTERN_ACADEMY_8 !== "undefined") ? PATTERN_ACADEMY_8 : {},
+    (typeof PATTERN_ACADEMY_9 !== "undefined") ? PATTERN_ACADEMY_9 : {},
+    (typeof PATTERN_ACADEMY_10 !== "undefined") ? PATTERN_ACADEMY_10 : {},
+    (typeof PATTERN_ACADEMY_11 !== "undefined") ? PATTERN_ACADEMY_11 : {},
+    (typeof PATTERN_ACADEMY_12 !== "undefined") ? PATTERN_ACADEMY_12 : {},
+    (typeof PATTERN_ACADEMY_13 !== "undefined") ? PATTERN_ACADEMY_13 : {},
+    (typeof PATTERN_ACADEMY_14 !== "undefined") ? PATTERN_ACADEMY_14 : {},
+    (typeof PATTERN_ACADEMY_15 !== "undefined") ? PATTERN_ACADEMY_15 : {},
+    (typeof PATTERN_ACADEMY_16 !== "undefined") ? PATTERN_ACADEMY_16 : {},
+    (typeof PATTERN_ACADEMY_17 !== "undefined") ? PATTERN_ACADEMY_17 : {},
+    (typeof PATTERN_ACADEMY_18 !== "undefined") ? PATTERN_ACADEMY_18 : {},
+    (typeof PATTERN_ACADEMY_19 !== "undefined") ? PATTERN_ACADEMY_19 : {},
+    (typeof PATTERN_ACADEMY_20 !== "undefined") ? PATTERN_ACADEMY_20 : {},
+    (typeof PATTERN_ACADEMY_21 !== "undefined") ? PATTERN_ACADEMY_21 : {},
+    (typeof PATTERN_ACADEMY_22 !== "undefined") ? PATTERN_ACADEMY_22 : {});
+</script>
+<script>
+  function getSlug() {
+    return new URLSearchParams(window.location.search).get("p") || "";
+  }
+  function slugify(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+  function findPattern(slug) {
+    for (const tier of TIERS) {
+      for (const p of tier.patterns) {
+        if (slugify(p.name) === slug) return { pattern: p, tier };
+      }
+    }
+    return null;
+  }
+
+  function renderVariantItem(v) {
+    const typical = (v.typical || []).map(t => `<span class="var-chip">${t}</span>`).join("");
+    const recognition = (v.recognition || []).map(t => `<span class="var-chip">${t}</span>`).join("");
+    return `
+      <div class="var-card">
+        <div><span class="var-id">${v.id}</span><span class="var-title">${v.title}</span></div>
+        ${v.question ? `<p class="var-q">&ldquo;${v.question}&rdquo;</p>` : ""}
+        ${v.use ? `<p class="var-label">Use</p><pre class="var-code">${v.use}</pre>` : ""}
+        ${v.diagram ? `<p class="var-label">Diagram</p><pre class="var-code">${v.diagram}</pre>` : ""}
+        ${v.note ? `<p class="var-note">${v.note}</p>` : ""}
+        ${typical ? `<p class="var-label">Typical problems</p><div>${typical}</div>` : ""}
+        ${recognition ? `<p class="var-label">Recognition</p><div>${recognition}</div>` : ""}
+      </div>`;
+  }
+
+  function renderSection(sec) {
+    switch (sec.type) {
+      case "groupNav":
+        return `
+          <div class="algo-nav">
+            ${sec.items.map(it => `<a href="#${it.id}" onclick="openAlgoGroup('${it.id}')" style="color:${it.color}; border-color:${it.color}44; background:${it.color}11;">${it.label}</a>`).join("")}
+          </div>`;
+      case "group":
+        return `
+          <details class="algo-group" id="${sec.id}">
+            <summary>
+              <span class="group-badge" style="background:${sec.color}22; color:${sec.color};">${sec.badge}</span>
+              <span class="group-title">${sec.title}</span>
+              ${sec.sub ? `<span class="group-sub">${sec.sub}</span>` : ""}
+            </summary>
+            <div class="algo-group-body">${sec.items.map(renderSection).join("")}</div>
+          </details>`;
+      case "text":
+        return `
+          <div class="sec-card">
+            <p class="sec-head">${sec.heading}</p>
+            <p class="sec-body">${sec.body}</p>
+            ${sec.diagram ? `<pre class="big-diagram mt-3">${sec.diagram}</pre>` : ""}
+          </div>`;
+      case "variants":
+        return `
+          <p class="font-bold text-gray-800 text-sm mb-3 mt-6">${sec.heading}</p>
+          ${sec.items.map(renderVariantItem).join("")}`;
+      case "diagram":
+        return `
+          <div class="sec-card">
+            <p class="sec-head">${sec.heading}</p>
+            <pre class="big-diagram" style="${sec.dark ? 'background:#111827;' : ''}">${sec.body}</pre>
+          </div>`;
+      case "callout":
+        return `
+          <div class="callout-${sec.tone}">
+            <p class="cal-head">${sec.heading}</p>
+            <p class="cal-body">${sec.body}</p>
+            ${sec.conclusion ? `<p class="cal-conc">&ldquo;${sec.conclusion}&rdquo;</p>` : ""}
+          </div>`;
+      case "comparison":
+        return `
+          <div class="sec-card">
+            <p class="sec-head">${sec.heading}</p>
+            <div class="cmp-grid">
+              ${sec.items.map(it => `
+                <div class="cmp-item">
+                  <p class="cmp-label">${it.label}</p>
+                  <p class="cmp-body">${it.body}</p>
+                </div>`).join("")}
+            </div>
+            ${sec.conclusion ? `<p class="cmp-conc">${sec.conclusion}</p>` : ""}
+          </div>`;
+      case "practice":
+        return `
+          <div class="sec-card">
+            <p class="sec-head">${sec.heading}</p>
+            <p class="sec-body mb-3">${sec.intro}</p>
+            <ol class="list-decimal pl-5 space-y-1">
+              ${sec.items.map(i => `<li class="prac-item">${i}</li>`).join("")}
+            </ol>
+            ${sec.note ? `<p class="prac-note">${sec.note}</p>` : ""}
+          </div>`;
+      case "nextLesson":
+        return `
+          <div class="next-box">
+            <p class="next-head">Next lesson &mdash; ${sec.pattern}</p>
+            <ul class="next-point">${sec.points.map(pt => `<li>${pt}</li>`).join("")}</ul>
+          </div>`;
+      case "chips":
+        return `
+          <div class="sec-card">
+            <p class="sec-head">${sec.heading}</p>
+            ${sec.intro ? `<p class="sec-body mb-3">${sec.intro}</p>` : ""}
+            <div>${sec.items.map(t => `<span class="var-chip">${t}</span>`).join("")}</div>
+          </div>`;
+      case "checklist":
+        return `
+          <div class="next-box">
+            <p class="next-head">${sec.heading}</p>
+            <ul class="next-point" style="list-style:none; padding-left:0;">
+              ${sec.items.map(i => {
+                const label = (typeof i === "string") ? i : i.label;
+                const done = (typeof i === "string") ? true : !!i.done;
+                return `<li>${done ? "\u2705" : "\u2b1c"} ${label}</li>`;
+              }).join("")}
+            </ul>
+          </div>`;
+      default:
+        return "";
+    }
+  }
+
+  function renderComingSoon(pattern) {
+    return `
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 text-center">
+        <p class="text-sm text-gray-500">This pattern's Phase 1 lesson hasn't been written yet.</p>
+        ${(pattern.subs && pattern.subs.length) ? `
+          <p class="text-xs text-gray-400 mt-3 mb-2">Known sub-techniques:</p>
+          <div>${pattern.subs.map(s => `<span class="var-chip">${s}</span>`).join("")}</div>
+        ` : ""}
+      </div>`;
+  }
+
+  function render() {
+    const slug = getSlug();
+    const found = findPattern(slug);
+    const content = document.getElementById("page-content");
+
+    if (!found) {
+      content.innerHTML = `<p class="text-gray-500 text-sm">Pattern not found. <a href="coding-patterns.html" class="text-amber-600 font-semibold">Back to Coding Patterns</a>.</p>`;
+      return;
+    }
+
+    const { pattern, tier } = found;
+    const academy = (typeof PATTERN_ACADEMY !== "undefined") ? PATTERN_ACADEMY[slug] : null;
+
+    document.title = `${pattern.name} \u2014 Pattern Academy`;
+    document.getElementById("crumb-name").textContent = pattern.name;
+
+    content.innerHTML = `
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+          <span class="font-black text-amber-700 text-sm">${pattern.num}</span>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-gray-800">${academy ? academy.title : pattern.name}</h1>
+          <p class="text-xs text-gray-400 mt-0.5">${tier.title}</p>
+        </div>
+      </div>
+      ${academy ? academy.sections.map(renderSection).join("") : renderComingSoon(pattern)}
+    `;
+  }
+
+  function openAlgoGroup(id) {
+    const el = document.getElementById(id);
+    if (el && el.tagName === "DETAILS") el.open = true;
+  }
+
+  render();
+</script>
+<script src="page-timer.js"></script>
+</body>
+</html>
